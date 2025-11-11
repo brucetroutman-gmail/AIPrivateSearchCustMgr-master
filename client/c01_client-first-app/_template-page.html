@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Title - AI Private Search</title>
+    
+    <!-- Standard Stylesheets -->
+    <link rel="stylesheet" href="shared/styles.css">
+    
+    <!-- Standard Scripts (Required for all pages) -->
+    <script src="shared/utils/apiConfig.js"></script>
+    <script src="csrf.js"></script>
+    <script type="module" src="shared/common.js"></script>
+    
+    <!-- Page-specific styles -->
+    <style>
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .content-section {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        /* Tier-based visibility classes */
+        .prem-only {
+            display: none;
+        }
+        
+        .pro-only {
+            display: none;
+        }
+        
+        .admin-only {
+            display: none;
+        }
+        
+        .searcher-only {
+            display: none;
+        }
+        
+        /* Show classes based on user tier (applied by common.js) */
+        .tier-premium .prem-only,
+        .tier-professional .prem-only {
+            display: block;
+        }
+        
+        .tier-professional .pro-only {
+            display: block;
+        }
+        
+        .role-admin .admin-only {
+            display: block;
+        }
+        
+        .role-searcher .searcher-only {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header (loaded by common.js) -->
+    <div id="header-placeholder"></div>
+
+    <!-- Main Content -->
+    <div class="page-content">
+        <div class="page-container">
+            <h1>Page Title</h1>
+            
+            <div class="content-section">
+                <h2>Section Title</h2>
+                <p>Page content goes here...</p>
+                
+                <!-- Example tier-restricted content -->
+                <div class="prem-only">
+                    <p>This content is only visible to Premium and Professional users.</p>
+                </div>
+                
+                <div class="pro-only">
+                    <p>This content is only visible to Professional users.</p>
+                </div>
+                
+                <div class="admin-only">
+                    <p>This content is only visible to Admin users.</p>
+                </div>
+                
+                <!-- Example button -->
+                <button class="btn btn-primary" onclick="handleAction()">Action Button</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer (loaded by common.js) -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Page-specific JavaScript -->
+    <script>
+        // Page initialization
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('Page loaded');
+            
+            // Wait for common.js to complete initialization
+            if (window.commonInitialized) {
+                initializePage();
+            } else {
+                // Listen for common initialization complete
+                document.addEventListener('commonInitialized', initializePage);
+            }
+        });
+        
+        function initializePage() {
+            console.log('Initializing page-specific functionality');
+            
+            // Access user info (set by common.js)
+            if (window.currentUser) {
+                console.log('Current user:', window.currentUser);
+                console.log('User tier:', window.userTier);
+                console.log('User role:', window.userRole);
+            }
+            
+            // Page-specific initialization code here
+            loadPageData();
+        }
+        
+        async function loadPageData() {
+            try {
+                // Example API call using window.API_BASE_URL (set by apiConfig.js)
+                const response = await fetch(`${window.API_BASE_URL}/api/example-endpoint`);
+                if (!response.ok) throw new Error('Failed to load data');
+                
+                const data = await response.json();
+                console.log('Page data loaded:', data);
+                
+                // Process and display data
+                displayData(data);
+                
+            } catch (error) {
+                console.error('Error loading page data:', error);
+                showError('Failed to load page data: ' + error.message);
+            }
+        }
+        
+        function displayData(data) {
+            // Display data in the UI
+            console.log('Displaying data:', data);
+        }
+        
+        function handleAction() {
+            console.log('Action button clicked');
+            // Handle button click
+        }
+        
+        function showError(message) {
+            // Simple error display
+            const errorDiv = document.createElement('div');
+            errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin: 10px 0;';
+            errorDiv.textContent = message;
+            document.querySelector('.page-container').prepend(errorDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+        
+        function showSuccess(message) {
+            // Simple success display
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = 'background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin: 10px 0;';
+            successDiv.textContent = message;
+            document.querySelector('.page-container').prepend(successDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

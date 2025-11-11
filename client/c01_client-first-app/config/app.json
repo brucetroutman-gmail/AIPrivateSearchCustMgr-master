@@ -1,0 +1,18 @@
+{
+  "app-name": "AI Private Search Customer Manager",
+  "ports": {
+    "frontend": 4000,
+    "backend": 4001
+  },
+  "bearer-token-timeout": 300,
+  "subscription-tier": 3,
+  "role": "admin",
+  "features": {
+    "user-management": true,
+    "license-management": true,
+    "payment-processing": true,
+    "token-management": true,
+    "analytics": true,
+    "system-settings": true
+  }
+}

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Manager - AIPrivateSearch</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --card-bg: #2d2d2d;
+            --border-color: #444;
+            --accent-color: #007bff;
+            --hover-color: #0056b3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--accent-color);
+        }
+
+        p {
+            text-align: center;
+            margin-bottom: 3rem;
+            opacity: 0.8;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+        }
+
+        .card h2 {
+            color: var(--accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .card p {
+            margin-bottom: 1.5rem;
+            opacity: 0.7;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background: var(--hover-color);
+        }
+
+        .header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            margin: 0;
+            text-align: left;
+        }
+
+        .footer {
+            margin-top: 4rem;
+            padding: 2rem 0;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>Customer Manager</h1>
+        </div>
+    </div>
+    
+    <main class="container">
+        <h1>Customer Manager Dashboard</h1>
+        <p>Welcome to the AIPrivateSearch Customer Management System</p>
+        
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2>User Management</h2>
+                <p>Manage customer accounts and registrations</p>
+                <button onclick="navigateTo('users')">Manage Users</button>
+            </div>
+
+            <div class="card">
+                <h2>License Management</h2>
+                <p>Handle subscriptions and tier assignments</p>
+                <button onclick="navigateTo('licenses')">Manage Licenses</button>
+            </div>
+
+            <div class="card">
+                <h2>Payment Processing</h2>
+                <p>Process payments and manage billing</p>
+                <button onclick="navigateTo('payments')">View Payments</button>
+            </div>
+
+            <div class="card">
+                <h2>Token Management</h2>
+                <p>Generate and validate access tokens</p>
+                <button onclick="navigateTo('tokens')">Manage Tokens</button>
+            </div>
+
+            <div class="card">
+                <h2>System Analytics</h2>
+                <p>View usage statistics and reports</p>
+                <button onclick="navigateTo('analytics')">View Analytics</button>
+            </div>
+
+            <div class="card">
+                <h2>System Settings</h2>
+                <p>Configure system parameters</p>
+                <button onclick="navigateTo('settings')">Settings</button>
+            </div>
+        </div>
+    </main>
+    
+    <div class="footer">
+        <div class="container">
+            <p>&copy; 2024 AIPrivateSearch Customer Manager</p>
+        </div>
+    </div>
+    
+    <script>
+        function navigateTo(section) {
+            console.log(`Navigating to: ${section}`);
+            alert(`${section} management coming soon!`);
+        }
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Customer Manager Dashboard initialized');
+        });
+    </script>
+</body>
+</html>
