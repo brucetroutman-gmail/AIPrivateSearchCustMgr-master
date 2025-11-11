@@ -1,0 +1,8 @@
+node_modules/
+*.db
+*.log
+.env*
+system-documentation/
+sources/
+*.md
+package-lock.json
