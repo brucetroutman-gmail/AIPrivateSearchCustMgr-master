@@ -1,0 +1,62 @@
+[
+  {
+    "id": "ad966ae1-0d42-43b8-ab9e-11b87d366a14",
+    "email": "adm-std@a.com",
+    "passwordHash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+    "subscriptionTier": "standard",
+    "userRole": "admin",
+    "createdAt": "2025-10-28T23:36:53.052Z",
+    "lastLogin": "2025-11-05T14:03:35.470Z",
+    "active": true
+  },
+  {
+    "id": "c6d084c2-1e56-4ca0-b14d-8b19fd477b38",
+    "email": "adm-prem@a.com",
+    "passwordHash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+    "subscriptionTier": "premium",
+    "userRole": "admin",
+    "createdAt": "2025-10-30T20:00:00.000Z",
+    "lastLogin": "2025-11-05T14:08:34.207Z",
+    "active": true
+  },
+  {
+    "id": "d7e195d3-2f67-5db1-c25e-9c20ge588c49",
+    "email": "adm-prof@a.com",
+    "passwordHash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+    "subscriptionTier": "professional",
+    "userRole": "admin",
+    "createdAt": "2025-10-30T20:00:00.000Z",
+    "lastLogin": "2025-11-10T20:17:46.312Z",
+    "active": true
+  },
+  {
+    "id": "378019d0-465e-47f9-a558-c6c788a91fdc",
+    "email": "srch-std@a.com",
+    "passwordHash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+    "subscriptionTier": "standard",
+    "userRole": "searcher",
+    "createdAt": "2025-11-01T17:10:24.152Z",
+    "lastLogin": "2025-11-10T17:09:14.427Z",
+    "active": true
+  },
+  {
+    "id": "0f55b643-2c88-4c06-8d8f-3927422f9fa9",
+    "email": "srch-prem@a.com",
+    "passwordHash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+    "subscriptionTier": "premium",
+    "userRole": "searcher",
+    "createdAt": "2025-11-02T17:02:05.945Z",
+    "lastLogin": "2025-11-04T14:43:47.711Z",
+    "active": true
+  },
+  {
+    "id": "f3aee9d9-e299-48f1-a44d-9ccf87c608e2",
+    "email": "srch-prof@a.com",
+    "passwordHash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+    "subscriptionTier": "professional",
+    "userRole": "searcher",
+    "createdAt": "2025-11-04T14:30:50.291Z",
+    "lastLogin": "2025-11-04T14:31:05.480Z",
+    "active": true
+  }
+]

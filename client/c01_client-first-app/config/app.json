@@ -1,8 +1,8 @@
 {
   "app-name": "AI Private Search Customer Manager",
   "ports": {
-    "frontend": 4000,
-    "backend": 4001
+    "frontend": 54000,
+    "backend": 54001
   },
   "bearer-token-timeout": 300,
   "subscription-tier": 3,
