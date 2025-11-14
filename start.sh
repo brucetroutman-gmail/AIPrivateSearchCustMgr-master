@@ -1,13 +1,19 @@
 #!/bin/bash
 
+# AI Private Search Customer Manager Startup Script
+# Ubuntu/macOS compatible version
+
+cd "$(dirname "$0")"
+
 echo "🚀 Starting AI Private Search Customer Manager..."
 
-# Read ports from app.json config
-FRONTEND_PORT=54000
-BACKEND_PORT=54001
+# Read ports from app.json using Node.js for better compatibility
 if [ -f "client/c01_client-first-app/config/app.json" ]; then
-    FRONTEND_PORT=$(grep -o '"frontend":[[:space:]]*[0-9]*' client/c01_client-first-app/config/app.json | grep -o '[0-9]*' || echo 54000)
-    BACKEND_PORT=$(grep -o '"backend":[[:space:]]*[0-9]*' client/c01_client-first-app/config/app.json | grep -o '[0-9]*' || echo 54001)
+    FRONTEND_PORT=$(node -p "JSON.parse(require('fs').readFileSync('./client/c01_client-first-app/config/app.json', 'utf8')).ports.frontend" 2>/dev/null || echo 56303)
+    BACKEND_PORT=$(node -p "JSON.parse(require('fs').readFileSync('./client/c01_client-first-app/config/app.json', 'utf8')).ports.backend" 2>/dev/null || echo 56304)
+else
+    FRONTEND_PORT=56303
+    BACKEND_PORT=56304
 fi
 
 # Kill any existing server processes to free up ports
@@ -58,8 +64,20 @@ echo "✅ Application started successfully!"
 echo "🔗 Frontend: http://localhost:$FRONTEND_PORT"
 echo "🔗 Backend API: http://localhost:$BACKEND_PORT"
 echo ""
-echo "🌐 Opening browser..."
-open http://localhost:$FRONTEND_PORT 2>/dev/null || true
+
+# Open browser only if not on Ubuntu server (detect GUI availability)
+if [ -n "$DISPLAY" ] || [ "$(uname)" = "Darwin" ]; then
+    echo "🌐 Opening browser..."
+    if command -v open >/dev/null 2>&1; then
+        open "http://localhost:$FRONTEND_PORT"
+    elif command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "http://localhost:$FRONTEND_PORT"
+    fi
+else
+    echo "Server mode detected - browser not opened"
+    echo "Access application at: http://localhost:$FRONTEND_PORT"
+fi
+
 echo ""
 echo "Press Ctrl+C to stop both servers"
 
@@ -74,11 +92,7 @@ cleanup() {
 }
 
 # Set trap for cleanup
-trap cleanup INT TERM EXIT
+trap cleanup SIGINT SIGTERM
 
-# Keep both servers running
-while kill -0 $BACKEND_PID 2>/dev/null && kill -0 $FRONTEND_PID 2>/dev/null; do
-    sleep 5
-done
-
-echo "One or both servers stopped unexpectedly"
+# Wait for processes (Ubuntu compatible)
+wait $BACKEND_PID $FRONTEND_PID

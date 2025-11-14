@@ -10,7 +10,7 @@ import path from 'path';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4001;
+const PORT = process.env.PORT || 56304;
 
 // Security middleware
 app.use(helmet({
@@ -39,7 +39,7 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:4000'],
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:56303'],
   credentials: true
 }));
 
