@@ -1,5 +1,5 @@
 ## Pending Tasks
-007. 
+008. 
 
 ## Completed Tasks
 001. create github repo and commit and sync changes --done
@@ -8,3 +8,4 @@
 004. Read /Users/Shared/AIPrivateSearch/repo/aiprivatesearchweb/start.sh and modify this app'a start.sh for the ubuntu test --done
 005. from /Users/Shared/AIPrivateSearch/repo/aiprivatesearchweb bring the pm2 realeted files and modify if neccessary for this app --done
 006. change app name to aipscust from custmgr --done
+007. configure PM2 for separate frontend/backend processes --done

@@ -30,6 +30,9 @@ pm2 monit
 # All logs
 pm2 logs
 
+# Frontend logs only
+pm2 logs aipscust-frontend
+
 # Backend logs only
 pm2 logs aipscust-backend
 ```
@@ -50,6 +53,9 @@ pm2 startup
 # Check error logs
 pm2 logs --err
 
+# Check frontend logs
+pm2 logs aipscust-frontend --err
+
 # Check backend logs
 pm2 logs aipscust-backend --err
 
@@ -62,5 +68,5 @@ pm2 flush
 ```
 
 ## Application URLs
-- Frontend: http://localhost:56303 (served by backend)
+- Frontend: http://localhost:56303
 - Backend API: http://localhost:56304
