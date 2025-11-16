@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ path: '/Users/Shared/AIPrivateSearch/.env' });
 
 const app = express();
 const PORT = process.env.PORT || 56304;
@@ -37,10 +37,20 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS configuration
+// CORS configuration for licensing system
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:56303'],
-  credentials: true
+  origin: [
+    'http://localhost:53000',
+    'http://localhost:53001', 
+    'http://127.0.0.1:53000',
+    'http://127.0.0.1:53001',
+    /^http:\/\/localhost:\d+$/,
+    /^http:\/\/127\.0\.0\.1:\d+$/,
+    ...(process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:56303'])
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
 }));
 
 // Body parsing middleware
@@ -62,18 +72,23 @@ app.get('/api/health', (req, res) => {
 
 // Import routes and middleware
 import authRouter from './routes/auth.mjs';
+import licensingRouter from './routes/licensing.mjs';
 import { generateCSRFToken, validateCSRFToken } from './middleware/csrf.mjs';
 import { validateOrigin } from './middleware/auth.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
+import { initializeLicensingDB } from './lib/licensing-db.mjs';
 
 // CSRF token endpoint
 app.get('/api/csrf-token', generateCSRFToken, (req, res) => {
   res.json({ csrfToken: req.csrfToken });
 });
 
+// Initialize licensing database
+initializeLicensingDB().catch(console.error);
+
 // API routes
 app.use('/api/auth', validateOrigin, authRouter);
-// app.use('/api/licenses', validateOrigin, validateCSRFToken, licenseRouter);
+app.use('/api/licensing', licensingRouter);
 // app.use('/api/payments', validateOrigin, validateCSRFToken, paymentRouter);
 
 // Catch-all for unmatched API routes

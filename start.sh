@@ -7,20 +7,25 @@ cd "$(dirname "$0")"
 
 echo "🚀 Starting AI Private Search Customer Manager..."
 
-# Read ports from app.json using Node.js for better compatibility
-if [ -f "client/c01_client-first-app/config/app.json" ]; then
-    FRONTEND_PORT=$(node -p "JSON.parse(require('fs').readFileSync('./client/c01_client-first-app/config/app.json', 'utf8')).ports.frontend" 2>/dev/null || echo 56303)
-    BACKEND_PORT=$(node -p "JSON.parse(require('fs').readFileSync('./client/c01_client-first-app/config/app.json', 'utf8')).ports.backend" 2>/dev/null || echo 56304)
-else
-    FRONTEND_PORT=56303
-    BACKEND_PORT=56304
+# Read ports from app.json - ONLY use config file values
+if [ ! -f "client/c01_client-first-app/config/app.json" ]; then
+    echo "❌ Config file not found: client/c01_client-first-app/config/app.json"
+    exit 1
 fi
 
-# Kill any existing server processes to free up ports
+FRONTEND_PORT=$(node -p "JSON.parse(require('fs').readFileSync('./client/c01_client-first-app/config/app.json', 'utf8')).ports.frontend")
+BACKEND_PORT=$(node -p "JSON.parse(require('fs').readFileSync('./client/c01_client-first-app/config/app.json', 'utf8')).ports.backend")
+
+if [ -z "$FRONTEND_PORT" ] || [ -z "$BACKEND_PORT" ]; then
+    echo "❌ Failed to read ports from config file"
+    exit 1
+fi
+
+# Kill any existing custmgr server processes to free up ports
 lsof -ti :$BACKEND_PORT | xargs kill -9 2>/dev/null || true
 lsof -ti :$FRONTEND_PORT | xargs kill -9 2>/dev/null || true
-pkill -f "node server.mjs" 2>/dev/null || true
-pkill -f "npx serve" 2>/dev/null || true
+# Only kill custmgr specific processes (avoid killing AIPrivateSearch)
+pkill -f "aiprivatesearchcustmgr" 2>/dev/null || true
 sleep 2
 
 # Start backend server
@@ -33,13 +38,15 @@ if [ ! -d "node_modules" ]; then
     npm install --silent --no-audit --no-fund
 fi
 
-npm start &
+npm start > ../../logs/backend-startup.log 2>&1 &
 BACKEND_PID=$!
 
 # Wait for backend to start
 sleep 3
 if ! kill -0 $BACKEND_PID 2>/dev/null; then
     echo "❌ Backend server failed to start"
+    echo "📋 Backend startup log:"
+    cat ../../logs/backend-startup.log 2>/dev/null || echo "No log file found"
     exit 1
 fi
 echo "✅ Backend server started"
