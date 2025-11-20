@@ -1,5 +1,5 @@
 ## Pending Tasks
-009. 
+010. 
 
 ## Completed Tasks
 001. create github repo and commit and sync changes --done
@@ -10,3 +10,4 @@
 006. change app name to aipscust from custmgr --done
 007. configure PM2 for separate frontend/backend processes --done
 008. debug and verify both servers running on correct ports --done
+009. install and test on ubuntu server --done
