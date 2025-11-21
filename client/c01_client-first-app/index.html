@@ -10,8 +10,8 @@
             --text-color: #ffffff;
             --card-bg: #2d2d2d;
             --border-color: #444;
-            --accent-color: #007bff;
-            --hover-color: #0056b3;
+            --accent-color: #87ceeb;
+            --hover-color: #5fb3d4;
         }
 
         * {
@@ -37,6 +37,10 @@
             text-align: center;
             margin-bottom: 1rem;
             color: var(--accent-color);
+        }
+
+        .coming-soon {
+            color: #ffd700;
         }
 
         p {
@@ -120,6 +124,7 @@
     </div>
     
     <main class="container">
+        <h1 class="coming-soon">Coming Soon!</h1>
         <h1>Customer Manager Dashboard</h1>
         <p>Welcome to the AIPrivateSearch Customer Management System</p>
         
@@ -168,15 +173,30 @@
         </div>
     </div>
     
+    <script src="auth.js"></script>
     <script>
         function navigateTo(section) {
             console.log(`Navigating to: ${section}`);
             alert(`${section} management coming soon!`);
         }
 
+        function logout() {
+            localStorage.removeItem('sessionId');
+            window.location.href = '/login.html';
+        }
+
         // Initialize app
         document.addEventListener('DOMContentLoaded', () => {
             console.log('Customer Manager Dashboard initialized');
+            
+            // Add logout button
+            const header = document.querySelector('.header .container');
+            const logoutBtn = document.createElement('button');
+            logoutBtn.textContent = 'Logout';
+            logoutBtn.onclick = logout;
+            logoutBtn.style.float = 'right';
+            logoutBtn.style.marginTop = '10px';
+            header.appendChild(logoutBtn);
         });
     </script>
 </body>

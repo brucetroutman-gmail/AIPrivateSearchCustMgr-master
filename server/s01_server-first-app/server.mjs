@@ -58,6 +58,53 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Import UserManager for auth middleware
+import { UserManager } from './lib/auth/userManager.mjs';
+const userManager = new UserManager();
+
+// Auth check middleware for protected routes
+app.use(async (req, res, next) => {
+  // Skip auth for login page, auth endpoints, and static assets
+  if (req.path === '/login.html' || 
+      req.path.startsWith('/api/auth/') || 
+      req.path === '/api/health' ||
+      req.path.endsWith('.css') ||
+      req.path.endsWith('.js') ||
+      req.path.endsWith('.ico')) {
+    return next();
+  }
+  
+  // Check for session token in localStorage (sent via Authorization header)
+  const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!sessionId) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    return res.redirect('/login.html');
+  }
+  
+  // Verify session
+  try {
+    const user = await userManager.validateSession(sessionId);
+    
+    if (!user) {
+      if (req.path.startsWith('/api/')) {
+        return res.status(401).json({ error: 'Session expired' });
+      }
+      return res.redirect('/login.html');
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    if (req.path.startsWith('/api/')) {
+      return res.status(401).json({ error: 'Invalid session' });
+    }
+    return res.redirect('/login.html');
+  }
+});
+
 // Serve static files from client
 app.use(express.static(path.join(process.cwd(), '../../client/c01_client-first-app')));
 
@@ -77,6 +124,7 @@ import { generateCSRFToken, validateCSRFToken } from './middleware/csrf.mjs';
 import { validateOrigin } from './middleware/auth.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
 import { initializeLicensingDB } from './lib/licensing-db.mjs';
+import { requireAuth } from './middleware/authMiddleware.mjs';
 
 // CSRF token endpoint
 app.get('/api/csrf-token', generateCSRFToken, (req, res) => {
@@ -86,8 +134,16 @@ app.get('/api/csrf-token', generateCSRFToken, (req, res) => {
 // Initialize licensing database
 initializeLicensingDB().catch(console.error);
 
+// Initialize customer manager database
+import { initializeDB } from './lib/database/init.mjs';
+initializeDB().then(() => {
+  console.log('Customer manager database ready');
+}).catch(console.error);
+
 // API routes
 app.use('/api/auth', validateOrigin, authRouter);
+app.use('/api/users', requireAuth, (req, res) => res.json({ message: 'Users endpoint' }));
+app.use('/api/dashboard', requireAuth, (req, res) => res.json({ message: 'Dashboard data' }));
 app.use('/api/licensing', licensingRouter);
 // app.use('/api/payments', validateOrigin, validateCSRFToken, paymentRouter);
 
