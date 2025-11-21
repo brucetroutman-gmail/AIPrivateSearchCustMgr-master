@@ -4,7 +4,7 @@ module.exports = {
       name: 'aipscust-frontend',
       script: 'npx',
       args: 'serve client/c01_client-first-app -l 56303',
-      cwd: '/webs/aiprivatesearchcustmgr',
+      cwd: '/webs/AIPrivateSearch/repo/aiprivatesearchcustmgr',
       env: {
         NODE_ENV: 'production'
       },
@@ -22,7 +22,7 @@ module.exports = {
     {
       name: 'aipscust-backend',
       script: './server/s01_server-first-app/server.mjs',
-      cwd: '/webs/aiprivatesearchcustmgr',
+      cwd: '/webs/AIPrivateSearch/repo/aiprivatesearchcustmgr',
       env: {
         PORT: 56304,
         NODE_ENV: 'production'
