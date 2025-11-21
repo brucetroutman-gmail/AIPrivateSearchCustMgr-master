@@ -44,9 +44,11 @@ app.use(cors({
     'http://localhost:53001', 
     'http://127.0.0.1:53000',
     'http://127.0.0.1:53001',
+    'http://localhost:56303',
+    'https://custmgr.aiprivatesearch.com',
     /^http:\/\/localhost:\d+$/,
     /^http:\/\/127\.0\.0\.1:\d+$/,
-    ...(process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:56303'])
+    ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
   ],
   credentials: true,
   methods: ['GET', 'POST', 'OPTIONS'],
