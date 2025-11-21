@@ -75,7 +75,7 @@
         button {
             width: 100%;
             background: var(--accent-color);
-            color: var(--bg-color);
+            color: black !important;
             border: none;
             padding: 0.75rem;
             border-radius: 4px;
@@ -87,6 +87,7 @@
 
         button:hover {
             background: var(--hover-color);
+            color: black !important;
         }
 
         .error {
@@ -133,9 +134,9 @@
             const errorDiv = document.getElementById('errorMessage');
             
             try {
-                const backendUrl = window.location.hostname === 'localhost' ? 
-                    'http://localhost:56304' : `${window.location.protocol}//${window.location.hostname}:56304`;
-                const response = await fetch(`${backendUrl}/api/auth/login`, {
+                const apiUrl = window.location.hostname === 'localhost' ? 
+                    'http://localhost:56304/api/auth/login' : '/api/auth/login';
+                const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
