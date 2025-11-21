@@ -1,7 +1,19 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '/Users/Shared/AIPrivateSearch/.env' });
+// Try multiple .env locations
+const envPaths = [
+  '/Users/Shared/AIPrivateSearch/.env',  // macOS
+  '/webs/AIPrivateSearch/.env',          // Ubuntu
+  '.env'                                 // Local fallback
+];
+
+for (const envPath of envPaths) {
+  try {
+    dotenv.config({ path: envPath });
+    if (process.env.DB_HOST) break;
+  } catch (e) {}
+}
 
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',

@@ -7,7 +7,19 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load environment variables
-dotenv.config({ path: '/Users/Shared/AIPrivateSearch/.env' });
+// Try multiple .env locations
+const envPaths = [
+  '/Users/Shared/AIPrivateSearch/.env',  // macOS
+  '/webs/AIPrivateSearch/.env',          // Ubuntu
+  '.env'                                 // Local fallback
+];
+
+for (const envPath of envPaths) {
+  try {
+    dotenv.config({ path: envPath });
+    if (process.env.DB_HOST) break;
+  } catch (e) {}
+}
 
 const app = express();
 const PORT = process.env.PORT || 56304;
