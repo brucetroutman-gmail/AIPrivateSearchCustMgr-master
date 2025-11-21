@@ -10,10 +10,19 @@
     "lint": "eslint .",
     "security-check": "./security-check.sh"
   },
-  "keywords": ["license-management", "customer-management", "subscription", "payments"],
+  "keywords": [
+    "license-management",
+    "customer-management",
+    "subscription",
+    "payments"
+  ],
   "author": "AI Private Search",
   "license": "CC-BY-NC-ND-4.0",
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "eslint-plugin-no-unsanitized": "^4.1.4",
+    "eslint-plugin-security": "^3.0.1"
   }
 }

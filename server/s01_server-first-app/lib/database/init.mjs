@@ -51,10 +51,14 @@ export async function initializeDB() {
     
     // Create admin user if doesn't exist
     if (users.length === 0) {
-      const passwordHash = crypto.createHash('sha256').update('123').digest('hex');
+      if (!process.env.ADMIN_DEFAULT_PASSWORD) {
+        throw new Error('ADMIN_DEFAULT_PASSWORD environment variable is required');
+      }
+      const adminCredential = process.env.ADMIN_DEFAULT_PASSWORD;
+      const credentialHash = crypto.createHash('sha256').update(adminCredential).digest('hex');
       await connection.execute(
         'INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES (?, ?, ?, ?, ?)',
-        ['adm-custmgr@a.com', passwordHash, 'Admin', 'User', 'admin']
+        ['adm-custmgr@a.com', credentialHash, 'Admin', 'User', 'admin']
       );
       console.log('Default admin user created: adm-custmgr@a.com / 123');
     }
