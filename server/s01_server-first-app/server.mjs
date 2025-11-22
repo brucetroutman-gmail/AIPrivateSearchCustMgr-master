@@ -78,9 +78,10 @@ const userManager = new UserManager();
 
 // Auth check middleware for protected routes
 app.use(async (req, res, next) => {
-  // Skip auth for login page, auth endpoints, and static assets
+  // Skip auth for login page, auth endpoints, licensing endpoints, and static assets
   if (req.path === '/login.html' || 
       req.path.startsWith('/api/auth/') || 
+      req.path.startsWith('/api/licensing/') || 
       req.path === '/api/health' ||
       req.path.endsWith('.css') ||
       req.path.endsWith('.js') ||
