@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'aipscust-frontend',
+      name: 'aipscust-c56303',
       script: 'npx',
       args: 'serve client/c01_client-first-app -l 56303',
       cwd: '/webs/AIPrivateSearch/repo/aiprivatesearchcustmgr',
@@ -20,7 +20,7 @@ module.exports = {
       time: true
     },
     {
-      name: 'aipscust-backend',
+      name: 'aipscust-s56304',
       script: './server/s01_server-first-app/server.mjs',
       cwd: '/webs/AIPrivateSearch/repo/aiprivatesearchcustmgr',
       env: {
