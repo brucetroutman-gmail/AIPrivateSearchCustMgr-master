@@ -973,6 +973,106 @@ mark.search-highlight,
   display: none !important;
 }
 
+/* Sherlock icon styling */
+.sherlock-icon {
+  max-width: 100px;
+  height: auto;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.sherlock-icon-left {
+  float: left;
+  margin: 0 1rem 1rem 0;
+  transform: scaleX(-1);
+}
+
+.sherlock-icon-right {
+  float: right;
+  margin: 0 0 1rem 1rem;
+}
+
+/* CTA buttons styling */
+.cta-buttons-hidden {
+  display: none;
+}
+
+/* License status styling */
+.license-status {
+  margin-top: 2rem;
+}
+
+/* User management inline styles */
+.auth-form-hidden {
+  display: none;
+}
+
+.user-dashboard-hidden {
+  display: none;
+}
+
+.admin-panel-hidden {
+  display: none;
+}
+
+.user-profile-hidden {
+  display: none;
+}
+
+.navigation-buttons {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.go-to-app-btn {
+  background: #28a745;
+}
+
+.user-action-btn {
+  border: none;
+  padding: 4px 8px;
+  margin: 0 2px;
+  color: white;
+}
+
+.edit-user-btn {
+  background: #007bff;
+}
+
+.toggle-user-btn {
+  /* Background set dynamically based on user status */
+}
+
+.delete-user-btn {
+  background: #dc3545;
+}
+
+/* Search logs styling */
+.no-logs {
+  display: none;
+}
+
+.logs-table {
+  display: none;
+}
+
+/* Header menu styling */
+.menu-item-hidden {
+  display: none;
+}
+
+.dropdown-manage {
+  display: none;
+}
+
+/* Logout button styling */
+.logout-btn-float {
+  float: right;
+  margin-top: 10px;
+}
+
 /* Role-based visibility classes */
 /* Visibility controlled by tier access manager */
 .searcher-only {
