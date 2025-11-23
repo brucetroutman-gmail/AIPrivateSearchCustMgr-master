@@ -1,5 +1,6 @@
 ## Pending Tasks
-011. 
+011. licensing should  check if customer exisits, determine tier, checkfor number of licensed UIID's and give appropriate messages.
+012. Added Sherlock icons  --done
 
 ## Completed Tasks
 001. create github repo and commit and sync changes --done
