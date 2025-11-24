@@ -277,6 +277,7 @@ body {
 
 .footer-links {
   margin-bottom: 1rem;
+  display: block;
 }
 
 .footer-links a {
@@ -327,6 +328,7 @@ body {
 .page-content {
   flex: 1;
   padding: 2rem;
+}
 }
 
 /* Light blue h1 in dark mode */

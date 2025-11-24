@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service - AIPrivateSearch</title>
+  <link rel="stylesheet" href="shared/styles.css">
+  <script type="module" src="shared/common.js"></script>
+  <script>
+    // Load theme immediately to prevent flash
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const theme = savedTheme || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      if (!savedTheme) {
+        localStorage.setItem('theme', theme);
+      }
+    })();
+  </script>
+  <style>
+    .terms-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 2rem;
+      line-height: 1.6;
+    }
+    
+    .terms-section {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 10px var(--shadow);
+    }
+    
+    h2 {
+      color: var(--text-color);
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+    }
+    
+    h3 {
+      color: var(--text-color);
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    [data-theme="dark"] h1 {
+      color: #87ceeb;
+    }
+    
+    [data-theme="dark"] h2, [data-theme="dark"] h3 {
+      color: #87ceeb;
+    }
+  </style>
+</head>
+<body>
+  <div id="header-placeholder"></div>
+
+  <div class="page-content">
+    <main class="terms-container">
+      <div class="terms-section">
+        <h1>Terms of Service</h1>
+        <p><strong>Last updated:</strong> January 2024</p>
+        
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing and using AIPrivateSearch ("the Service"), you accept and agree to be bound by the terms and provision of this agreement.</p>
+        
+        <h2>2. Description of Service</h2>
+        <p>AIPrivateSearch is an AI model evaluation platform that provides:</p>
+        <ul>
+          <li>AI-powered search and scoring capabilities</li>
+          <li>Local document collection management</li>
+          <li>Performance analytics and testing tools</li>
+          <li>Integration with local AI models via Ollama</li>
+          <li>Data export and analysis features</li>
+        </ul>
+        
+        <h2>3. User Responsibilities</h2>
+        <h3>3.1 Acceptable Use</h3>
+        <p>You agree to use the Service only for lawful purposes and in accordance with these Terms. You agree not to:</p>
+        <ul>
+          <li>Use the Service for any illegal or unauthorized purpose</li>
+          <li>Violate any applicable laws or regulations</li>
+          <li>Infringe upon the rights of others</li>
+          <li>Upload malicious content or malware</li>
+          <li>Attempt to gain unauthorized access to the Service</li>
+        </ul>
+        
+        <h3>3.2 Content Responsibility</h3>
+        <p>You are solely responsible for the content you upload, process, or generate using the Service. You warrant that you have the right to use such content and that it does not violate any third-party rights.</p>
+        
+        <h2>4. Intellectual Property</h2>
+        <h3>4.1 Service Ownership</h3>
+        <p>The Service and its original content, features, and functionality are owned by AIPrivateSearch and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.</p>
+        
+        <h3>4.2 User Content</h3>
+        <p>You retain ownership of any content you upload or create using the Service. By using the Service, you grant us a limited license to process your content solely for the purpose of providing the Service.</p>
+        
+        <h2>5. Privacy and Data Protection</h2>
+        <p>Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the Service, to understand our practices.</p>
+        
+        <h2>6. Disclaimers</h2>
+        <h3>6.1 Service Availability</h3>
+        <p>The Service is provided "as is" and "as available" without any warranties of any kind. We do not guarantee that the Service will be uninterrupted, secure, or error-free.</p>
+        
+        <h3>6.2 AI Model Results</h3>
+        <p>AI model results and scores are provided for informational purposes only. We make no warranties about the accuracy, reliability, or completeness of AI-generated content.</p>
+        
+        <h3>6.3 Third-Party Services</h3>
+        <p>The Service integrates with third-party services (such as Ollama). We are not responsible for the availability, accuracy, or reliability of these third-party services.</p>
+        
+        <h2>7. Limitation of Liability</h2>
+        <p>In no event shall AIPrivateSearch be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses.</p>
+        
+        <h2>8. System Requirements</h2>
+        <p>The Service requires:</p>
+        <ul>
+          <li>A compatible web browser</li>
+          <li>Local installation of Ollama for AI model functionality</li>
+          <li>Sufficient system resources for document processing</li>
+          <li>Internet connection for certain features</li>
+        </ul>
+        
+        <h2>9. Termination</h2>
+        <p>We may terminate or suspend your access to the Service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.</p>
+        
+        <h2>10. Updates and Modifications</h2>
+        <h3>10.1 Service Updates</h3>
+        <p>We reserve the right to modify or discontinue the Service at any time without notice. We shall not be liable to you or any third party for any modification, suspension, or discontinuance of the Service.</p>
+        
+        <h3>10.2 Terms Updates</h3>
+        <p>We reserve the right to update these Terms at any time. We will notify you of any changes by posting the new Terms on this page and updating the "Last updated" date.</p>
+        
+        <h2>11. Governing Law</h2>
+        <p>These Terms shall be interpreted and governed by the laws of the jurisdiction in which AIPrivateSearch operates, without regard to its conflict of law provisions.</p>
+        
+        <h2>12. Severability</h2>
+        <p>If any provision of these Terms is held to be invalid or unenforceable, the remaining provisions will remain in full force and effect.</p>
+        
+        <h2>13. Contact Information</h2>
+        <p>If you have any questions about these Terms of Service, please contact us at:</p>
+        <p><strong>Website:</strong> AIPrivateSearch</p>
+        
+        <h2>14. Acknowledgment</h2>
+        <p>By using the Service, you acknowledge that you have read these Terms of Service and agree to be bound by them.</p>
+      </div>
+    </main>
+  </div>
+
+  <div id="footer-placeholder"></div>
+</body>
+</html>

@@ -109,13 +109,7 @@
             text-align: left;
         }
 
-        .footer {
-            margin-top: 4rem;
-            padding: 2rem 0;
-            border-top: 1px solid var(--border-color);
-            text-align: center;
-            opacity: 0.6;
-        }
+
     </style>
 </head>
 <body>
@@ -126,8 +120,8 @@
     </div>
     
     <main class="container">
-        <img src="./assets/AIPrivateSearch-Sherlock.png" alt="AI Private Search" style="max-width: 100px; height: auto; float: left; margin: 0 1rem 1rem 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transform: scaleX(-1);">
-        <img src="./assets/AIPrivateSearch-Sherlock.png" alt="AI Private Search" style="max-width: 100px; height: auto; float: right; margin: 0 0 1rem 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+        <img src="./assets/AIPrivateSearch-Sherlock.png" alt="AI Private Search" class="sherlock-icon sherlock-icon-left">
+        <img src="./assets/AIPrivateSearch-Sherlock.png" alt="AI Private Search" class="sherlock-icon sherlock-icon-right">
         <h1 class="coming-soon">Coming Soon!</h1>
         <h1>Customer Manager Dashboard</h1>
         <p>Welcome to the AIPrivateSearch Customer Management System</p>
@@ -171,13 +165,10 @@
         </div>
     </main>
     
-    <div class="footer">
-        <div class="container">
-            <p>&copy; 2024 AIPrivateSearch Customer Manager</p>
-        </div>
-    </div>
+    <div id="footer-placeholder"></div>
     
     <script src="auth.js"></script>
+    <script type="module" src="shared/common.js"></script>
     <script>
         function navigateTo(section) {
             console.log(`Navigating to: ${section}`);

@@ -694,28 +694,35 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
   loadTheme();
   
-  // Check authentication status - require login with fallback
-  const user = await AuthUtils.requireAuth();
-  if (!user) {
-    // Clear invalid session data and redirect to login
-    localStorage.removeItem('sessionId');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userUserRole');
-    window.location.href = './user-management.html';
-    return;
-  }
+  // Skip authentication check on licensing pages
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  const licensingPages = ['license-activation.html', 'index.html'];
   
-  // Set role from authenticated user
-  setUserRole(user.subscriptionTier);
-  // Store user role (admin/searcher)
-  localStorage.setItem('userUserRole', user.userRole);
-  // Store email for compatibility
-  localStorage.setItem('userEmail', user.email);
-  // Apply role-based restrictions (but wait for header to load)
-  setTimeout(async () => {
-    await applyUserRole(user.subscriptionTier, user.userRole);
-  }, 100);
+  if (!licensingPages.includes(currentPage)) {
+    // Check authentication status - require login with fallback
+    const user = await AuthUtils.requireAuth();
+    if (!user) {
+      // Clear invalid session data and redirect to login
+      localStorage.removeItem('sessionId');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userUserRole');
+      window.location.href = './user-management.html';
+      return;
+    }
+    
+    // Set role from authenticated user
+    setUserRole(user.subscriptionTier);
+    // Store user role (admin/searcher)
+    localStorage.setItem('userUserRole', user.userRole);
+    // Store email for compatibility
+    localStorage.setItem('userEmail', user.email);
+    // Apply role-based restrictions (but wait for header to load)
+    setTimeout(async () => {
+      await applyUserRole(user.subscriptionTier, user.userRole);
+    }, 100);
+  }
+
   
   loadSharedComponents().then(async () => {
     setupLoginIcon();
