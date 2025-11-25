@@ -4,7 +4,7 @@
   
   // Check if we're in development (localhost) or production
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    // Development mode - use localhost with backend port
+    // Development mode - use localhost with backend port and /api prefix
     try {
       const xhr = new XMLHttpRequest();
       xhr.open('GET', './config/app.json', false);
@@ -13,12 +13,12 @@
         const config = JSON.parse(xhr.responseText);
         console.log('Loaded config:', config);
         if (config.ports && config.ports.backend) {
-          API_BASE_URL = `http://localhost:${config.ports.backend}`;
+          API_BASE_URL = `http://localhost:${config.ports.backend}/api`;
           console.log('Development API_BASE_URL:', API_BASE_URL);
         }
       }
     } catch (error) {
-      API_BASE_URL = 'http://localhost:3001';
+      API_BASE_URL = 'http://localhost:3001/api';
       console.warn('Could not load API config, using default:', API_BASE_URL);
     }
   } else {

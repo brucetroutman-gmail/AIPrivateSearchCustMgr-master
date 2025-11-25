@@ -22,3 +22,4 @@
 019. Fixed API configuration to use hostname instead of localhost for Ubuntu server deployment --done
 020. Updated API configuration to use same protocol (HTTPS) to resolve Mixed Content security errors --done
 021. Implemented production-ready API routing using relative paths compatible with Caddy reverse proxy --done
+022. Fixed API endpoint paths to prevent double /api prefix and maintain dev/prod compatibility --done
