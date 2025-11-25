@@ -1,25 +1,30 @@
-// API Configuration - reads backend port from app.json
+// API Configuration - uses relative path for production, localhost for development
 (function() {
-  let API_BASE_URL = 'http://localhost:3001';
+  let API_BASE_URL;
   
-  // Load API configuration from app.json synchronously
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', './config/app.json', false); // synchronous
-    xhr.send();
-    if (xhr.status === 200) {
-      const config = JSON.parse(xhr.responseText);
-      console.log('Loaded config:', config);
-      if (config.ports && config.ports.backend) {
-        // Use current hostname and protocol for server deployments
-        const hostname = window.location.hostname;
-        const protocol = window.location.protocol;
-        API_BASE_URL = `${protocol}//${hostname}:${config.ports.backend}`;
-        console.log('Set API_BASE_URL to:', API_BASE_URL);
+  // Check if we're in development (localhost) or production
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // Development mode - use localhost with backend port
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', './config/app.json', false);
+      xhr.send();
+      if (xhr.status === 200) {
+        const config = JSON.parse(xhr.responseText);
+        console.log('Loaded config:', config);
+        if (config.ports && config.ports.backend) {
+          API_BASE_URL = `http://localhost:${config.ports.backend}`;
+          console.log('Development API_BASE_URL:', API_BASE_URL);
+        }
       }
+    } catch (error) {
+      API_BASE_URL = 'http://localhost:3001';
+      console.warn('Could not load API config, using default:', API_BASE_URL);
     }
-  } catch (error) {
-    console.warn('Could not load API config, using default port 3001:', error);
+  } else {
+    // Production mode - use relative path (assumes reverse proxy)
+    API_BASE_URL = '/api';
+    console.log('Production API_BASE_URL:', API_BASE_URL);
   }
   
   // Set global API base URL

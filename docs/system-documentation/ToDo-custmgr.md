@@ -21,3 +21,4 @@
 018. Updated Coming Soon text color to gold and resized logout button --done
 019. Fixed API configuration to use hostname instead of localhost for Ubuntu server deployment --done
 020. Updated API configuration to use same protocol (HTTPS) to resolve Mixed Content security errors --done
+021. Implemented production-ready API routing using relative paths compatible with Caddy reverse proxy --done
