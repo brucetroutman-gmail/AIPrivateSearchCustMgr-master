@@ -19,3 +19,4 @@
 016. Fixed footer styling consistency and link colors in dark mode --done
 017. Added user management styles and improved form styling --done
 018. Updated Coming Soon text color to gold and resized logout button --done
+019. Fixed API configuration to use hostname instead of localhost for Ubuntu server deployment --done
