@@ -11,9 +11,10 @@
       const config = JSON.parse(xhr.responseText);
       console.log('Loaded config:', config);
       if (config.ports && config.ports.backend) {
-        // Use current hostname instead of localhost for server deployments
+        // Use current hostname and protocol for server deployments
         const hostname = window.location.hostname;
-        API_BASE_URL = `http://${hostname}:${config.ports.backend}`;
+        const protocol = window.location.protocol;
+        API_BASE_URL = `${protocol}//${hostname}:${config.ports.backend}`;
         console.log('Set API_BASE_URL to:', API_BASE_URL);
       }
     }
