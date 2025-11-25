@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - AIPrivateSearch</title>
-    <link rel="stylesheet" href="shared/styles.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="header-placeholder"></div>
@@ -84,42 +84,22 @@
 
     <script src="./shared/utils/apiConfig.js"></script>
     <script>
-        // Load theme on page load
+        // Load theme immediately to prevent flash
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const theme = savedTheme || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            if (!savedTheme) {
+                localStorage.setItem('theme', theme);
+            }
+        })();
+        
+        // Legacy function for compatibility
         function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
+            // Theme already loaded above
         }
         
-        // Load shared components
-        async function loadSharedComponents() {
-            try {
-                const headerResponse = await fetch('./shared/header.html');
-                const headerHTML = await headerResponse.text();
-                const headerEl = document.getElementById('header-placeholder');
-                if (headerEl) {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(headerHTML, 'text/html');
-                    const headerContent = doc.body.firstElementChild;
-                    if (headerContent) {
-                        headerEl.appendChild(headerContent);
-                    }
-                }
-                
-                const footerResponse = await fetch('./shared/footer.html');
-                const footerHTML = await footerResponse.text();
-                const footerEl = document.getElementById('footer-placeholder');
-                if (footerEl) {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(footerHTML, 'text/html');
-                    const footerContent = doc.body.firstElementChild;
-                    if (footerContent) {
-                        footerEl.appendChild(footerContent);
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading shared components:', error);
-            }
-        }
+
         
         function showMessage(message, type = 'error') {
             const messageEl = document.createElement('div');
@@ -549,7 +529,11 @@
                 console.warn('Auth check failed:', error);
             }
             
-            loadSharedComponents();
+            // Load shared components via common.js
+            const { default: commonModule } = await import('./shared/common.js');
+            if (window.loadSharedComponents) {
+                window.loadSharedComponents();
+            }
         });
         
         const authManager = new AuthManager();

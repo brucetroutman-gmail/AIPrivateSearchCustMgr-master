@@ -1,22 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AIPrivateSearch Group - AIPrivateSearch</title>
-  <link rel="stylesheet" href="shared/styles.css">
-  <script type="module" src="shared/common.js"></script>
-  <script>
-    // Load theme immediately to prevent flash
-    (function() {
-      const savedTheme = localStorage.getItem('theme');
-      const theme = savedTheme || 'dark';
-      document.documentElement.setAttribute('data-theme', theme);
-      if (!savedTheme) {
-        localStorage.setItem('theme', theme);
-      }
-    })();
-  </script>
+  <title>AIPrivateSearch Group - Customer Manager</title>
+  <link rel="stylesheet" href="styles.css">
   <style>
     .group-container {
       max-width: 800px;
@@ -30,7 +18,7 @@
       border-radius: 8px;
       padding: 2rem;
       margin-bottom: 2rem;
-      box-shadow: 0 2px 10px var(--shadow);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
     }
     
     .team-section {
@@ -53,37 +41,25 @@
       color: var(--text-color);
     }
     
-    h2 {
-      color: var(--text-color);
+    h1 {
+      color: var(--accent-color);
+    }
+    
+    h2, h3 {
+      color: var(--accent-color);
       margin-top: 2rem;
       margin-bottom: 1rem;
       border-bottom: 2px solid var(--border-color);
       padding-bottom: 0.5rem;
     }
-    
-    h3 {
-      color: var(--text-color);
-      margin-top: 1.5rem;
-      margin-bottom: 0.5rem;
-    }
-    
-    [data-theme="dark"] h1 {
-      color: #87ceeb;
-    }
-    
-    [data-theme="dark"] h2, [data-theme="dark"] h3 {
-      color: #87ceeb;
-    }
   </style>
 </head>
 <body>
-  <div id="header-placeholder"></div>
-
   <div class="page-content">
     <main class="group-container">
       <div class="group-section">
         <h1>AIPrivateSearch Group</h1>
-        <p>Meet the dedicated team behind AIPrivateSearch, working together to advance AI model evaluation and local document search capabilities.</p>
+        <p>Meet the dedicated team behind AIPrivateSearch Customer Manager, working together to advance AI model evaluation and customer management capabilities.</p>
         
         <div class="team-section">
           <h2>Primary Team</h2>
@@ -126,15 +102,22 @@
         
         <div class="team-section">
           <h2>Our Mission</h2>
-          <p>The AIPrivateSearch Group is committed to developing innovative tools for AI model evaluation, local document search, and performance analytics. Our collaborative approach combines diverse expertise to create powerful, user-friendly solutions for AI research and development.</p>
+          <p>The AIPrivateSearch Group is committed to developing innovative tools for customer management, license administration, and AI model evaluation. Our collaborative approach combines diverse expertise to create powerful, user-friendly solutions for AI research and business development.</p>
           
-          <h2>Collaboration</h2>
-          <p>Our team works across multiple disciplines including software development, AI research, user experience design, and technical support to deliver a comprehensive AI evaluation platform.</p>
+          <h2>Customer Manager Focus</h2>
+          <p>The Customer Manager system represents our commitment to providing comprehensive tools for managing AI Private Search deployments, user licenses, and customer relationships with security and efficiency at the forefront.</p>
         </div>
+      </div>
+      
+      <div style="text-align: center; margin-top: 2rem;">
+        <a href="index.html" style="color: var(--accent-color); text-decoration: none;">← Back to Dashboard</a>
       </div>
     </main>
   </div>
 
+  <!-- Footer placeholder -->
   <div id="footer-placeholder"></div>
+  
+  <script type="module" src="shared/common.js"></script>
 </body>
 </html>

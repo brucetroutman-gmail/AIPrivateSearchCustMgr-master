@@ -1,6 +1,5 @@
 ## Pending Tasks
 011. licensing should  check if customer exisits, determine tier, checkfor number of licensed UIID's and give appropriate messages.
-012. Added Sherlock icons  --done
 
 ## Completed Tasks
 001. create github repo and commit and sync changes --done
@@ -13,3 +12,10 @@
 008. debug and verify both servers running on correct ports --done
 009. install and test on ubuntu server --done
 010. lets add a login to custmgr. Craete a new database aiprivatesearchcustmgr. add the user, log and other needed tables there. use the same login approach as in aiprivatesearch. If not logged in show login page. Create account adm-custmgr@a.com password 123 role admin. There will be 2 roles: admin and manager. there will be no tier as in aiprivatesearch --done
+012. Added Sherlock icons  --done
+013. Implemented standardized footer with dynamic loading across all pages --done
+014. Added dark/light mode support with proper CSS variables --done
+015. Created template review and recommendations documentation --done
+016. Fixed footer styling consistency and link colors in dark mode --done
+017. Added user management styles and improved form styling --done
+018. Updated Coming Soon text color to gold and resized logout button --done

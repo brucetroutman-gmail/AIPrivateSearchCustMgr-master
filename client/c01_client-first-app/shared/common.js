@@ -174,11 +174,7 @@ async function loadAppConfig() {
       logoEl.appendChild(document.createTextNode(config['app-name']));
     }
     
-    // Update footer group link if present
-    const footerGroupLink = document.getElementById('footer-group-link');
-    if (footerGroupLink && config['app-name']) {
-      footerGroupLink.textContent = `${config['app-name']} Group`;
-    }
+
   } catch (error) {
     // Silently fail - app config is not critical
   }
@@ -191,38 +187,42 @@ async function loadAppConfig() {
 // Load shared header and footer
 async function loadSharedComponents() {
   try {
-    // Load header
-    const headerResponse = await fetch('./shared/header.html');
-    const headerHTML = await headerResponse.text();
+    // Load header only if placeholder exists
     const headerEl = document.getElementById('header-placeholder');
     if (headerEl) {
-      // Safe HTML parsing to prevent XSS
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(headerHTML, 'text/html');
-      const headerContent = doc.body.firstElementChild;
-      if (headerContent) {
-        headerEl.appendChild(headerContent);
-        // Load app config after header is loaded
-        loadAppConfig();
+      const headerResponse = await fetch('./shared/header.html');
+      if (headerResponse.ok) {
+        const headerHTML = await headerResponse.text();
+        // Safe HTML parsing to prevent XSS
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(headerHTML, 'text/html');
+        const headerContent = doc.body.firstElementChild;
+        if (headerContent) {
+          headerEl.appendChild(headerContent);
+          // Load app config after header is loaded
+          loadAppConfig();
+        }
       }
     }
     
-    // Load footer
-    const footerResponse = await fetch('./shared/footer.html');
-    const footerHTML = await footerResponse.text();
+    // Load footer only if placeholder exists
     const footerEl = document.getElementById('footer-placeholder');
     if (footerEl) {
-      // Safe HTML parsing to prevent XSS
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(footerHTML, 'text/html');
-      const footerContent = doc.body.firstElementChild;
-      if (footerContent) {
-        footerEl.appendChild(footerContent);
+      const footerResponse = await fetch('./shared/footer.html');
+      if (footerResponse.ok) {
+        const footerHTML = await footerResponse.text();
+        // Safe HTML parsing to prevent XSS
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(footerHTML, 'text/html');
+        const footerContent = doc.body.firstElementChild;
+        if (footerContent) {
+          footerEl.appendChild(footerContent);
+        }
       }
     }
     
   } catch (error) {
-    console.error('Error loading shared components:', error);
+    // Silently handle missing components
   }
 }
 
@@ -672,6 +672,7 @@ if (typeof window !== 'undefined') {
   window.toggleMenu = toggleMenu;
   window.collectionsUtils = collectionsUtils;
   window.handleLogout = handleLogout;
+  window.loadSharedComponents = loadSharedComponents;
   window.testLogout = () => {
     if (confirm('Logout for testing?')) {
       handleLogout();

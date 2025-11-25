@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Customer Manager</title>
+    <link rel="stylesheet" href="styles.css">
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -115,11 +116,12 @@
             <button type="submit">Login</button>
             <div class="error" id="errorMessage"></div>
         </form>
-        <div class="footer">
-            <p>&copy; 2024 AIPrivateSearch Customer Manager</p>
-        </div>
     </div>
 
+    <!-- Footer placeholder -->
+    <div id="footer-placeholder"></div>
+
+    <script type="module" src="shared/common.js"></script>
     <script>
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
