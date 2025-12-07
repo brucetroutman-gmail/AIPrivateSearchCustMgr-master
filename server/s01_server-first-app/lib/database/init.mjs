@@ -43,27 +43,32 @@ export async function initializeDB() {
       )
     `);
     
-    // Check if admin user exists
-    const [users] = await connection.execute(
-      'SELECT id FROM users WHERE email = ?',
-      ['adm-custmgr@a.com']
-    );
+    // Create default admin users if they don't exist
+    const adminUsers = [
+      { email: 'adm-custmgr@a.com', firstName: 'Admin', lastName: 'User' },
+      { email: 'custmgr-adm@c.com', firstName: 'CustMgr', lastName: 'Admin' }
+    ];
     
-    // Create admin user if doesn't exist
-    if (users.length === 0) {
-      if (!process.env.ADMIN_DEFAULT_PASSWORD) {
-        throw new Error('ADMIN_DEFAULT_PASSWORD environment variable is required');
-      }
-      const adminCredential = process.env.ADMIN_DEFAULT_PASSWORD;
-      const credentialHash = crypto.createHash('sha256').update(adminCredential).digest('hex');
-      await connection.execute(
-        'INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES (?, ?, ?, ?, ?)',
-        ['adm-custmgr@a.com', credentialHash, 'Admin', 'User', 'admin']
+    const defaultPassword = process.env.ADMIN_DEFAULT_PASSWORD || '123';
+    const passwordHash = crypto.createHash('sha256').update(defaultPassword).digest('hex');
+    
+    for (const admin of adminUsers) {
+      const [existing] = await connection.execute(
+        'SELECT id FROM users WHERE email = ?',
+        [admin.email]
       );
-      console.log('Default admin user created: adm-custmgr@a.com / 123');
+      
+      if (existing.length === 0) {
+        await connection.execute(
+          'INSERT INTO users (email, password_hash, first_name, last_name, role) VALUES (?, ?, ?, ?, ?)',
+          [admin.email, passwordHash, admin.firstName, admin.lastName, 'admin']
+        );
+        console.log(`Admin user created: ${admin.email} / ${defaultPassword}`);
+      }
     }
     
     console.log('Customer manager database initialized successfully');
+    console.log('Admin accounts: adm-custmgr@a.com, custmgr-adm@c.com (password: 123)');
     
   } catch (error) {
     console.error('Database initialization error:', error);

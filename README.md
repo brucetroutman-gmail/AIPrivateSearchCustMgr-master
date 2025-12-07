@@ -1,4 +1,4 @@
-# AI Private Search Customer Manager
+# AI Private Search Customer Manager v1.23
 
 A comprehensive customer and license management system for AI Private Search, handling user registrations, subscriptions, payments, and token generation.
 
@@ -61,8 +61,11 @@ npm run dev
 ```
 
 5. **Access application**:
-- Frontend: http://localhost:4001
-- API: http://localhost:4001/api
+- Frontend: http://localhost:56303
+- API: http://localhost:56304
+- Login with default admin accounts:
+  - `adm-custmgr@a.com` / password: `123`
+  - `custmgr-adm@c.com` / password: `123`
 
 ## API Endpoints
 
@@ -173,6 +176,14 @@ This command:
 ```
 I have a 'release' command that bumps version by 0.01, or 'release N' for major version N.00
 ```
+
+### Default Admin Accounts
+
+Two admin accounts are automatically created on first run:
+- **adm-custmgr@a.com** (password: 123)
+- **custmgr-adm@c.com** (password: 123)
+
+To change the default password, set `ADMIN_DEFAULT_PASSWORD` in your `.env` file.
 
 ### Environment Variables
 See `.env.example` for all required environment variables.

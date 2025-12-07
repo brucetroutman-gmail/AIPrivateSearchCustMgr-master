@@ -685,14 +685,6 @@ export { loadScoreModels, exportToDatabase };
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
-  // Load tier access manager
-  try {
-    const { default: tierAccessManager } = await import('./utils/tierAccessManager.js');
-    window.tierAccessManager = tierAccessManager;
-    await tierAccessManager.loadConfig();
-  } catch (error) {
-    console.warn('Failed to load tier access manager:', error);
-  }
   loadTheme();
   
   // Skip authentication check on licensing pages
@@ -727,9 +719,5 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   loadSharedComponents().then(async () => {
     setupLoginIcon();
-    // Apply tier access after header is loaded
-    if (window.tierAccessManager) {
-      await window.tierAccessManager.applyAccessControl();
-    }
-  });
+  });}
 });

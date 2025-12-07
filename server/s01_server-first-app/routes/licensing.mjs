@@ -139,6 +139,24 @@ router.get('/public-key', (req, res) => {
   }
 });
 
+// GET /check-limits - Check customer limits before activation
+router.get('/check-limits', async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email required' });
+    }
+    
+    const result = await LicensingService.checkCustomerLimits(email);
+    res.json(result);
+    
+  } catch (error) {
+    console.error('Check limits error:', error);
+    res.status(500).json({ error: 'Failed to check limits' });
+  }
+});
+
 // GET /status - Service status
 router.get('/status', (req, res) => {
   res.json({

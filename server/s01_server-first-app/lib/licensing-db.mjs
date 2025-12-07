@@ -69,6 +69,23 @@ export async function initializeLicensingDB() {
       )
     `);
 
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS devices (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        customer_id INT NOT NULL,
+        device_id VARCHAR(255) UNIQUE NOT NULL,
+        hw_hash VARCHAR(64) NOT NULL,
+        device_name VARCHAR(255),
+        device_info JSON,
+        first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        status ENUM('active', 'inactive', 'revoked') DEFAULT 'active',
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+        INDEX idx_customer_devices (customer_id, status),
+        INDEX idx_hw_hash (hw_hash)
+      )
+    `);
+
     console.log('Licensing database tables initialized successfully');
     return pool;
   } catch (error) {

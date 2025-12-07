@@ -266,8 +266,8 @@ button:active {
 }
 
 .auth-form button {
-  width: 100%;
-  padding: 0.75rem;
+  width: auto;
+  padding: 0.75rem 2rem;
   background: #007bff;
   color: white;
   border: none;
@@ -325,6 +325,7 @@ button:active {
   border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
+  width: auto;
 }
 
 #logoutBtn:hover {
@@ -353,6 +354,7 @@ button:active {
   border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
+  width: auto;
 }
 
 #showRegisterBtn:hover {
@@ -418,6 +420,11 @@ button:active {
 .form-group span {
   color: var(--text-color);
   font-weight: 500;
+}
+
+#updateProfileBtn {
+  width: auto;
+  padding: 0.75rem 2rem;
 }
 
 /* Dark mode overrides for user management */
@@ -493,4 +500,105 @@ button:active {
   font-size: 0.9rem !important;
   float: right !important;
   margin-top: 10px !important;
+}
+
+/* Secure modal styles */
+.secure-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.secure-modal-dialog {
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: 8px;
+  min-width: 300px;
+  border: 1px solid var(--border-color);
+}
+
+.secure-modal-message {
+  color: var(--text-color);
+  margin-bottom: 15px;
+}
+
+.secure-modal-input {
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+.secure-modal-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.secure-modal-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.secure-modal-btn-cancel {
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-color);
+}
+
+.secure-modal-btn-ok {
+  border: none;
+  background: #87ceeb;
+  color: black;
+}
+
+/* Toast message styles */
+.toast-message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 10000;
+  font-size: 14px;
+}
+
+.toast-success {
+  background: #28a745;
+}
+
+.toast-error {
+  background: #dc3545;
+}
+
+.toast-info {
+  background: #17a2b8;
+}
+
+/* User action buttons */
+.user-info button {
+  width: auto !important;
+  padding: 0.5rem 1rem !important;
+}
+
+.user-item button {
+  width: auto !important;
+  padding: 4px 8px !important;
+  margin: 0 2px !important;
+  font-size: 0.9rem !important;
 }

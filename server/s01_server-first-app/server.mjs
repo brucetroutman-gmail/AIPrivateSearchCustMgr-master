@@ -78,25 +78,38 @@ const userManager = new UserManager();
 
 // Auth check middleware for protected routes
 app.use(async (req, res, next) => {
-  // Skip auth for login page, auth endpoints, licensing endpoints, and static assets
-  if (req.path === '/login.html' || 
+  console.log('[SERVER AUTH] Path:', req.path, 'Method:', req.method);
+  
+  // Redirect root to user-management
+  if (req.path === '/') {
+    console.log('[SERVER AUTH] Root path, redirecting to user-management.html');
+    return res.redirect('/user-management.html');
+  }
+  
+  // Skip auth for user-management page, auth endpoints, licensing endpoints, and static assets
+  if (req.path === '/user-management.html' || 
       req.path.startsWith('/api/auth/') || 
       req.path.startsWith('/api/licensing/') || 
       req.path === '/api/health' ||
       req.path.endsWith('.css') ||
       req.path.endsWith('.js') ||
-      req.path.endsWith('.ico')) {
+      req.path.endsWith('.ico') ||
+      req.path.endsWith('.png')) {
+    console.log('[SERVER AUTH] Skipping auth for:', req.path);
     return next();
   }
   
   // Check for session token in localStorage (sent via Authorization header)
   const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  console.log('[SERVER AUTH] SessionId:', sessionId ? 'exists' : 'none');
   
   if (!sessionId) {
     if (req.path.startsWith('/api/')) {
+      console.log('[SERVER AUTH] No session for API, returning 401');
       return res.status(401).json({ error: 'Authentication required' });
     }
-    return res.redirect('/login.html');
+    console.log('[SERVER AUTH] No session, redirecting to user-management.html');
+    return res.redirect('/user-management.html');
   }
   
   // Verify session
@@ -104,19 +117,22 @@ app.use(async (req, res, next) => {
     const user = await userManager.validateSession(sessionId);
     
     if (!user) {
+      console.log('[SERVER AUTH] Session validation failed - no user');
       if (req.path.startsWith('/api/')) {
         return res.status(401).json({ error: 'Session expired' });
       }
-      return res.redirect('/login.html');
+      return res.redirect('/user-management.html');
     }
     
+    console.log('[SERVER AUTH] Session valid for user:', user.email);
     req.user = user;
     next();
   } catch (error) {
+    console.log('[SERVER AUTH] Session validation error:', error.message);
     if (req.path.startsWith('/api/')) {
       return res.status(401).json({ error: 'Invalid session' });
     }
-    return res.redirect('/login.html');
+    return res.redirect('/user-management.html');
   }
 });
 

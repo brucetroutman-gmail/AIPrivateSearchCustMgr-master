@@ -3,11 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management - AIPrivateSearch</title>
+    <title>User Management - Customer Manager</title>
     <link rel="stylesheet" href="styles.css">
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        document.documentElement.setAttribute('data-theme', 'dark');
+    </script>
 </head>
 <body>
-    <div id="header-placeholder"></div>
+    <div class="header">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem 2rem;">
+            <h1 style="display: inline-block; margin: 0; color: var(--accent-color);">Customer Manager</h1>
+        </div>
+    </div>
     
     <main class="container">
         <h1>User Management</h1>
@@ -27,9 +35,8 @@
                 <form id="registerForm">
                     <input type="email" id="registerEmail" placeholder="Email" required>
                     <input type="password" id="registerPassword" placeholder="Password" required>
-
                     <select id="registerUserRole">
-                        <option value="searcher">Searcher</option>
+                        <option value="manager">Manager</option>
                         <option value="admin">Admin</option>
                     </select>
                     <button type="submit">Register</button>
@@ -40,7 +47,6 @@
         <div id="user-dashboard" style="display: none;">
             <div class="user-info">
                 <h2>Welcome, <span id="currentUserEmail"></span></h2>
-                <p>Subscription: <span id="currentUserSubscription"></span></p>
                 <p>Role: <span id="currentUserRole"></span></p>
                 <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center;">
                     <button onclick="window.location.href='/index.html'" style="background: #28a745;">Go to Application</button>
@@ -48,7 +54,7 @@
                 </div>
             </div>
             
-            <div id="admin-panel" class="prem-only" style="display: none;">
+            <div id="admin-panel" style="display: none;">
                 <h3>User Management</h3>
                 <button id="showRegisterBtn">Add New User</button>
                 <div id="users-list"></div>
@@ -66,10 +72,6 @@
                         <input type="password" id="profilePassword" placeholder="Leave blank to keep current password">
                     </div>
                     <div class="form-group">
-                        <label>Subscription Tier:</label>
-                        <span id="profileSubscription"></span>
-                    </div>
-                    <div class="form-group">
                         <label>Role:</label>
                         <span id="profileRole"></span>
                     </div>
@@ -78,67 +80,35 @@
             </div>
         </div>
     </main>
-    
-    <div id="footer-placeholder"></div>
-    
 
-    <script src="./shared/utils/apiConfig.js"></script>
     <script>
-        // Load theme immediately to prevent flash
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            const theme = savedTheme || 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-            if (!savedTheme) {
-                localStorage.setItem('theme', theme);
-            }
-        })();
-        
-        // Legacy function for compatibility
-        function loadTheme() {
-            // Theme already loaded above
-        }
-        
-
-        
-        function showMessage(message, type = 'error') {
-            const messageEl = document.createElement('div');
-            messageEl.className = `user-message ${type}`;
-            messageEl.textContent = message;
-            document.body.appendChild(messageEl);
-            setTimeout(() => {
-                if (messageEl.parentNode) {
-                    messageEl.parentNode.removeChild(messageEl);
-                }
-            }, 3000);
-        }
-        
         function securePrompt(message, defaultValue = '') {
             return new Promise((resolve) => {
                 const modal = document.createElement('div');
-                modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center';
+                modal.className = 'secure-modal';
                 
                 const dialog = document.createElement('div');
-                dialog.style.cssText = 'background:white;padding:20px;border-radius:8px;min-width:300px';
+                dialog.className = 'secure-modal-dialog';
                 
                 const messageEl = document.createElement('p');
+                messageEl.className = 'secure-modal-message';
                 messageEl.textContent = message;
                 
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = defaultValue;
-                input.style.cssText = 'width:100%;padding:8px;margin:10px 0;border:1px solid #ccc;border-radius:4px';
+                input.className = 'secure-modal-input';
                 
                 const buttons = document.createElement('div');
-                buttons.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;margin-top:15px';
+                buttons.className = 'secure-modal-buttons';
                 
                 const cancelBtn = document.createElement('button');
                 cancelBtn.textContent = 'Cancel';
-                cancelBtn.style.cssText = 'padding:8px 16px;border:1px solid #ccc;background:#f5f5f5;border-radius:4px;cursor:pointer';
+                cancelBtn.className = 'secure-modal-btn secure-modal-btn-cancel';
                 
                 const okBtn = document.createElement('button');
                 okBtn.textContent = 'OK';
-                okBtn.style.cssText = 'padding:8px 16px;border:none;background:#007bff;color:white;border-radius:4px;cursor:pointer';
+                okBtn.className = 'secure-modal-btn secure-modal-btn-ok';
                 
                 cancelBtn.onclick = () => { document.body.removeChild(modal); resolve(null); };
                 okBtn.onclick = () => { document.body.removeChild(modal); resolve(input.value); };
@@ -156,6 +126,18 @@
             });
         }
         
+        function showMessage(message, type = 'error') {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'toast-message toast-' + type;
+            messageEl.textContent = message;
+            document.body.appendChild(messageEl);
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+        
         class AuthManager {
             constructor() {
                 this.currentUser = null;
@@ -163,31 +145,25 @@
             }
             
             async init() {
-                await this.checkAuthStatus();
                 this.setupEventListeners();
-            }
-            
-            async checkAuthStatus() {
-                try {
-                    const sessionId = localStorage.getItem('sessionId');
-                    if (!sessionId) {
-                        this.showLogin();
-                        return;
+                // Check if already logged in
+                const sessionId = localStorage.getItem('sessionId');
+                if (sessionId) {
+                    try {
+                        const response = await fetch(`${API_BASE}/api/auth/me`, {
+                            headers: { 'Authorization': `Bearer ${sessionId}` }
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.currentUser = data.user;
+                            this.showDashboard();
+                            return;
+                        }
+                    } catch (error) {
+                        console.log('Session validation failed:', error);
                     }
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/me`, {
-                        headers: { 'Authorization': `Bearer ${sessionId}` }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        this.currentUser = data.user;
-                        // If user is authenticated, go directly to dashboard
-                        this.showDashboard();
-                    } else {
-                        this.showLogin();
-                    }
-                } catch (error) {
-                    this.showLogin();
                 }
+                this.showLogin();
             }
             
             setupEventListeners() {
@@ -204,7 +180,7 @@
                 const password = document.getElementById('loginPassword').value;
                 
                 try {
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/login`, {
+                    const response = await fetch(`${API_BASE}/api/auth/login`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ email, password })
@@ -213,13 +189,12 @@
                     const data = await response.json();
                     if (data.success) {
                         localStorage.setItem('sessionId', data.sessionId);
-                        this.currentUser = data.user;
                         window.location.href = '/index.html';
                     } else {
                         showMessage(data.error || 'Login failed');
                     }
                 } catch (error) {
-                    showMessage('Login failed');
+                    showMessage('Login failed: ' + error.message);
                 }
             }
             
@@ -230,15 +205,19 @@
                 const userRole = document.getElementById('registerUserRole').value;
                 
                 try {
-                    const { default: AuthUtils } = await import('./shared/utils/authUtils.js');
-                    const response = await AuthUtils.authenticatedFetch('/auth/register', {
+                    const sessionId = localStorage.getItem('sessionId');
+                    const response = await fetch(`${API_BASE}/api/auth/register`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${sessionId}`
+                        },
                         body: JSON.stringify({ email, password, userRole })
                     });
                     
                     const data = await response.json();
                     if (data.success) {
+                        showMessage('User created successfully', 'success');
                         document.getElementById('registerForm').reset();
                         this.toggleRegisterForm();
                         this.loadUsers();
@@ -246,26 +225,13 @@
                         showMessage(data.error || 'Registration failed');
                     }
                 } catch (error) {
-                    if (error.message === 'Session expired') return;
-                    showMessage('Registration failed');
+                    showMessage('Registration failed: ' + error.message);
                 }
             }
             
             async handleLogout() {
-                try {
-                    const sessionId = localStorage.getItem('sessionId');
-                    if (sessionId) {
-                        await fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/logout`, { 
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${sessionId}` }
-                        });
-                    }
-                    localStorage.removeItem('sessionId');
-                    this.currentUser = null;
-                    this.showLogin();
-                } catch (error) {
-                    showMessage('Logout failed');
-                }
+                localStorage.removeItem('sessionId');
+                window.location.href = '/user-management.html';
             }
             
             showLogin() {
@@ -278,7 +244,6 @@
                 document.getElementById('login-form').style.display = 'none';
                 document.getElementById('user-dashboard').style.display = 'block';
                 document.getElementById('currentUserEmail').textContent = this.currentUser.email;
-                document.getElementById('currentUserSubscription').textContent = this.currentUser.subscriptionTier;
                 document.getElementById('currentUserRole').textContent = this.currentUser.userRole;
                 
                 if (this.currentUser.userRole === 'admin') {
@@ -300,7 +265,7 @@
             async loadUsers() {
                 try {
                     const sessionId = localStorage.getItem('sessionId');
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/users`, {
+                    const response = await fetch(`${API_BASE}/api/auth/users`, {
                         headers: { 'Authorization': `Bearer ${sessionId}` }
                     });
                     if (response.ok) {
@@ -321,9 +286,9 @@
                     userDiv.className = 'user-item';
                     const statusText = user.active ? 'Active' : 'Inactive';
                     userDiv.innerHTML = `
-                        <span>${user.email} (${user.subscriptionTier}/${user.userRole}) - ${statusText}</span>
+                        <span>${user.email} (${user.userRole}) - ${statusText}</span>
                         <select onchange="authManager.updateUserRole('${user.id}', this.value)">
-                            <option value="searcher" ${user.userRole === 'searcher' ? 'selected' : ''}>Searcher</option>
+                            <option value="manager" ${user.userRole === 'manager' ? 'selected' : ''}>Manager</option>
                             <option value="admin" ${user.userRole === 'admin' ? 'selected' : ''}>Admin</option>
                         </select>
                         <button onclick="authManager.editUser('${user.id}', '${user.email}')" style="background: #007bff; color: white; border: none; padding: 4px 8px; margin: 0 2px;">
@@ -340,11 +305,10 @@
                 });
             }
             
-
             async updateUserRole(userId, userRole) {
                 try {
                     const sessionId = localStorage.getItem('sessionId');
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/users/${userId}`, {
+                    const response = await fetch(`${API_BASE}/api/auth/users/` + userId, {
                         method: 'PUT',
                         headers: { 
                             'Content-Type': 'application/json',
@@ -354,60 +318,11 @@
                     });
                     
                     if (response.ok) {
+                        showMessage('Role updated', 'success');
                         this.loadUsers();
-                    } else {
-                        showMessage('Failed to update role');
                     }
                 } catch (error) {
-                    showMessage('Update failed');
-                }
-            }
-            
-            async toggleUserStatus(userId, isActive) {
-                try {
-                    const sessionId = localStorage.getItem('sessionId');
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/users/${userId}`, {
-                        method: 'PUT',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${sessionId}`
-                        },
-                        body: JSON.stringify({ isActive })
-                    });
-                    
-                    if (response.ok) {
-                        showMessage(`User ${isActive ? 'activated' : 'deactivated'}`, 'success');
-                        this.loadUsers();
-                    } else {
-                        showMessage('Failed to update user status');
-                    }
-                } catch (error) {
-                    showMessage('Update failed');
-                }
-            }
-            
-            async deleteUser(userId) {
-                if (!confirm('Are you sure you want to permanently delete this user?')) {
-                    return;
-                }
-                
-                try {
-                    const sessionId = localStorage.getItem('sessionId');
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/users/${userId}`, {
-                        method: 'DELETE',
-                        headers: { 
-                            'Authorization': `Bearer ${sessionId}`
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        showMessage('User deleted successfully', 'success');
-                        this.loadUsers();
-                    } else {
-                        showMessage('Failed to delete user');
-                    }
-                } catch (error) {
-                    showMessage('Delete failed');
+                    showMessage('Update failed: ' + error.message);
                 }
             }
             
@@ -422,7 +337,7 @@
                     const updates = { email: newEmail };
                     if (newPassword) updates.password = newPassword;
                     
-                    const response = await fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/users/${userId}`, {
+                    const response = await fetch(`${API_BASE}/api/auth/users/` + userId, {
                         method: 'PUT',
                         headers: { 
                             'Content-Type': 'application/json',
@@ -434,17 +349,54 @@
                     if (response.ok) {
                         showMessage('User updated successfully', 'success');
                         this.loadUsers();
-                    } else {
-                        showMessage('Failed to update user');
                     }
                 } catch (error) {
-                    showMessage('Update failed');
+                    showMessage('Update failed: ' + error.message);
+                }
+            }
+            
+            async toggleUserStatus(userId, isActive) {
+                try {
+                    const sessionId = localStorage.getItem('sessionId');
+                    const response = await fetch(`${API_BASE}/api/auth/users/` + userId, {
+                        method: 'PUT',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${sessionId}`
+                        },
+                        body: JSON.stringify({ isActive })
+                    });
+                    
+                    if (response.ok) {
+                        showMessage(`User ${isActive ? 'activated' : 'deactivated'}`, 'success');
+                        this.loadUsers();
+                    }
+                } catch (error) {
+                    showMessage('Update failed: ' + error.message);
+                }
+            }
+            
+            async deleteUser(userId) {
+                if (!confirm('Are you sure you want to permanently delete this user?')) return;
+                
+                try {
+                    const sessionId = localStorage.getItem('sessionId');
+                    const response = await fetch(`${API_BASE}/api/auth/users/` + userId, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    });
+                    
+                    if (response.ok) {
+                        showMessage('User deleted successfully', 'success');
+                        this.loadUsers();
+                    }
+                } catch (error) {
+                    showMessage('Delete failed: ' + error.message);
                 }
             }
             
             loadUserProfile() {
                 document.getElementById('profileEmail').value = this.currentUser.email;
-                document.getElementById('profileSubscription').textContent = this.currentUser.subscriptionTier;
                 document.getElementById('profileRole').textContent = this.currentUser.userRole;
             }
             
@@ -453,7 +405,7 @@
                 const password = document.getElementById('profilePassword').value;
                 
                 if (!email && !password) {
-                    showMessage('Please enter email or password to update', 'error');
+                    showMessage('Please enter email or password');
                     return;
                 }
                 
@@ -467,74 +419,26 @@
                         return;
                     }
                     
-                    const { default: AuthUtils } = await import('./shared/utils/authUtils.js');
-                    const response = await AuthUtils.authenticatedFetch(`/auth/users/${this.currentUser.id}`, {
+                    const sessionId = localStorage.getItem('sessionId');
+                    const response = await fetch(`${API_BASE}/api/auth/users/` + this.currentUser.id, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${sessionId}`
+                        },
                         body: JSON.stringify(updates)
                     });
                     
                     if (response.ok) {
                         showMessage('Profile updated successfully', 'success');
                         document.getElementById('profilePassword').value = '';
-                        if (updates.email) {
-                            this.currentUser.email = updates.email;
-                            localStorage.setItem('userEmail', updates.email);
-                        }
-                    } else {
-                        const errorData = await response.json().catch(() => ({}));
-                        showMessage(`Failed to update profile: ${errorData.error || response.status}`);
+                        if (updates.email) this.currentUser.email = updates.email;
                     }
                 } catch (error) {
-                    if (error.message === 'Session expired') return;
-                    showMessage('Update failed');
+                    showMessage('Update failed: ' + error.message);
                 }
             }
         }
-        
-        // Simple logout function for testing
-        function testLogout() {
-            if (confirm('Logout for testing?')) {
-                const sessionId = localStorage.getItem('sessionId');
-                if (sessionId) {
-                    fetch(`${window.API_BASE_URL || 'http://localhost:3001'}/auth/logout`, { 
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${sessionId}` }
-                    });
-                }
-                localStorage.removeItem('sessionId');
-                localStorage.removeItem('userEmail');
-                window.location.reload();
-            }
-        }
-        
-        // Make testLogout globally available
-        window.testLogout = testLogout;
-        
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', async function() {
-            loadTheme();
-            
-            // Check authentication first
-            try {
-                const { default: AuthUtils } = await import('./shared/utils/authUtils.js');
-                const user = await AuthUtils.checkAuth();
-                if (user) {
-                    // Store user data for compatibility
-                    localStorage.setItem('userRole', user.subscriptionTier);
-                    localStorage.setItem('userUserRole', user.userRole);
-                    localStorage.setItem('userEmail', user.email);
-                }
-            } catch (error) {
-                console.warn('Auth check failed:', error);
-            }
-            
-            // Load shared components via common.js
-            const { default: commonModule } = await import('./shared/common.js');
-            if (window.loadSharedComponents) {
-                window.loadSharedComponents();
-            }
-        });
         
         const authManager = new AuthManager();
     </script>

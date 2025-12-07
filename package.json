@@ -1,6 +1,6 @@
 {
   "name": "aiprivatesearchcustmgr",
-  "version": "1.21",
+  "version": "1.23",
   "description": "AI Private Search Customer Manager - License and subscription management system",
   "type": "module",
   "scripts": {
