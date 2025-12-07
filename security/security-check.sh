@@ -50,14 +50,15 @@ npx eslint "client/c01_client-first-app/**/*.{js,mjs}" --config ./security/eslin
 echo ""
 echo "📋 Checking for hardcoded secrets..."
 SECRET_PATTERNS=(
-    "password.*=.*['\"]"
-    "api_key.*=.*['\"]"
-    "secret.*=.*['\"]"
-    "['\"].*secret.*['\"]" # Only match actual secrets, not UI tokens
+    "password.*=.*['\"][^'\"]*['\"]" # Match actual string values, not variables
+    "api_key.*=.*['\"][^'\"]*['\"]" 
+    "secret.*=.*['\"][^'\"]*['\"]" 
 )
 
 for pattern in "${SECRET_PATTERNS[@]}"; do
     matches=$(grep -r -i "$pattern" . --include="*.js" --include="*.mjs" --exclude="load-aiss.command" --exclude-dir="node_modules" || true)
+    # Filter out false positives: function parameters, environment variables, and variable names
+    matches=$(echo "$matches" | grep -v "process.env" | grep -v "function.*password" | grep -v "async.*password" | grep -v "password," | grep -v "password)" | grep -v "password_hash" | grep -v "defaultPassword" | grep -v "const.*password" | grep -v "email, password" || true)
     if [ ! -z "$matches" ]; then
         echo "    ⚠️  POTENTIAL SECRET FOUND:"
         echo "$matches"

@@ -719,5 +719,5 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   loadSharedComponents().then(async () => {
     setupLoginIcon();
-  });}
+  });
 });
