@@ -1,12 +1,23 @@
 ## Pending Tasks
 018. Test enhanced JWT tokens and device limit enforcement on Ubuntu server
 019. Create admin dashboard for device management
+020. check conatcts pages etc for auth.
+
+
 
 
 
 =====================================================
 
-## v1.23 Release (Current)
+## v1.24 Release (Current)
+057. Fixed register endpoint 404 error - API_BASE now uses full URL for localhost --done
+058. Fixed CORS error for DELETE/PUT methods - added to allowed methods in server.mjs --done
+059. Replaced insecure confirm() with secureConfirm() for delete user confirmation --done
+060. Matched container width to aiprivatesearch user-management (1200px max-width) --done
+061. Fixed syntax error in common.js (extra closing brace) --done
+062. Updated security-check.sh to filter out false positive password warnings --done
+
+## v1.23 Release
 050. Added debugging logs to auth.js and server middleware for troubleshooting --done
 051. Fixed root path redirect - server and client now redirect / to user-management.html --done
 052. Fixed login flow - after successful login, redirects to index.html (home page) --done

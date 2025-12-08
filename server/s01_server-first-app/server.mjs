@@ -63,7 +63,7 @@ app.use(cors({
     ...(process.env.ALLOWED_ORIGINS?.split(',') || [])
   ],
   credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
 }));
 

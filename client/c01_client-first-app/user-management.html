@@ -6,7 +6,7 @@
     <title>User Management - Customer Manager</title>
     <link rel="stylesheet" href="styles.css">
     <script>
-        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        const API_BASE = 'http://localhost:56304';
         document.documentElement.setAttribute('data-theme', 'dark');
     </script>
 </head>
@@ -17,7 +17,7 @@
         </div>
     </div>
     
-    <main class="container">
+    <main class="container" style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
         <h1>User Management</h1>
         
         <div class="auth-section">
@@ -138,6 +138,41 @@
             }, 3000);
         }
         
+        function secureConfirm(message) {
+            return new Promise((resolve) => {
+                const modal = document.createElement('div');
+                modal.className = 'secure-modal';
+                
+                const dialog = document.createElement('div');
+                dialog.className = 'secure-modal-dialog';
+                
+                const messageEl = document.createElement('p');
+                messageEl.className = 'secure-modal-message';
+                messageEl.textContent = message;
+                
+                const buttons = document.createElement('div');
+                buttons.className = 'secure-modal-buttons';
+                
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.className = 'secure-modal-btn secure-modal-btn-cancel';
+                
+                const okBtn = document.createElement('button');
+                okBtn.textContent = 'OK';
+                okBtn.className = 'secure-modal-btn secure-modal-btn-ok';
+                
+                cancelBtn.onclick = () => { document.body.removeChild(modal); resolve(false); };
+                okBtn.onclick = () => { document.body.removeChild(modal); resolve(true); };
+                
+                buttons.appendChild(cancelBtn);
+                buttons.appendChild(okBtn);
+                dialog.appendChild(messageEl);
+                dialog.appendChild(buttons);
+                modal.appendChild(dialog);
+                document.body.appendChild(modal);
+            });
+        }
+        
         class AuthManager {
             constructor() {
                 this.currentUser = null;
@@ -214,6 +249,12 @@
                         },
                         body: JSON.stringify({ email, password, userRole })
                     });
+                    
+                    if (!response.ok) {
+                        const data = await response.json();
+                        showMessage(data.error || `Registration failed: ${response.status}`);
+                        return;
+                    }
                     
                     const data = await response.json();
                     if (data.success) {
@@ -377,7 +418,8 @@
             }
             
             async deleteUser(userId) {
-                if (!confirm('Are you sure you want to permanently delete this user?')) return;
+                const confirmed = await secureConfirm('Are you sure you want to permanently delete this user?');
+                if (!confirmed) return;
                 
                 try {
                     const sessionId = localStorage.getItem('sessionId');
