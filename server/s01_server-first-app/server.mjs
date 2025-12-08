@@ -176,6 +176,10 @@ app.use('/api/auth', validateOrigin, authRouter);
 app.use('/api/users', requireAuth, (req, res) => res.json({ message: 'Users endpoint' }));
 app.use('/api/dashboard', requireAuth, (req, res) => res.json({ message: 'Dashboard data' }));
 app.use('/api/licensing', licensingRouter);
+
+// Customer routes
+import customersRouter from './routes/customers.mjs';
+app.use('/api/customers', customersRouter);
 // app.use('/api/payments', validateOrigin, validateCSRFToken, paymentRouter);
 
 // Catch-all for unmatched API routes

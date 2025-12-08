@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Registration - AI Private Search</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem 2rem;">
+            <h1 style="display: inline-block; margin: 0; color: var(--accent-color);">AI Private Search</h1>
+        </div>
+    </div>
+    
+    <main class="container" style="max-width: 600px; margin: 2rem auto; padding: 2rem;">
+        <h1 style="text-align: center;">Customer Registration</h1>
+        <p style="text-align: center; margin-bottom: 2rem;">Get 60 days free access to AI Private Search Standard tier</p>
+        
+        <form id="registrationForm" class="auth-form">
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">Phone Number *</label>
+                <input type="tel" id="phone" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="city">City *</label>
+                <input type="text" id="city" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="state">State *</label>
+                <input type="text" id="state" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="postalCode">Postal Code *</label>
+                <input type="text" id="postalCode" required>
+            </div>
+            
+            <button type="submit" style="width: 100%; margin-top: 1rem;">Register</button>
+        </form>
+        
+        <form id="verificationForm" class="auth-form" style="display: none;">
+            <h2>Verify Your Email</h2>
+            <p>Please enter the 6-digit code sent to your email</p>
+            
+            <div class="form-group">
+                <label for="verificationCode">Verification Code *</label>
+                <input type="text" id="verificationCode" maxlength="6" required>
+            </div>
+            
+            <button type="submit" style="width: 100%; margin-top: 1rem;">Verify</button>
+        </form>
+        
+        <p style="text-align: center; margin-top: 2rem;">
+            Already have an account? <a href="/user-management.html" style="color: var(--accent-color);">Login here</a>
+        </p>
+    </main>
+    
+    <div id="footer-placeholder"></div>
+    
+    <script>
+        function showMessage(message, type = 'error') {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'toast-message toast-' + type;
+            messageEl.textContent = message;
+            document.body.appendChild(messageEl);
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+        
+        let registeredEmail = '';
+        
+        document.getElementById('registrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                postalCode: document.getElementById('postalCode').value
+            };
+            
+            registeredEmail = formData.email;
+            
+            try {
+                const response = await fetch('http://localhost:56304/api/customers/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showMessage('Verification code sent to your email', 'success');
+                    document.getElementById('registrationForm').style.display = 'none';
+                    document.getElementById('verificationForm').style.display = 'block';
+                } else {
+                    showMessage(data.error || 'Registration failed');
+                }
+            } catch (error) {
+                showMessage('Registration failed: ' + error.message);
+            }
+        });
+        
+        document.getElementById('verificationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const code = document.getElementById('verificationCode').value;
+            
+            try {
+                const response = await fetch('http://localhost:56304/api/customers/verify-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: registeredEmail, code })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    showMessage('Email verified successfully!', 'success');
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.style.cssText = 'margin: 20px 0; padding: 20px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px;';
+                    infoDiv.innerHTML = `
+                        <h3 style="color: var(--accent-color);">Your License Information</h3>
+                        <p><strong>License Key:</strong> ${data.licenseKey}</p>
+                        <p><strong>Tier:</strong> Standard (60 days free)</p>
+                        <p><strong>Expires:</strong> ${new Date(data.expiresAt).toLocaleDateString()}</p>
+                        <p style="margin-top: 15px;">Use this license key to activate AI Private Search on your device.</p>
+                    `;
+                    document.getElementById('verificationForm').parentNode.appendChild(infoDiv);
+                    document.getElementById('verificationForm').style.display = 'none';
+                } else {
+                    showMessage(data.error || 'Verification failed');
+                }
+            } catch (error) {
+                showMessage('Verification failed: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

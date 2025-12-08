@@ -2,6 +2,7 @@
 018. Test enhanced JWT tokens and device limit enforcement on Ubuntu server
 019. Create admin dashboard for device management
 020. check conatcts pages etc for auth.
+022. create payment process using paypal.
 
 
 
@@ -9,13 +10,24 @@
 
 =====================================================
 
-## v1.24 Release (Current)
+## v1.25 Release (Current)
+
+## v1.24 Release
 057. Fixed register endpoint 404 error - API_BASE now uses full URL for localhost --done
 058. Fixed CORS error for DELETE/PUT methods - added to allowed methods in server.mjs --done
 059. Replaced insecure confirm() with secureConfirm() for delete user confirmation --done
 060. Matched container width to aiprivatesearch user-management (1200px max-width) --done
 061. Fixed syntax error in common.js (extra closing brace) --done
 062. Updated security-check.sh to filter out false positive password warnings --done
+063. Created customer registration page with email, phone, city, state, postal code fields --done
+064. Created CustomerManager class to handle customer registration and license creation --done
+065. Added /api/customers/register endpoint for public customer registration --done
+066. Auto-create 60-day Standard tier (tier 1) license for new customers --done
+067. Modified registration to return license key for aips activation --done
+068. Added handling for existing customers - returns existing license info --done
+069. Added email verification with 6-digit code (15 min expiry) --done
+070. Created EmailService to send verification codes via aiaprivatesearch@gmail.com --done
+071. Added /api/customers/verify-email endpoint --done
 
 ## v1.23 Release
 050. Added debugging logs to auth.js and server middleware for troubleshooting --done
