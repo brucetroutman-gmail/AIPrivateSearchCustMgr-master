@@ -26,6 +26,14 @@ const dbConfig = {
   queueLimit: 0
 };
 
+console.log('[DB] Connection config:', {
+  host: dbConfig.host,
+  port: dbConfig.port,
+  user: dbConfig.user,
+  database: dbConfig.database,
+  hasPassword: !!dbConfig.password
+});
+
 const pool = mysql.createPool(dbConfig);
 
 export default pool;
