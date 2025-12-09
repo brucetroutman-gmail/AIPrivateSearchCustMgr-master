@@ -10,7 +10,13 @@
 
 =====================================================
 
-## v1.26 Release (Current)
+## v1.27 Release (Current)
+079. Created separate .env files for different apps (.env-custmgr and .env-aips) --done
+080. Updated custmgr server to load .env-custmgr instead of .env --done
+081. Updated aips server to load .env-aips instead of .env --done
+082. Separated database/email config (custmgr) from API keys only (aips) --done
+
+## v1.26 Release
 072. Fixed email address typo - changed aiaprivatesearch to aiprivatesearch --done
 073. Created email test page at /email-test.html for testing email functionality --done
 074. Added /api/test/send-email endpoint for email testing --done
