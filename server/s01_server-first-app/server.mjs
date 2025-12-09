@@ -86,10 +86,14 @@ app.use(async (req, res, next) => {
     return res.redirect('/user-management.html');
   }
   
-  // Skip auth for user-management page, auth endpoints, licensing endpoints, and static assets
+  // Skip auth for user-management page, auth endpoints, licensing endpoints, test endpoints, customer endpoints, and static assets
   if (req.path === '/user-management.html' || 
+      req.path === '/email-test.html' ||
+      req.path === '/customer-registration.html' ||
       req.path.startsWith('/api/auth/') || 
       req.path.startsWith('/api/licensing/') || 
+      req.path.startsWith('/api/test/') ||
+      req.path.startsWith('/api/customers/') ||
       req.path === '/api/health' ||
       req.path.endsWith('.css') ||
       req.path.endsWith('.js') ||
@@ -180,6 +184,11 @@ app.use('/api/licensing', licensingRouter);
 // Customer routes
 import customersRouter from './routes/customers.mjs';
 app.use('/api/customers', customersRouter);
+
+// Test routes
+import testRouter from './routes/test.mjs';
+app.use('/api/test', testRouter);
+
 // app.use('/api/payments', validateOrigin, validateCSRFToken, paymentRouter);
 
 // Catch-all for unmatched API routes

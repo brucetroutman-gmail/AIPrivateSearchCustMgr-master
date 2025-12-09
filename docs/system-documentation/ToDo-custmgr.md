@@ -10,7 +10,16 @@
 
 =====================================================
 
-## v1.25 Release (Current)
+## v1.26 Release (Current)
+072. Fixed email address typo - changed aiaprivatesearch to aiprivatesearch --done
+073. Created email test page at /email-test.html for testing email functionality --done
+074. Added /api/test/send-email endpoint for email testing --done
+075. Configured Gmail SMTP with explicit host/port settings --done
+076. Fixed email password format - Gmail app passwords require spaces --done
+077. Added debug logging to EmailService and test routes --done
+078. Bypassed authentication for email-test page and test endpoints --done
+
+## v1.25 Release
 
 ## v1.24 Release
 057. Fixed register endpoint 404 error - API_BASE now uses full URL for localhost --done
