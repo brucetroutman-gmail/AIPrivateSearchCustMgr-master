@@ -6,7 +6,9 @@
     <title>User Management - Customer Manager</title>
     <link rel="stylesheet" href="styles.css">
     <script>
-        const API_BASE = 'http://localhost:56304';
+        const API_BASE = window.location.hostname === 'localhost' 
+            ? 'http://localhost:56304' 
+            : '';
         document.documentElement.setAttribute('data-theme', 'dark');
     </script>
 </head>
