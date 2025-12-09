@@ -8,7 +8,7 @@ export class CustomerManager {
   constructor() {
     this.dbConfig = {
       host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
+      user: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || '',
       database: 'aiprivatesearch'
     };

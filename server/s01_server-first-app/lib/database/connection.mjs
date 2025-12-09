@@ -1,11 +1,11 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
-// Try multiple .env locations
+// Try multiple .env-custmgr locations
 const envPaths = [
-  '/Users/Shared/AIPrivateSearch/.env',  // macOS
-  '/webs/AIPrivateSearch/.env',          // Ubuntu
-  '.env'                                 // Local fallback
+  '/Users/Shared/AIPrivateSearch/.env-custmgr',  // macOS
+  '/webs/AIPrivateSearch/.env-custmgr',          // Ubuntu
+  '.env'                                         // Local fallback
 ];
 
 for (const envPath of envPaths) {
