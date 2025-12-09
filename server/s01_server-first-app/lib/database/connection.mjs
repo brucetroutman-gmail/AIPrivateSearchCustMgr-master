@@ -8,18 +8,42 @@ const envPaths = [
   '.env'                                         // Local fallback
 ];
 
+let envLoaded = false;
 for (const envPath of envPaths) {
   try {
+    console.log(`[DB] Trying to load: ${envPath}`);
     dotenv.config({ path: envPath });
-    if (process.env.DB_HOST) break;
-  } catch (e) {}
+    if (process.env.DB_HOST) {
+      console.log(`[DB] Successfully loaded: ${envPath}`);
+      envLoaded = true;
+      break;
+    }
+  } catch (e) {
+    console.log(`[DB] Failed to load: ${envPath}`, e.message);
+  }
+}
+
+if (!envLoaded) {
+  console.error('[DB] ERROR: No .env-custmgr file found! DB_HOST not set.');
+}
+
+console.log('[DB] Environment variables:', {
+  DB_HOST: process.env.DB_HOST,
+  DB_PORT: process.env.DB_PORT,
+  DB_USERNAME: process.env.DB_USERNAME,
+  DB_DATABASE: process.env.DB_DATABASE,
+  hasPassword: !!process.env.DB_PASSWORD
+});
+
+if (!process.env.DB_HOST || !process.env.DB_USERNAME) {
+  throw new Error('[DB] FATAL: Required database credentials not found in .env-custmgr');
 }
 
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST,
   port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USERNAME || 'root',
-  password: process.env.DB_PASSWORD || '',
+  user: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
   database: 'aiprivatesearchcustmgr',
   waitForConnections: true,
   connectionLimit: 10,
