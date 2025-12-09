@@ -10,7 +10,17 @@
 
 =====================================================
 
-## v1.27 Release (Current)
+## v1.28 Release (Current)
+083. Fixed database connection to use DB_USERNAME instead of DB_USER --done
+084. Fixed customerManager.mjs to use correct DB credentials --done
+085. Added extensive debug logging to connection.mjs for troubleshooting --done
+086. Removed fallback defaults - must use .env-custmgr values --done
+087. Fixed user-management.html API_BASE for production (relative paths) --done
+088. Added trust proxy setting for rate limiting behind Caddy --done
+089. Added automatic session cleanup job (runs every minute) --done
+090. Confirmed 5-minute session timeout is working correctly --done
+
+## v1.27 Release
 079. Created separate .env files for different apps (.env-custmgr and .env-aips) --done
 080. Updated custmgr server to load .env-custmgr instead of .env --done
 081. Updated aips server to load .env-aips instead of .env --done

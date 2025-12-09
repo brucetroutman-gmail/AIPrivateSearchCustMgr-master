@@ -24,6 +24,9 @@ for (const envPath of envPaths) {
 const app = express();
 const PORT = process.env.PORT || 56304;
 
+// Trust proxy for rate limiting behind Caddy
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -199,10 +202,26 @@ app.use('/api/*', (req, res) => {
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
+// Cleanup expired sessions every minute
+setInterval(async () => {
+  try {
+    const { UserManager } = await import('./lib/auth/userManager.mjs');
+    const userManager = new UserManager();
+    const pool = (await import('./lib/database/connection.mjs')).default;
+    const connection = await pool.getConnection();
+    await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
+    await connection.execute('DELETE FROM sessions WHERE expires_at < NOW()');
+    connection.release();
+  } catch (error) {
+    console.error('Session cleanup error:', error);
+  }
+}, 60000); // Every minute
+
 // Start server
 const server = app.listen(PORT, () => {
   console.log(`AI Private Search Customer Manager server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('Session timeout: 5 minutes');
 });
 
 server.on('error', (err) => {
