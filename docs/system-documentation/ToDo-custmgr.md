@@ -10,7 +10,16 @@
 
 =====================================================
 
-## v1.28 Release (Current)
+## v1.29 Release (Current)
+091. Created optimal database schema for customer lifecycle management --done
+092. Updated licensing-db.mjs with trial support and proper table structure --done
+093. Added customers table with email verification fields --done
+094. Added licenses table with trial status and grace period support --done
+095. Added payments table for PayPal transaction tracking --done
+096. Created comprehensive Phase 1 test plan with 10 test cases --done
+097. Documented optimal schema in docs/database/optimal-schema.sql --done
+
+## v1.28 Release
 083. Fixed database connection to use DB_USERNAME instead of DB_USER --done
 084. Fixed customerManager.mjs to use correct DB credentials --done
 085. Added extensive debug logging to connection.mjs for troubleshooting --done

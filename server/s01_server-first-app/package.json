@@ -1,6 +1,6 @@
 {
   "name": "aiprivatesearch-custmgr-server",
-  "version": "1.28",
+  "version": "1.29",
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
