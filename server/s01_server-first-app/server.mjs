@@ -217,11 +217,44 @@ setInterval(async () => {
   }
 }, 60000); // Every minute
 
+// Check trial expirations daily at midnight
+import { TrialNotificationService } from './lib/notifications/trialNotificationService.mjs';
+const trialService = new TrialNotificationService();
+
+const scheduleTrialChecks = () => {
+  const now = new Date();
+  const midnight = new Date(now);
+  midnight.setHours(24, 0, 0, 0);
+  const msUntilMidnight = midnight - now;
+  
+  setTimeout(() => {
+    runTrialChecks();
+    setInterval(runTrialChecks, 24 * 60 * 60 * 1000); // Every 24 hours
+  }, msUntilMidnight);
+};
+
+const runTrialChecks = async () => {
+  try {
+    console.log('[TRIAL CHECK] Running expiration checks...');
+    const expiring = await trialService.checkExpiringTrials();
+    console.log(`[TRIAL CHECK] Checked ${expiring.checked} expiring trials`);
+    
+    const expired = await trialService.handleExpiredTrials();
+    console.log(`[TRIAL CHECK] Handled ${expired.expired} expired trials`);
+  } catch (error) {
+    console.error('[TRIAL CHECK] Error:', error);
+  }
+};
+
+scheduleTrialChecks();
+console.log('Trial notification service scheduled');
+
 // Start server
 const server = app.listen(PORT, () => {
   console.log(`AI Private Search Customer Manager server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('Session timeout: 5 minutes');
+  console.log('Trial notifications: Daily at midnight');
 });
 
 server.on('error', (err) => {

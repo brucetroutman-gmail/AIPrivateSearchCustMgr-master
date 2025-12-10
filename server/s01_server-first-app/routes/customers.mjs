@@ -54,6 +54,14 @@ router.post('/verify-email', async (req, res) => {
 
     const result = await customerManager.verifyEmail({ email, code });
     
+    // Send welcome email with license info and download link
+    try {
+      await emailService.sendWelcomeEmail(result.email, result.licenseKey, result.expiresAt);
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+      // Continue anyway - user already has license
+    }
+    
     res.json({ 
       success: true, 
       customerId: result.customerId,

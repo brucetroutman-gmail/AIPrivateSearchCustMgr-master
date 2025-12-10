@@ -100,8 +100,8 @@ export class CustomerManager {
       expiresAt.setDate(expiresAt.getDate() + 60);
       
       await connection.execute(
-        `INSERT INTO licenses (customer_id, tier, status, expires_at, created_at) 
-         VALUES (?, 1, 'active', ?, NOW())`,
+        `INSERT INTO licenses (customer_id, tier, status, trial_started_at, expires_at, created_at) 
+         VALUES (?, 1, 'trial', NOW(), ?, NOW())`,
         [customer.id, expiresAt]
       );
       
@@ -109,6 +109,7 @@ export class CustomerManager {
       
       return {
         customerId: customer.id,
+        email,
         licenseKey: customer.customer_code,
         tier: 1,
         expiresAt

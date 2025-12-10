@@ -4,13 +4,95 @@
 020. check conatcts pages etc for auth.
 022. create payment process using paypal.
 
+### Phase 1: Trial & Registration Fixes (v1.29-1.30)
+[All tasks complete]
+
+### Phase 1 Testing (v1.30)
+Test on macOS localhost before Ubuntu deployment:
+
+T1. Customer Registration Flow
+  - Register new customer with all fields
+  - Verify email with 6-digit code
+  - Check license created with status='trial', tier=1
+  - Verify trial_started_at timestamp set
+  - Confirm 60-day expiration date
+  - Verify welcome email received with license key and download link
+
+T2. Download Link Verification
+  - Check download button on verification success screen
+  - Verify download link in welcome email
+  - Test download URL: http://localhost:56303/downloads/load-AIPrivateSearch-1108.command
+  - Confirm file downloads successfully
+
+T3. Database Schema Validation
+  - Verify customers table has all fields (email, phone, city, state, postal_code, customer_code, email_verified)
+  - Verify licenses table has trial fields (status='trial', trial_started_at, grace_period_ends)
+  - Check payments table exists with PayPal fields
+  - Verify devices table has license_id foreign key
+
+T4. Email Templates
+  - Test verification code email format
+  - Test welcome email with license info and download link
+  - Verify trial expiration date displayed correctly
+  - Check all links work (download, upgrade)
+
+T5. Trial Expiration Warnings (Manual Test)
+  - Manually set license expires_at to 7 days from now
+  - Run trial check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().checkExpiringTrials())"
+  - Verify 7-day warning email received
+  - Repeat for 3-day and 1-day warnings
+
+T6. Grace Period Handling (Manual Test)
+  - Manually set license expires_at to yesterday
+  - Run expired check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().handleExpiredTrials())"
+  - Verify status changed to 'expired'
+  - Verify grace_period_ends set to 7 days from now
+  - Verify grace period email received
+
+T7. Duplicate Registration Prevention
+  - Try registering same email twice
+  - Verify error message returned
+  - Confirm no duplicate customer created
+
+T8. Verification Code Expiry
+  - Register customer
+  - Wait 16 minutes (code expires in 15 min)
+  - Try to verify with expired code
+  - Verify error message returned
+
+T9. Invalid Verification Code
+  - Register customer
+  - Try verifying with wrong code
+  - Verify error message returned
+  - Confirm license not created
+
+T10. Production Deployment Test (Ubuntu)
+  - Copy installer to Ubuntu: /webs/AIPrivateSearch/repo/aiprivatesearchcustmgr/client/c01_client-first-app/downloads/
+  - Test registration flow on https://custmgr.aiprivatesearch.com/customer-registration.html
+  - Verify download URL: https://custmgr.aiprivatesearch.com/downloads/load-AIPrivateSearch-1108.command
+  - Confirm all emails sent successfully
+  - Check trial notification job scheduled in PM2 logs
+
 
 
 
 
 =====================================================
 
-## v1.29 Release (Current)
+## v1.30 Release (Current)
+098. Created downloads directory for AIPS installer files --done
+099. Copied installer to custmgr client downloads folder --done
+100. Added download button to verification success screen --done
+101. Created sendWelcomeEmail method with license info and download link --done
+102. Integrated welcome email into verification flow --done
+103. Created TrialNotificationService for expiration warnings --done
+104. Added sendTrialExpirationEmail for 7/3/1 day warnings --done
+105. Added sendGracePeriodEmail for expired trials --done
+106. Implemented grace period handling (7 days after expiry) --done
+107. Scheduled trial checks to run daily at midnight --done
+108. Created Phase 1 test plan with 10 comprehensive test cases --done
+
+## v1.29 Release
 091. Created optimal database schema for customer lifecycle management --done
 092. Updated licensing-db.mjs with trial support and proper table structure --done
 093. Added customers table with email verification fields --done
@@ -18,6 +100,17 @@
 095. Added payments table for PayPal transaction tracking --done
 096. Created comprehensive Phase 1 test plan with 10 test cases --done
 097. Documented optimal schema in docs/database/optimal-schema.sql --done
+1.1. Update database schema for trial support (customers, licenses, payments tables) --done
+1.3. Set license status to 'trial' instead of 'active' for new registrations --done
+1.4. Add trial_started_at timestamp to licenses --done
+1.5. Define AIPS installer download URL in .env-custmgr --done
+1.6. Add download link to verification success screen --done
+1.7. Include download link in welcome email --done
+1.8. Send welcome email after successful verification with trial info --done
+1.9. Add trial expiration date to welcome email --done
+1.10. Implement trial expiration warnings (7, 3, 1 day before expiry) --done
+1.11. Add grace period handling (7 days after trial expires) --done
+1.12. Create email notifications for expiring trials --done
 
 ## v1.28 Release
 083. Fixed database connection to use DB_USERNAME instead of DB_USER --done

@@ -138,7 +138,12 @@
                         <p><strong>License Key:</strong> ${data.licenseKey}</p>
                         <p><strong>Tier:</strong> Standard (60 days free)</p>
                         <p><strong>Expires:</strong> ${new Date(data.expiresAt).toLocaleDateString()}</p>
-                        <p style="margin-top: 15px;">Use this license key to activate AI Private Search on your device.</p>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(255, 215, 0, 0.1); border: 1px solid var(--accent-color); border-radius: 4px;">
+                            <h4 style="margin-top: 0; color: var(--accent-color);">Download AI Private Search</h4>
+                            <p>Click the button below to download the installer:</p>
+                            <a href="/downloads/load-AIPrivateSearch-1108.command" download style="display: inline-block; padding: 10px 20px; background: var(--accent-color); color: #000; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 10px;">Download Installer</a>
+                            <p style="margin-top: 15px; font-size: 0.9em;">After downloading, run the installer and use your license key to activate.</p>
+                        </div>
                     `;
                     document.getElementById('verificationForm').parentNode.appendChild(infoDiv);
                     document.getElementById('verificationForm').style.display = 'none';
