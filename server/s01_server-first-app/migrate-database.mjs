@@ -1,11 +1,11 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
-// Try multiple .env-custmgr locations
+// Load environment
 const envPaths = [
-  '/Users/Shared/AIPrivateSearch/.env-custmgr',  // macOS
-  '/webs/AIPrivateSearch/.env-custmgr',          // Ubuntu
-  '.env'                                         // Local fallback
+  '/Users/Shared/AIPrivateSearch/.env-custmgr',
+  '/webs/AIPrivateSearch/.env-custmgr',
+  '.env'
 ];
 
 for (const envPath of envPaths) {
@@ -20,18 +20,28 @@ const dbConfig = {
   port: process.env.DB_PORT || 3306,
   user: process.env.DB_USERNAME || 'root',
   password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_DATABASE || 'aiprivatesearch'
+  database: 'aiprivatesearch'
 };
 
-let pool;
-
-export async function initializeLicensingDB() {
+async function migrateDatabase() {
+  const connection = await mysql.createConnection(dbConfig);
+  
   try {
-    pool = mysql.createPool(dbConfig);
+    console.log('Starting database migration...');
     
-    // Create customers table for customer registration
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS customers (
+    // Drop existing tables in correct order (foreign keys first)
+    await connection.execute('DROP TABLE IF EXISTS devices');
+    await connection.execute('DROP TABLE IF EXISTS payments');
+    await connection.execute('DROP TABLE IF EXISTS revocation_list');
+    await connection.execute('DROP TABLE IF EXISTS activation_attempts');
+    await connection.execute('DROP TABLE IF EXISTS licenses');
+    await connection.execute('DROP TABLE IF EXISTS customers');
+    
+    console.log('Dropped existing tables');
+    
+    // Create customers table
+    await connection.execute(`
+      CREATE TABLE customers (
         id INT AUTO_INCREMENT PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         phone VARCHAR(50),
@@ -49,9 +59,10 @@ export async function initializeLicensingDB() {
         INDEX idx_email_verified (email_verified)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS licenses (
+    
+    // Create licenses table
+    await connection.execute(`
+      CREATE TABLE licenses (
         id INT AUTO_INCREMENT PRIMARY KEY,
         customer_id INT NOT NULL,
         tier TINYINT NOT NULL DEFAULT 1,
@@ -67,9 +78,10 @@ export async function initializeLicensingDB() {
         INDEX idx_expires (expires_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS payments (
+    
+    // Create other tables
+    await connection.execute(`
+      CREATE TABLE payments (
         id INT AUTO_INCREMENT PRIMARY KEY,
         customer_id INT NOT NULL,
         license_id INT NOT NULL,
@@ -90,35 +102,9 @@ export async function initializeLicensingDB() {
         INDEX idx_paypal_order (paypal_order_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS revocation_list (
-        token_hash VARCHAR(64) PRIMARY KEY,
-        customer_id INT,
-        revoked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        reason VARCHAR(255),
-        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
-        INDEX idx_revoked_at (revoked_at)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS activation_attempts (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        email VARCHAR(255),
-        hw_hash VARCHAR(64),
-        ip_address VARCHAR(45),
-        attempts INT DEFAULT 1,
-        last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        success BOOLEAN DEFAULT FALSE,
-        UNIQUE KEY unique_email_hw_ip (email, hw_hash, ip_address),
-        INDEX idx_last_attempt (last_attempt),
-        INDEX idx_email (email)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS devices (
+    
+    await connection.execute(`
+      CREATE TABLE devices (
         id INT AUTO_INCREMENT PRIMARY KEY,
         customer_id INT NOT NULL,
         license_id INT NOT NULL,
@@ -136,18 +122,42 @@ export async function initializeLicensingDB() {
         INDEX idx_hw_hash (hw_hash)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
-
-    console.log('Licensing database tables initialized successfully');
-    return pool;
+    
+    await connection.execute(`
+      CREATE TABLE revocation_list (
+        token_hash VARCHAR(64) PRIMARY KEY,
+        customer_id INT,
+        revoked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reason VARCHAR(255),
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+        INDEX idx_revoked_at (revoked_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+    
+    await connection.execute(`
+      CREATE TABLE activation_attempts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255),
+        hw_hash VARCHAR(64),
+        ip_address VARCHAR(45),
+        attempts INT DEFAULT 1,
+        last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        success BOOLEAN DEFAULT FALSE,
+        UNIQUE KEY unique_email_hw_ip (email, hw_hash, ip_address),
+        INDEX idx_last_attempt (last_attempt),
+        INDEX idx_email (email)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    `);
+    
+    console.log('✅ Database migration completed successfully');
+    console.log('All tables created with optimal schema');
+    
   } catch (error) {
-    console.error('Failed to initialize licensing database:', error);
+    console.error('❌ Migration failed:', error.message);
     throw error;
+  } finally {
+    await connection.end();
   }
 }
 
-export function getDB() {
-  if (!pool) {
-    throw new Error('Database not initialized. Call initializeLicensingDB() first.');
-  }
-  return pool;
-}
+migrateDatabase().catch(console.error);

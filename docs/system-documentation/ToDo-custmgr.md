@@ -4,6 +4,17 @@
 020. check conatcts pages etc for auth.
 022. create payment process using paypal.
 
+### Customer Authentication System
+025. Extend custmgr auth system to handle customer role login
+026. Add customer role to existing user management (admin/manager/customer)
+027. Create customer portal dashboard (my-account.html) for customers
+028. Admin can manage customer accounts (activate/deactivate/reset password)
+029. Customer sessions use same system but longer timeout (30 min vs 5 min)
+031. Customer login redirects to my-account.html, admin login to index.html
+032. Update user-management.html to handle both admin and customer login
+033. Add customer account management to admin interface
+034. Implement role-based redirects after login
+
 ### Phase 1: Trial & Registration Fixes (v1.29-1.30)
 [All tasks complete]
 
@@ -73,13 +84,62 @@ T10. Production Deployment Test (Ubuntu)
   - Confirm all emails sent successfully
   - Check trial notification job scheduled in PM2 logs
 
+### Unified Authentication Tests
+T11. Single Database Verification
+  - Verify aiprivatesearch database contains users, customers, sessions tables  --done
+  - Check admin accounts exist: adm-custmgr@a.com, custmgr-adm@c.com  --done
+  - Verify customers table has password_hash, role, active fields  --done
+  - Confirm sessions table has user_type field (admin/customer) --done
+
+T12. Admin Login Test
+  - Login with adm-custmgr@a.com / 123 at /user-management.html  --done
+  - Verify redirects to /index.html (admin dashboard)  --done
+  - Check session timeout is 5 minutes  --done
+  - Verify admin can access user management functions  --done
+
+T13. Customer Registration with Password
+  - Register new customer with password at /customer-registration.html
+  - Test password validation (8+ chars, upper, lower, number)
+  - Verify password confirmation matching
+  - Check customer created with role='customer' in database
+
+T14. Customer Login Test
+  - Login with registered customer credentials at /user-management.html
+  - Verify customer login works with unified auth system
+  - Check session timeout is 30 minutes (longer than admin)
+  - Verify customer gets appropriate access level
+
+T15. Password Reset Flow
+  - Test forgot password at /user-management.html
+  - Verify reset email sent with token
+  - Test reset-password.html page with token
+  - Confirm password reset and login with new password
+
+T16. Session Management
+  - Test admin and customer sessions coexist
+  - Verify session cleanup job removes expired sessions
+  - Test logout destroys session properly
+  - Check session validation for both user types
+
+T17. User Management Integration
+  - Admin login and access user management
+  - Verify admin can see admin users (not customers)
+  - Test admin user creation, update, delete
+  - Confirm customer accounts managed separately
+
 
 
 
 
 =====================================================
 
-## v1.30 Release (Current)
+## v1.31 Release (Current)
+121. Fixed database connection hardcoded reference to use environment variable --done
+122. Updated authMiddleware to use UnifiedUserManager instead of old UserManager --done
+123. Added role-based access control for admin pages (index.html) --done
+124. Completed T11 and T12 unified authentication tests --done
+
+## v1.30 Release
 098. Created downloads directory for AIPS installer files --done
 099. Copied installer to custmgr client downloads folder --done
 100. Added download button to verification success screen --done
@@ -91,6 +151,21 @@ T10. Production Deployment Test (Ubuntu)
 106. Implemented grace period handling (7 days after expiry) --done
 107. Scheduled trial checks to run daily at midnight --done
 108. Created Phase 1 test plan with 10 comprehensive test cases --done
+109. Added password_hash, role, active, reset_token fields to customers table --done
+110. Updated customer registration form with password fields and validation --done
+111. Added password validation (8+ chars, upper, lower, number) --done
+112. Created forgot password functionality with email reset --done
+113. Added password reset email templates --done
+114. Created reset-password.html page --done
+115. Added customer login validation method --done
+116. Consolidated to single aiprivatesearch database --done
+117. Created unified users and sessions tables --done
+118. Updated all database connections to use aiprivatesearch --done
+119. Created UnifiedUserManager for admin and customer auth --done
+120. Updated auth routes to use unified authentication --done
+023. Add password_hash and role fields to customers table in aiprivatesearch DB --done
+024. Update customer registration to include password creation --done
+030. Update welcome email to include custmgr login instructions --done
 
 ## v1.29 Release
 091. Created optimal database schema for customer lifecycle management --done

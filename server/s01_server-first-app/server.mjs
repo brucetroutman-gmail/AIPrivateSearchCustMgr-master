@@ -75,9 +75,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Import UserManager for auth middleware
-import { UserManager } from './lib/auth/userManager.mjs';
-const userManager = new UserManager();
+// Import UnifiedUserManager for auth middleware
+import { UnifiedUserManager } from './lib/auth/unifiedUserManager.mjs';
+const userManager = new UnifiedUserManager();
 
 // Auth check middleware for protected routes
 app.use(async (req, res, next) => {
@@ -89,10 +89,11 @@ app.use(async (req, res, next) => {
     return res.redirect('/user-management.html');
   }
   
-  // Skip auth for user-management page, auth endpoints, licensing endpoints, test endpoints, customer endpoints, and static assets
+  // Skip auth for login pages, auth endpoints, and static assets
   if (req.path === '/user-management.html' || 
       req.path === '/email-test.html' ||
       req.path === '/customer-registration.html' ||
+      req.path === '/reset-password.html' ||
       req.path.startsWith('/api/auth/') || 
       req.path.startsWith('/api/licensing/') || 
       req.path.startsWith('/api/test/') ||
@@ -101,7 +102,8 @@ app.use(async (req, res, next) => {
       req.path.endsWith('.css') ||
       req.path.endsWith('.js') ||
       req.path.endsWith('.ico') ||
-      req.path.endsWith('.png')) {
+      req.path.endsWith('.png') ||
+      req.path.startsWith('/downloads/')) {
     console.log('[SERVER AUTH] Skipping auth for:', req.path);
     return next();
   }
@@ -131,7 +133,19 @@ app.use(async (req, res, next) => {
       return res.redirect('/user-management.html');
     }
     
-    console.log('[SERVER AUTH] Session valid for user:', user.email);
+    console.log('[SERVER AUTH] Session valid for user:', user.email, 'role:', user.userRole, 'type:', user.userType);
+    
+    // Role-based access control
+    if (req.path === '/index.html' || req.path.startsWith('/admin/')) {
+      if (user.userType !== 'admin' || !['admin', 'manager'].includes(user.userRole)) {
+        console.log('[SERVER AUTH] Access denied - admin page requires admin role');
+        if (req.path.startsWith('/api/')) {
+          return res.status(403).json({ error: 'Access denied - admin required' });
+        }
+        return res.redirect('/user-management.html');
+      }
+    }
+    
     req.user = user;
     next();
   } catch (error) {
@@ -205,11 +219,10 @@ app.use(errorHandler);
 // Cleanup expired sessions every minute
 setInterval(async () => {
   try {
-    const { UserManager } = await import('./lib/auth/userManager.mjs');
-    const userManager = new UserManager();
+    const { UnifiedUserManager } = await import('./lib/auth/unifiedUserManager.mjs');
+    const userManager = new UnifiedUserManager();
     const pool = (await import('./lib/database/connection.mjs')).default;
     const connection = await pool.getConnection();
-    await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
     await connection.execute('DELETE FROM sessions WHERE expires_at < NOW()');
     connection.release();
   } catch (error) {

@@ -43,6 +43,17 @@
                 <input type="text" id="postalCode" required>
             </div>
             
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" required minlength="8">
+                <small style="color: #666; font-size: 0.9em;">Minimum 8 characters, include uppercase, lowercase, and number</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirmPassword">Confirm Password *</label>
+                <input type="password" id="confirmPassword" required>
+            </div>
+            
             <button type="submit" style="width: 100%; margin-top: 1rem;">Register</button>
         </form>
         
@@ -80,15 +91,37 @@
         
         let registeredEmail = '';
         
+        function validatePassword(password) {
+            const minLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            return minLength && hasUpper && hasLower && hasNumber;
+        }
+        
         document.getElementById('registrationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!validatePassword(password)) {
+                showMessage('Password must be at least 8 characters with uppercase, lowercase, and number');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match');
+                return;
+            }
             
             const formData = {
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
                 city: document.getElementById('city').value,
                 state: document.getElementById('state').value,
-                postalCode: document.getElementById('postalCode').value
+                postalCode: document.getElementById('postalCode').value,
+                password: password
             };
             
             registeredEmail = formData.email;
@@ -143,6 +176,11 @@
                             <p>Click the button below to download the installer:</p>
                             <a href="/downloads/load-AIPrivateSearch-1108.command" download style="display: inline-block; padding: 10px 20px; background: var(--accent-color); color: #000; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 10px;">Download Installer</a>
                             <p style="margin-top: 15px; font-size: 0.9em;">After downloading, run the installer and use your license key to activate.</p>
+                        </div>
+                        <div style="margin-top: 20px; padding: 15px; background: rgba(135, 206, 235, 0.1); border: 1px solid var(--accent-color); border-radius: 4px;">
+                            <h4 style="margin-top: 0; color: var(--accent-color);">Manage Your Account</h4>
+                            <p>You can now log in to manage your subscription and account settings:</p>
+                            <a href="/user-management.html" style="display: inline-block; padding: 8px 16px; background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); text-decoration: none; border-radius: 4px; margin-top: 10px;">Login to Account</a>
                         </div>
                     `;
                     document.getElementById('verificationForm').parentNode.appendChild(infoDiv);

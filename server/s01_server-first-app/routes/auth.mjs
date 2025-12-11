@@ -1,9 +1,9 @@
 import express from 'express';
-import { UserManager } from '../lib/auth/userManager.mjs';
+import { UnifiedUserManager } from '../lib/auth/unifiedUserManager.mjs';
 import { requireAuth } from '../middleware/authMiddleware.mjs';
 
 const router = express.Router();
-const userManager = new UserManager();
+const userManager = new UnifiedUserManager();
 
 // Login endpoint
 router.post('/login', async (req, res) => {
@@ -14,10 +14,19 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password required' });
     }
 
-    const user = await userManager.authenticateUser(email, password);
-    const sessionId = await userManager.createSession(user.id);
+    const user = await userManager.validateLogin(email, password);
+    const sessionId = await userManager.createSession(user);
     
-    res.json({ success: true, user, sessionId });
+    res.json({ 
+      success: true, 
+      user: {
+        userId: user.id,
+        email: user.email,
+        userRole: user.userRole,
+        userType: user.userType
+      }, 
+      sessionId 
+    });
   } catch (error) {
     res.status(401).json({ error: error.message });
   }
@@ -30,7 +39,7 @@ router.post('/logout', requireAuth, async (req, res) => {
                      req.cookies?.sessionId;
     
     if (sessionId) {
-      await userManager.deleteSession(sessionId);
+      await userManager.destroySession(sessionId);
     }
     
     res.clearCookie('sessionId');
@@ -58,7 +67,8 @@ router.post('/register', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Email and password required' });
     }
 
-    const user = await userManager.createUser(email, password, userRole);
+    const result = await userManager.createUser({ email, password, userRole });
+    const user = { userId: result.userId, email, userRole };
     res.json({ success: true, user });
   } catch (error) {
     res.status(400).json({ error: error.message });

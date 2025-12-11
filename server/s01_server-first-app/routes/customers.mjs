@@ -75,4 +75,86 @@ router.post('/verify-email', async (req, res) => {
   }
 });
 
+// Password reset request
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const result = await customerManager.requestPasswordReset(email);
+    
+    // Send reset email
+    try {
+      await emailService.sendPasswordResetEmail(email, result.resetToken);
+    } catch (emailError) {
+      console.error('Failed to send reset email:', emailError);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'If the email exists, a password reset link has been sent.'
+    });
+  } catch (error) {
+    // Don't reveal if email exists or not
+    res.json({ 
+      success: true, 
+      message: 'If the email exists, a password reset link has been sent.'
+    });
+  }
+});
+
+// Password reset
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and password are required' });
+    }
+
+    const result = await customerManager.resetPassword(token, password);
+    
+    // Send confirmation email
+    try {
+      await emailService.sendPasswordResetConfirmation(result.email);
+    } catch (emailError) {
+      console.error('Failed to send confirmation email:', emailError);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'Password reset successfully. You can now log in with your new password.'
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Customer login validation
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    const customer = await customerManager.validateCustomerLogin(email, password);
+    
+    res.json({ 
+      success: true, 
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        role: customer.role
+      }
+    });
+  } catch (error) {
+    res.status(401).json({ error: error.message });
+  }
+});
+
 export default router;

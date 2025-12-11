@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -18,7 +19,15 @@ export class CustomerManager {
     return await mysql.createConnection(this.dbConfig);
   }
 
-  async registerCustomer({ email, phone, city, state, postalCode }) {
+  validatePassword(password) {
+    const minLength = password.length >= 8;
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    return minLength && hasUpper && hasLower && hasNumber;
+  }
+
+  async registerCustomer({ email, phone, city, state, postalCode, password }) {
     const connection = await this.getConnection();
     
     try {
@@ -35,15 +44,21 @@ export class CustomerManager {
         throw new Error('Email already registered. Please verify your email or contact support.');
       }
       
-      // Generate verification code and customer code
+      // Validate password
+      if (!this.validatePassword(password)) {
+        throw new Error('Password must be at least 8 characters with uppercase, lowercase, and number');
+      }
+      
+      // Generate verification code, customer code, and hash password
       const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
       const customerCode = crypto.randomBytes(16).toString('hex');
+      const passwordHash = await bcrypt.hash(password, 12);
       
       // Insert customer with unverified status
       const [customerResult] = await connection.execute(
-        `INSERT INTO customers (email, phone, city, state, postal_code, customer_code, email_verified, verification_code, verification_expires, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW())`,
-        [email, phone, city, state, postalCode, customerCode, verificationCode]
+        `INSERT INTO customers (email, phone, city, state, postal_code, customer_code, password_hash, role, active, email_verified, verification_code, verification_expires, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'customer', 1, 0, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW())`,
+        [email, phone, city, state, postalCode, customerCode, passwordHash, verificationCode]
       );
       
       const customerId = customerResult.insertId;
@@ -117,6 +132,103 @@ export class CustomerManager {
     } catch (error) {
       await connection.rollback();
       throw error;
+    } finally {
+      await connection.end();
+    }
+  }
+
+  async requestPasswordReset(email) {
+    const connection = await this.getConnection();
+    
+    try {
+      // Check if customer exists
+      const [customers] = await connection.execute(
+        'SELECT id FROM customers WHERE email = ? AND email_verified = 1',
+        [email]
+      );
+      
+      if (customers.length === 0) {
+        throw new Error('Email not found or not verified');
+      }
+      
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Store reset token with 1 hour expiry
+      await connection.execute(
+        'UPDATE customers SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = ?',
+        [resetToken, email]
+      );
+      
+      return { resetToken };
+    } finally {
+      await connection.end();
+    }
+  }
+
+  async resetPassword(token, newPassword) {
+    const connection = await this.getConnection();
+    
+    try {
+      // Validate password
+      if (!this.validatePassword(newPassword)) {
+        throw new Error('Password must be at least 8 characters with uppercase, lowercase, and number');
+      }
+      
+      // Check reset token
+      const [customers] = await connection.execute(
+        'SELECT id, email FROM customers WHERE reset_token = ? AND reset_expires > NOW()',
+        [token]
+      );
+      
+      if (customers.length === 0) {
+        throw new Error('Invalid or expired reset token');
+      }
+      
+      const customer = customers[0];
+      const passwordHash = await bcrypt.hash(newPassword, 12);
+      
+      // Update password and clear reset token
+      await connection.execute(
+        'UPDATE customers SET password_hash = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?',
+        [passwordHash, customer.id]
+      );
+      
+      return { email: customer.email };
+    } finally {
+      await connection.end();
+    }
+  }
+
+  async validateCustomerLogin(email, password) {
+    const connection = await this.getConnection();
+    
+    try {
+      const [customers] = await connection.execute(
+        'SELECT id, email, password_hash, role, active FROM customers WHERE email = ? AND email_verified = 1',
+        [email]
+      );
+      
+      if (customers.length === 0) {
+        throw new Error('Invalid email or password');
+      }
+      
+      const customer = customers[0];
+      
+      if (!customer.active) {
+        throw new Error('Account is deactivated');
+      }
+      
+      const validPassword = await bcrypt.compare(password, customer.password_hash);
+      if (!validPassword) {
+        throw new Error('Invalid email or password');
+      }
+      
+      return {
+        id: customer.id,
+        email: customer.email,
+        role: customer.role
+      };
     } finally {
       await connection.end();
     }

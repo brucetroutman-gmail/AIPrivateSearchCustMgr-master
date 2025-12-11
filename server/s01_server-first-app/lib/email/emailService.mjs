@@ -205,6 +205,82 @@ export class EmailService {
     }
   }
 
+  async sendPasswordResetEmail(email, resetToken) {
+    const resetUrl = process.env.RESET_URL || `https://custmgr.aiprivatesearch.com/reset-password.html?token=${resetToken}`;
+    
+    const mailOptions = {
+      from: 'AI Private Search <aiprivatesearch@gmail.com>',
+      to: email,
+      subject: 'Reset Your Password - AI Private Search',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #87ceeb; margin-bottom: 20px;">Password Reset Request</h2>
+          
+          <p>You requested a password reset for your AI Private Search account.</p>
+          
+          <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 20px; margin: 20px 0;">
+            <p style="margin: 0; font-weight: bold;">Click the button below to reset your password:</p>
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="${resetUrl}" style="display: inline-block; background: #87ceeb; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Reset Password</a>
+            </div>
+            <p style="margin: 0; font-size: 14px; color: #666;">This link will expire in 1 hour.</p>
+          </div>
+          
+          <p style="font-size: 14px; color: #666;">If you didn't request this reset, please ignore this email. Your password will remain unchanged.</p>
+          
+          <p style="font-size: 14px; color: #666;">If the button doesn't work, copy and paste this link: <br><a href="${resetUrl}" style="color: #87ceeb;">${resetUrl}</a></p>
+          
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          <p style="color: #666; font-size: 12px; text-align: center;">AI Private Search - Your Private AI Assistant</p>
+        </div>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      return { success: true };
+    } catch (error) {
+      console.error('Password reset email error:', error);
+      throw new Error('Failed to send password reset email');
+    }
+  }
+
+  async sendPasswordResetConfirmation(email) {
+    const mailOptions = {
+      from: 'AI Private Search <aiprivatesearch@gmail.com>',
+      to: email,
+      subject: 'Password Reset Successful - AI Private Search',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #87ceeb; margin-bottom: 20px;">Password Reset Successful</h2>
+          
+          <p>Your password has been successfully reset for your AI Private Search account.</p>
+          
+          <div style="background: #d4edda; border: 1px solid #28a745; border-radius: 4px; padding: 20px; margin: 20px 0;">
+            <p style="margin: 0; color: #155724;">✅ You can now log in with your new password.</p>
+          </div>
+          
+          <div style="text-align: center; margin: 20px 0;">
+            <a href="https://custmgr.aiprivatesearch.com/user-management.html" style="display: inline-block; background: #87ceeb; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Login to Account</a>
+          </div>
+          
+          <p style="font-size: 14px; color: #666;">If you didn't make this change, please contact support immediately.</p>
+          
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          <p style="color: #666; font-size: 12px; text-align: center;">AI Private Search - Your Private AI Assistant</p>
+        </div>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      return { success: true };
+    } catch (error) {
+      console.error('Password reset confirmation email error:', error);
+      throw new Error('Failed to send confirmation email');
+    }
+  }
+
   async sendTestEmail(to, subject, message) {
     console.log('[EMAIL] Sending test email to:', to);
     

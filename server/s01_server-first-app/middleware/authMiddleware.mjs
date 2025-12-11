@@ -1,8 +1,8 @@
  
  
-import { UserManager } from '../lib/auth/userManager.mjs';
+import { UnifiedUserManager } from '../lib/auth/unifiedUserManager.mjs';
 
-const userManager = new UserManager();
+const userManager = new UnifiedUserManager();
 
 export async function requireAuth(req, res, next) {
   try {
