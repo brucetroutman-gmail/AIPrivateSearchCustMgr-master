@@ -18,7 +18,6 @@ export class UserManager {
     let connection;
     try {
       connection = await pool.getConnection();
-      await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
       
       const [users] = await connection.execute(
         'SELECT * FROM users WHERE email = ? AND status = "active"',
@@ -58,7 +57,6 @@ export class UserManager {
     let connection;
     try {
       connection = await pool.getConnection();
-      await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
       
       const sessionId = this.generateId();
       const expirationTime = await this.getTokenTimeout();
@@ -79,7 +77,6 @@ export class UserManager {
     let connection;
     try {
       connection = await pool.getConnection();
-      await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
       
       const [sessions] = await connection.execute(
         'SELECT * FROM sessions WHERE session_token = ? AND expires_at > NOW()',
@@ -119,7 +116,6 @@ export class UserManager {
     let connection;
     try {
       connection = await pool.getConnection();
-      await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
       
       await connection.execute(
         'DELETE FROM sessions WHERE session_token = ?',
@@ -134,7 +130,6 @@ export class UserManager {
     let connection;
     try {
       connection = await pool.getConnection();
-      await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
       
       const hashedPassword = this.hashPassword(password);
       const [result] = await connection.execute(
@@ -157,7 +152,6 @@ export class UserManager {
     let connection;
     try {
       connection = await pool.getConnection();
-      await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
       
       const [users] = await connection.execute(
         'SELECT id, email, first_name, last_name, role, status, created_at FROM users ORDER BY created_at DESC'
@@ -181,7 +175,6 @@ export class UserManager {
     let connection;
     try {
       connection = await pool.getConnection();
-      await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
       
       const fields = [];
       const values = [];
@@ -239,7 +232,6 @@ export class UserManager {
     let connection;
     try {
       connection = await pool.getConnection();
-      await connection.changeUser({ database: 'aiprivatesearchcustmgr' });
       
       await connection.execute('DELETE FROM users WHERE id = ?', [userId]);
     } finally {

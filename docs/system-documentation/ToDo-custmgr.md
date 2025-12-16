@@ -147,7 +147,13 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.32 Release (Current)
+## v1.33 Release (Current)
+131. Fixed database hardcoding in userManager.mjs - removed 8 hardcoded changeUser() calls --done
+132. Fixed database hardcoding in customerManager.mjs - uses process.env.DB_DATABASE --done
+133. Fixed database hardcoding in trialNotificationService.mjs - uses process.env.DB_DATABASE --done
+134. Updated all database services to properly load .env-custmgr from multiple locations --done
+
+## v1.32 Release
 125. Created customer-edit page with dark mode styling and form validation --done
 126. Added customer management interface with search/filter functionality --done
 127. Implemented sessionStorage fallback for customer ID parameter passing --done
