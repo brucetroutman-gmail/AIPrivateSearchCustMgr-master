@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - AI Private Search</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        document.documentElement.setAttribute('data-theme', 'dark');
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; color: var(--accent-color);">AI Private Search</h1>
+            <div>
+                <span id="userEmail" style="margin-right: 1rem;"></span>
+                <a href="#" id="logoutLink" style="color: var(--accent-color);">Logout</a>
+            </div>
+        </div>
+    </div>
+    
+    <main class="container" style="max-width: 800px; margin: 2rem auto; padding: 2rem;">
+        <h1>My Account</h1>
+        
+        <div class="card" style="margin-bottom: 2rem; border-color: var(--border-color); background: var(--card-bg);">
+            <h2>License Information</h2>
+            <div id="licenseInfo">
+                <p>Loading license information...</p>
+            </div>
+        </div>
+        
+        <div class="card" style="margin-bottom: 2rem; border-color: var(--border-color); background: var(--card-bg);">
+            <h2>Account Information</h2>
+            <form id="profileForm" class="auth-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" readonly style="background: var(--input-bg); color: var(--text-color); border-color: var(--border-color);">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="tel" id="phone" style="background: var(--input-bg); color: var(--text-color); border-color: var(--border-color);">
+                </div>
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city" style="background: var(--input-bg); color: var(--text-color); border-color: var(--border-color);">
+                </div>
+                <div class="form-group">
+                    <label for="state">State</label>
+                    <input type="text" id="state" style="background: var(--input-bg); color: var(--text-color); border-color: var(--border-color);">
+                </div>
+                <div class="form-group">
+                    <label for="postalCode">Postal Code</label>
+                    <input type="text" id="postalCode" style="background: var(--input-bg); color: var(--text-color); border-color: var(--border-color);">
+                </div>
+                <button type="submit">Update Profile</button>
+            </form>
+        </div>
+        
+        <div class="card" style="border-color: var(--border-color); background: var(--card-bg);">
+            <h2>Change Password</h2>
+            <form id="passwordForm" class="auth-form">
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" minlength="8" style="background: var(--input-bg); color: var(--text-color); border-color: var(--border-color);">
+                    <small>Minimum 8 characters, include uppercase, lowercase, and number</small>
+                </div>
+                <div class="form-group">
+                    <label for="confirmNewPassword">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" style="background: var(--input-bg); color: var(--text-color); border-color: var(--border-color);">
+                </div>
+                <button type="submit">Change Password</button>
+            </form>
+        </div>
+    </main>
+    
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        
+        function showMessage(message, type = 'error') {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'toast-message toast-' + type;
+            messageEl.textContent = message;
+            document.body.appendChild(messageEl);
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+        
+        function validatePassword(password) {
+            const minLength = password.length >= 8;
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /\\d/.test(password);
+            return minLength && hasUpper && hasLower && hasNumber;
+        }
+        
+        function displayLicenseInfo(license) {
+            const statusColor = license.status === 'trial' ? '#ffd700' : 
+                               license.status === 'active' ? '#28a745' : '#dc3545';
+            const statusText = license.status === 'trial' ? 'Trial' : 
+                              license.status === 'active' ? 'Active' : 'Expired';
+            
+            const expiryWarning = license.days_remaining <= 7 && license.days_remaining > 0 ? 
+                `<div style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                    <strong>⚠️ Expiring Soon:</strong> Your license expires in ${license.days_remaining} day(s)
+                </div>` : '';
+            
+            const expiredNotice = license.is_expired ? 
+                `<div style="background: rgba(220, 53, 69, 0.1); border: 1px solid #dc3545; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                    <strong>❌ License Expired:</strong> Please renew your subscription
+                </div>` : '';
+            
+            document.getElementById('licenseInfo').innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <strong>License Key:</strong><br>
+                        <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 2px;">${license.customer_code}</code>
+                    </div>
+                    <div>
+                        <strong>Tier:</strong><br>
+                        ${license.tier_name}
+                    </div>
+                    <div>
+                        <strong>Status:</strong><br>
+                        <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
+                    </div>
+                    <div>
+                        <strong>Expires:</strong><br>
+                        ${new Date(license.expires_at).toLocaleDateString()}
+                    </div>
+                    <div>
+                        <strong>Devices:</strong><br>
+                        ${license.device_count} / ${license.max_devices} used
+                    </div>
+                    <div>
+                        <strong>Available Slots:</strong><br>
+                        ${license.available_devices} remaining
+                    </div>
+                </div>
+                ${expiryWarning}
+                ${expiredNotice}
+                <div style="margin-top: 15px; padding: 10px; background: rgba(135, 206, 235, 0.1); border: 1px solid var(--accent-color); border-radius: 4px;">
+                    <strong>Download AI Private Search:</strong><br>
+                    <a href="/downloads/load-AIPrivateSearch-1108.command" download style="color: var(--accent-color); text-decoration: none;">📥 Download Installer</a>
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    ${license.status === 'trial' || license.is_expired ? 
+                        '<button onclick="showUpgradeOptions()" style="background: var(--accent-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🚀 Upgrade License</button>' : 
+                        '<button onclick="showUpgradeOptions()" style="background: var(--accent-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🔄 Renew License</button>'
+                    }
+                    ${license.tier < 3 ? 
+                        '<button onclick="showTierUpgrade()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">⬆️ Change Tier</button>' : ''
+                    }
+                    <button onclick="showPaymentHistory()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">💳 Payment History</button>
+                </div>
+            `;
+        }
+        
+        async function loadProfile() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/user-management.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Session expired');
+                }
+                
+                const data = await response.json();
+                const user = data.user;
+                
+                document.getElementById('userEmail').textContent = user.email;
+                
+                // Load customer profile
+                const profileResponse = await fetch(`${API_BASE}/api/customers/${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (profileResponse.ok) {
+                    const profileData = await profileResponse.json();
+                    const customer = profileData.customer;
+                    
+                    document.getElementById('email').value = customer.email;
+                    document.getElementById('phone').value = customer.phone || '';
+                    document.getElementById('city').value = customer.city || '';
+                    document.getElementById('state').value = customer.state || '';
+                    document.getElementById('postalCode').value = customer.postal_code || '';
+                }
+                
+                // Load license information
+                const licenseResponse = await fetch(`${API_BASE}/api/customers/${user.id}/license`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (licenseResponse.ok) {
+                    const licenseData = await licenseResponse.json();
+                    displayLicenseInfo(licenseData.license);
+                } else {
+                    document.getElementById('licenseInfo').innerHTML = '<p>No license information available</p>';
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                localStorage.removeItem('sessionId');
+                window.location.href = '/user-management.html';
+            }
+        }
+        
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const sessionId = localStorage.getItem('sessionId');
+            const response = await fetch(`${API_BASE}/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${sessionId}` }
+            });
+            const data = await response.json();
+            const userId = data.user.id;
+            
+            const formData = {
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                postal_code: document.getElementById('postalCode').value
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionId}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (response.ok) {
+                    showMessage('Profile updated successfully', 'success');
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Update failed');
+                }
+            } catch (error) {
+                showMessage('Update failed: ' + error.message);
+            }
+        });
+        
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            
+            if (!validatePassword(newPassword)) {
+                showMessage('Password must be at least 8 characters with uppercase, lowercase, and number');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showMessage('Passwords do not match');
+                return;
+            }
+            
+            const sessionId = localStorage.getItem('sessionId');
+            const response = await fetch(`${API_BASE}/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${sessionId}` }
+            });
+            const data = await response.json();
+            const userId = data.user.id;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/${userId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionId}`
+                    },
+                    body: JSON.stringify({ password: newPassword })
+                });
+                
+                if (response.ok) {
+                    showMessage('Password changed successfully', 'success');
+                    document.getElementById('passwordForm').reset();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Password change failed');
+                }
+            } catch (error) {
+                showMessage('Password change failed: ' + error.message);
+            }
+        });
+        
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                try {
+                    await fetch(`${API_BASE}/api/auth/logout`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
+            
+            localStorage.removeItem('sessionId');
+            window.location.href = '/user-management.html';
+        });
+        
+        function showUpgradeOptions() {
+            showMessage('Upgrade/Renewal coming soon! PayPal integration in development.', 'info');
+        }
+        
+        function showTierUpgrade() {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+            
+            modal.innerHTML = `
+                <div style="background: var(--card-bg); padding: 2rem; border-radius: 8px; max-width: 500px; width: 90%;">
+                    <h3 style="margin-bottom: 1rem; color: var(--accent-color);">Choose Your Tier</h3>
+                    <div style="display: grid; gap: 1rem;">
+                        <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <h4>Standard - $9.99/month</h4>
+                            <p>• 2 devices • Basic search • Collections</p>
+                        </div>
+                        <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <h4>Premium - $19.99/month</h4>
+                            <p>• 5 devices • Multi-mode search • Collections • Models</p>
+                        </div>
+                        <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <h4>Professional - $39.99/month</h4>
+                            <p>• 10 devices • All features • Config • Doc indexing</p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Cancel</button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove(); showMessage('Tier upgrade coming soon!', 'info');" style="background: var(--accent-color); color: black; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Continue to Payment</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        function showPaymentHistory() {
+            showMessage('Payment history coming soon!', 'info');
+        }
+        
+        loadProfile();
+    </script>
+</body>
+</html>

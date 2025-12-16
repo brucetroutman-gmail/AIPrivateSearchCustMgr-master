@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Customer - AI Private Search</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        document.documentElement.setAttribute('data-theme', 'dark');
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>Edit Customer</h1>
+            <div class="header-nav">
+                <a href="/customer-management.html" class="nav-link">← Back to Customers</a>
+                <span id="userEmail" class="user-email"></span>
+                <a href="#" id="logoutLink" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </div>
+    
+    <main class="container">
+        <div class="card">
+            <h2>Customer Information</h2>
+            <form id="customerForm" class="profile-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="tel" id="phone" name="phone">
+                </div>
+                
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city" name="city">
+                </div>
+                
+                <div class="form-group">
+                    <label for="state">State</label>
+                    <input type="text" id="state" name="state">
+                </div>
+                
+                <div class="form-group">
+                    <label for="postal_code">Postal Code</label>
+                    <input type="text" id="postal_code" name="postal_code">
+                </div>
+                
+                <div class="form-group">
+                    <label for="active">Status</label>
+                    <select id="active" name="active">
+                        <option value="1">Active</option>
+                        <option value="0">Inactive</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" id="saveBtn">Save Changes</button>
+                    <button type="button" id="cancelBtn" onclick="window.history.back()">Cancel</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>License Information</h2>
+            <div id="licenseInfo">
+                <p>Loading license information...</p>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        let customerId = null;
+        
+        function showMessage(message, type = 'error') {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'toast-message toast-' + type;
+            messageEl.textContent = message;
+            document.body.appendChild(messageEl);
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+        
+        async function loadCustomer() {
+            const urlParams = new URLSearchParams(window.location.search);
+            customerId = urlParams.get('id');
+            
+            // Fallback to sessionStorage if URL parameter is lost
+            if (!customerId) {
+                customerId = sessionStorage.getItem('editCustomerId');
+            }
+            
+            if (!customerId) {
+                console.log('[CLIENT] No customer ID, redirecting to customer management');
+                showMessage('Please select a customer from the customer management page', 'error');
+                setTimeout(() => {
+                    window.location.href = '/customer-management.html';
+                }, 2000);
+                return;
+            }
+            
+            // Clear sessionStorage after successful retrieval
+            sessionStorage.removeItem('editCustomerId');
+            
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/user-management.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/${customerId}`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load customer');
+                }
+                
+                const data = await response.json();
+                const customer = data.customer;
+                
+                document.getElementById('email').value = customer.email || '';
+                document.getElementById('phone').value = customer.phone || '';
+                document.getElementById('city').value = customer.city || '';
+                document.getElementById('state').value = customer.state || '';
+                document.getElementById('postal_code').value = customer.postal_code || '';
+                document.getElementById('active').value = customer.active ? '1' : '0';
+                
+                loadLicenseInfo();
+            } catch (error) {
+                console.error('Error loading customer:', error);
+                showMessage('Failed to load customer information');
+            }
+        }
+        
+        async function loadLicenseInfo() {
+            const sessionId = localStorage.getItem('sessionId');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/${customerId}/license`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const license = data.license;
+                    
+                    const tierNames = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
+                    const statusColors = {
+                        'trial': '#17a2b8',
+                        'active': '#28a745',
+                        'expired': '#dc3545',
+                        'cancelled': '#6c757d'
+                    };
+                    
+                    document.getElementById('licenseInfo').innerHTML = `
+                        <div class="license-details">
+                            <p><strong>Tier:</strong> ${tierNames[license.tier] || 'Unknown'}</p>
+                            <p><strong>Status:</strong> <span style="color: ${statusColors[license.status] || '#6c757d'}">${license.status}</span></p>
+                            <p><strong>Created:</strong> ${new Date(license.created_at).toLocaleDateString()}</p>
+                            ${license.expires_at ? `<p><strong>Expires:</strong> ${new Date(license.expires_at).toLocaleDateString()}</p>` : ''}
+                            ${license.trial_started_at ? `<p><strong>Trial Started:</strong> ${new Date(license.trial_started_at).toLocaleDateString()}</p>` : ''}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('licenseInfo').innerHTML = '<p>No license information found</p>';
+                }
+            } catch (error) {
+                console.error('Error loading license:', error);
+                document.getElementById('licenseInfo').innerHTML = '<p>Failed to load license information</p>';
+            }
+        }
+        
+        async function saveCustomer(event) {
+            event.preventDefault();
+            
+            const sessionId = localStorage.getItem('sessionId');
+            const formData = new FormData(event.target);
+            const customerData = {
+                email: formData.get('email'),
+                phone: formData.get('phone'),
+                city: formData.get('city'),
+                state: formData.get('state'),
+                postal_code: formData.get('postal_code'),
+                active: formData.get('active') === '1'
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/${customerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionId}`
+                    },
+                    body: JSON.stringify(customerData)
+                });
+                
+                if (response.ok) {
+                    showMessage('Customer updated successfully', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/customer-management.html';
+                    }, 1500);
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Update failed');
+                }
+            } catch (error) {
+                showMessage('Update failed: ' + error.message);
+            }
+        }
+        
+        async function checkAuth() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/user-management.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Session expired');
+                }
+                
+                const data = await response.json();
+                const user = data.user;
+                
+                if (!['admin', 'manager'].includes(user.userRole)) {
+                    window.location.href = '/my-account.html';
+                    return;
+                }
+                
+                document.getElementById('userEmail').textContent = user.email;
+                loadCustomer();
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('sessionId');
+                window.location.href = '/user-management.html';
+            }
+        }
+        
+        document.getElementById('customerForm').addEventListener('submit', saveCustomer);
+        
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                try {
+                    await fetch(`${API_BASE}/api/auth/logout`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
+            
+            localStorage.removeItem('sessionId');
+            window.location.href = '/user-management.html';
+        });
+        
+        checkAuth();
+    </script>
+</body>
+</html>

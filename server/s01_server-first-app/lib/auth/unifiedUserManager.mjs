@@ -1,11 +1,24 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import pool from '../database/connection.mjs';
 
 export class UnifiedUserManager {
   constructor() {
-    this.sessionTimeout = 5 * 60 * 1000; // 5 minutes for admin
+    // Load timeout from app.json
+    let bearerTokenTimeout = 300; // Default 5 minutes
+    try {
+      const appConfigPath = path.join(process.cwd(), '../../client/c01_client-first-app/config/app.json');
+      const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));
+      bearerTokenTimeout = appConfig['bearer-token-timeout'] || 300;
+    } catch (error) {
+      console.log('[AUTH] Could not load app.json, using default timeout:', error.message);
+    }
+    
+    this.sessionTimeout = bearerTokenTimeout * 1000; // Convert to milliseconds
     this.customerSessionTimeout = 30 * 60 * 1000; // 30 minutes for customers
+    console.log('[AUTH] Session timeouts - Admin:', bearerTokenTimeout, 'seconds, Customer: 30 minutes');
   }
 
   async validateLogin(email, password) {

@@ -159,9 +159,9 @@
         
         <div class="dashboard-grid">
             <div class="card">
-                <h2>User Management</h2>
+                <h2>Customer Management</h2>
                 <p>Manage customer accounts and registrations</p>
-                <button onclick="window.location.href='./user-management.html'">Manage Users</button>
+                <button onclick="window.location.href='./customer-management.html'">Manage Customers</button>
             </div>
 
             <div class="card">
@@ -217,8 +217,29 @@
         }
 
         // Initialize app
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             console.log('Customer Manager Dashboard initialized');
+            
+            // Check authentication and redirect customers
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                try {
+                    const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+                    const response = await fetch(`${API_BASE}/api/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.user.userType === 'customer') {
+                            window.location.href = '/my-account.html';
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Auth check failed:', error);
+                }
+            }
             
             // Add user icon
             const header = document.querySelector('.header .container');

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Management - AI Private Search</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        document.documentElement.setAttribute('data-theme', 'dark');
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>Customer Management</h1>
+            <div class="header-nav">
+                <a href="/index.html" class="nav-link">← Dashboard</a>
+                <span id="userEmail" class="user-email"></span>
+                <a href="#" id="logoutLink" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </div>
+    
+    <main class="container">
+        <div class="card search-card">
+            <h2>Customer Search & Filters</h2>
+            <div class="search-filters">
+                <input type="text" id="searchEmail" placeholder="Search by email..." class="search-input">
+                <select id="filterTier" class="filter-select">
+                    <option value="">All Tiers</option>
+                    <option value="1">Standard</option>
+                    <option value="2">Premium</option>
+                    <option value="3">Professional</option>
+                </select>
+                <select id="filterStatus" class="filter-select">
+                    <option value="">All Status</option>
+                    <option value="trial">Trial</option>
+                    <option value="active">Active</option>
+                    <option value="expired">Expired</option>
+                </select>
+                <button onclick="loadCustomers()" class="search-btn">Search</button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Customer List</h2>
+            <div id="customersList">
+                <p>Loading customers...</p>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        
+        function showMessage(message, type = 'error') {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'toast-message toast-' + type;
+            messageEl.textContent = message;
+            document.body.appendChild(messageEl);
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+        
+        async function loadCustomers() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/user-management.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load customers');
+                }
+                
+                const data = await response.json();
+                displayCustomers(data.customers);
+            } catch (error) {
+                console.error('Error loading customers:', error);
+                document.getElementById('customersList').innerHTML = '<p>Error loading customers</p>';
+            }
+        }
+        
+        function displayCustomers(customers) {
+            const container = document.getElementById('customersList');
+            
+            if (customers.length === 0) {
+                container.innerHTML = '<p class="no-customers">No customers found</p>';
+                return;
+            }
+            
+            const table = `
+                <table class="customer-table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${customers.map(customer => `
+                            <tr>
+                                <td>${customer.email}</td>
+                                <td>${customer.phone || 'N/A'}</td>
+                                <td>${customer.city || 'N/A'}, ${customer.state || 'N/A'}</td>
+                                <td>
+                                    <span class="status-badge ${customer.active ? 'status-active' : 'status-inactive'}">
+                                        ${customer.active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </td>
+                                <td>${new Date(customer.created_at).toLocaleDateString()}</td>
+                                <td class="action-buttons">
+                                    <button onclick="editCustomer(${customer.id})" class="btn-edit">Edit</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = table;
+        }
+        
+        async function viewCustomer(customerId) {
+            showMessage('Customer details view coming soon!', 'info');
+        }
+        
+        async function editCustomer(customerId) {
+            // Store customer ID in sessionStorage to survive server redirects
+            sessionStorage.setItem('editCustomerId', customerId);
+            window.location.href = `/customer-edit.html?id=${customerId}`;
+        }
+        
+        async function toggleCustomer(customerId, activate) {
+            const sessionId = localStorage.getItem('sessionId');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/${customerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionId}`
+                    },
+                    body: JSON.stringify({ active: activate })
+                });
+                
+                if (response.ok) {
+                    showMessage(`Customer ${activate ? 'activated' : 'deactivated'} successfully`, 'success');
+                    loadCustomers();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Update failed');
+                }
+            } catch (error) {
+                showMessage('Update failed: ' + error.message);
+            }
+        }
+        
+        async function checkAuth() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/user-management.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Session expired');
+                }
+                
+                const data = await response.json();
+                const user = data.user;
+                
+                if (!['admin', 'manager'].includes(user.userRole)) {
+                    window.location.href = '/my-account.html';
+                    return;
+                }
+                
+                document.getElementById('userEmail').textContent = user.email;
+                loadCustomers();
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                localStorage.removeItem('sessionId');
+                window.location.href = '/user-management.html';
+            }
+        }
+        
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                try {
+                    await fetch(`${API_BASE}/api/auth/logout`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            }
+            
+            localStorage.removeItem('sessionId');
+            window.location.href = '/user-management.html';
+        });
+        
+        checkAuth();
+    </script>
+</body>
+</html>

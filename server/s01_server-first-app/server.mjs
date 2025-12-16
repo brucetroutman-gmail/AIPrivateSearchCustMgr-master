@@ -83,9 +83,28 @@ const userManager = new UnifiedUserManager();
 app.use(async (req, res, next) => {
   console.log('[SERVER AUTH] Path:', req.path, 'Method:', req.method);
   
-  // Redirect root to user-management
+  // Redirect root based on authentication status
   if (req.path === '/') {
-    console.log('[SERVER AUTH] Root path, redirecting to user-management.html');
+    console.log('[SERVER AUTH] Root path, checking session...');
+    const sessionId = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.sessionId;
+    
+    if (sessionId) {
+      try {
+        const user = await userManager.validateSession(sessionId);
+        if (user) {
+          console.log('[SERVER AUTH] Valid session, redirecting based on user type:', user.userType);
+          if (user.userType === 'customer') {
+            return res.redirect('/my-account.html');
+          } else {
+            return res.redirect('/index.html');
+          }
+        }
+      } catch (error) {
+        console.log('[SERVER AUTH] Session validation failed:', error.message);
+      }
+    }
+    
+    console.log('[SERVER AUTH] No valid session, redirecting to user-management.html');
     return res.redirect('/user-management.html');
   }
   
@@ -136,7 +155,8 @@ app.use(async (req, res, next) => {
     console.log('[SERVER AUTH] Session valid for user:', user.email, 'role:', user.userRole, 'type:', user.userType);
     
     // Role-based access control
-    if (req.path === '/index.html' || req.path.startsWith('/admin/')) {
+    if (req.path === '/index.html' || req.path === '/customer-management.html' || req.path === '/customer-edit.html' || req.path.startsWith('/admin/')) {
+      console.log('[SERVER AUTH] Admin page check - Path:', req.path, 'UserType:', user.userType, 'UserRole:', user.userRole);
       if (user.userType !== 'admin' || !['admin', 'manager'].includes(user.userRole)) {
         console.log('[SERVER AUTH] Access denied - admin page requires admin role');
         if (req.path.startsWith('/api/')) {
@@ -144,6 +164,7 @@ app.use(async (req, res, next) => {
         }
         return res.redirect('/user-management.html');
       }
+      console.log('[SERVER AUTH] Admin access granted for:', req.path);
     }
     
     req.user = user;

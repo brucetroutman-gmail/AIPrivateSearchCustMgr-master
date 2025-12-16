@@ -23,6 +23,7 @@
   --text-color: #ffffff;
   --card-bg: #2d2d2d;
   --border-color: #444;
+  --accent-color: #87ceeb;
 }
 
 * {
@@ -73,7 +74,7 @@ header p {
 }
 
 .card {
-  background: white;
+  background: var(--card-bg);
   padding: 30px;
   border-radius: var(--border-radius);
   box-shadow: var(--box-shadow);
@@ -601,4 +602,227 @@ button:active {
   padding: 4px 8px !important;
   margin: 0 2px !important;
   font-size: 0.9rem !important;
+}
+
+/* Customer Management Styles */
+.header {
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 0;
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  margin: 0;
+  color: var(--text-color);
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-link {
+  color: #87ceeb;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.nav-link:hover {
+  color: #5f9ea0;
+}
+
+.user-email {
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.search-card {
+  margin-bottom: 2rem;
+}
+
+.search-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+.filter-select {
+  min-width: 120px;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+.search-btn {
+  min-width: 100px;
+  padding: 0.75rem 1.5rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.search-btn:hover {
+  background: #0056b3;
+}
+
+.customer-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.customer-table th,
+.customer-table td {
+  text-align: left;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.customer-table th {
+  background: var(--bg-color);
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.customer-table td {
+  color: var(--text-color);
+}
+
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-active {
+  background: rgba(40, 167, 69, 0.2);
+  color: #28a745;
+}
+
+.status-inactive {
+  background: rgba(220, 53, 69, 0.2);
+  color: #dc3545;
+}
+
+[data-theme="dark"] .status-active {
+  background: rgba(40, 167, 69, 0.3);
+  color: #4caf50;
+}
+
+[data-theme="dark"] .status-inactive {
+  background: rgba(220, 53, 69, 0.3);
+  color: #f44336;
+}
+
+.action-buttons {
+  white-space: nowrap;
+}
+
+.action-buttons button {
+  padding: 2px 6px;
+  margin: 0 1px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  color: white;
+  transition: background-color 0.3s;
+}
+
+.btn-view {
+  background: #007bff;
+}
+
+.btn-view:hover {
+  background: #0056b3;
+}
+
+.btn-edit {
+  background: #28a745;
+}
+
+.btn-edit:hover {
+  background: #218838;
+}
+
+.btn-deactivate {
+  background: #dc3545;
+}
+
+.btn-deactivate:hover {
+  background: #c82333;
+}
+
+.btn-activate {
+  background: #28a745;
+}
+
+.btn-activate:hover {
+  background: #218838;
+}
+
+.no-customers {
+  text-align: center;
+  color: var(--text-color);
+  font-style: italic;
+  padding: 2rem;
+}
+
+/* Responsive design for customer management */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .search-filters {
+    flex-direction: column;
+  }
+  
+  .search-input,
+  .filter-select {
+    min-width: auto;
+  }
+  
+  .customer-table {
+    font-size: 0.9rem;
+  }
+  
+  .customer-table th,
+  .customer-table td {
+    padding: 0.5rem;
+  }
+  
+  .action-buttons button {
+    padding: 3px 6px;
+    font-size: 0.7rem;
+  }
 }

@@ -14,6 +14,8 @@
 032. Update user-management.html to handle both admin and customer login
 033. Add customer account management to admin interface
 034. Implement role-based redirects after login
+035. Use new mysql account  aips-readwrite
+
 
 ### Phase 1: Trial & Registration Fixes (v1.29-1.30)
 [All tasks complete]
@@ -102,30 +104,42 @@ T13. Customer Registration with Password
   - Test password validation (8+ chars, upper, lower, number)
   - Verify password confirmation matching
   - Check customer created with role='customer' in database
+  - Verify customer receives license key and welcome email
 
-T14. Customer Login Test
+T14. Customer Login and Self-Management
   - Login with registered customer credentials at /user-management.html
   - Verify customer login works with unified auth system
   - Check session timeout is 30 minutes (longer than admin)
-  - Verify customer gets appropriate access level
+  - Test customer can view own profile: GET /api/customers/:id
+  - Test customer can update own profile: PUT /api/customers/:id
+  - Verify customer cannot access other customers' data
+  - Confirm customer cannot access admin functions
 
-T15. Password Reset Flow
+T15. Admin Customer Management
+  - Login as admin (adm-custmgr@a.com / 123)
+  - Test admin can view all customers: GET /api/customers
+  - Test admin can view any customer: GET /api/customers/:id
+  - Test admin can update any customer: PUT /api/customers/:id
+  - Test admin can deactivate customer: DELETE /api/customers/:id
+  - Verify admin can change customer active status
+  - Test admin can reset customer passwords
+
+T16. Role-Based Access Control
+  - Test customer cannot access GET /api/customers (403 error)
+  - Test customer cannot deactivate other customers (403 error)
+  - Test customer cannot update other customers (403 error)
+  - Verify manager role has same customer access as admin
+  - Test session validation for both admin and customer types
+
+T17. Password Reset and Security
   - Test forgot password at /user-management.html
   - Verify reset email sent with token
   - Test reset-password.html page with token
   - Confirm password reset and login with new password
+  - Test password complexity validation on reset
+  - Verify old sessions invalidated after password change
 
-T16. Session Management
-  - Test admin and customer sessions coexist
-  - Verify session cleanup job removes expired sessions
-  - Test logout destroys session properly
-  - Check session validation for both user types
 
-T17. User Management Integration
-  - Admin login and access user management
-  - Verify admin can see admin users (not customers)
-  - Test admin user creation, update, delete
-  - Confirm customer accounts managed separately
 
 
 
@@ -133,7 +147,15 @@ T17. User Management Integration
 
 =====================================================
 
-## v1.31 Release (Current)
+## v1.32 Release (Current)
+125. Created customer-edit page with dark mode styling and form validation --done
+126. Added customer management interface with search/filter functionality --done
+127. Implemented sessionStorage fallback for customer ID parameter passing --done
+128. Fixed session timeout configuration to read from app.json (300 seconds) --done
+129. Removed debugging code from customer management pages --done
+130. Fixed authentication flow to properly redirect to login page when not authenticated --done
+
+## v1.31 Release
 121. Fixed database connection hardcoded reference to use environment variable --done
 122. Updated authMiddleware to use UnifiedUserManager instead of old UserManager --done
 123. Added role-based access control for admin pages (index.html) --done
