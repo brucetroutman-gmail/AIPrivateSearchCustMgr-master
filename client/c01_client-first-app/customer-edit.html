@@ -51,25 +51,51 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="active">Status</label>
+                    <label for="active">Account Status</label>
                     <select id="active" name="active">
                         <option value="1">Active</option>
                         <option value="0">Inactive</option>
                     </select>
                 </div>
-                
-                <div class="form-group">
-                    <button type="submit" id="saveBtn">Save Changes</button>
-                    <button type="button" id="cancelBtn" onclick="window.history.back()">Cancel</button>
-                </div>
             </form>
         </div>
         
         <div class="card">
-            <h2>License Information</h2>
-            <div id="licenseInfo">
-                <p>Loading license information...</p>
-            </div>
+            <h2>License Management</h2>
+            <form id="licenseForm" class="profile-form">
+                <div class="form-group">
+                    <label for="tier">License Tier</label>
+                    <select id="tier" name="tier">
+                        <option value="1">Standard (2 devices)</option>
+                        <option value="2">Premium (5 devices)</option>
+                        <option value="3">Professional (10 devices)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="license_status">License Status</label>
+                    <select id="license_status" name="license_status">
+                        <option value="trial">Trial</option>
+                        <option value="active">Active</option>
+                        <option value="expired">Expired</option>
+                        <option value="suspended">Suspended</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="expires_at">Expiration Date</label>
+                    <input type="datetime-local" id="expires_at" name="expires_at">
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" id="saveLicenseBtn">Update License</button>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" id="saveBtn">Save Customer Info</button>
+                    <button type="button" id="cancelBtn" onclick="window.history.back()">Cancel</button>
+                </div>
         </div>
     </main>
     
@@ -134,6 +160,18 @@
                 document.getElementById('state').value = customer.state || '';
                 document.getElementById('postal_code').value = customer.postal_code || '';
                 document.getElementById('active').value = customer.active ? '1' : '0';
+                
+                // Load license fields if they exist
+                if (customer.tier) {
+                    document.getElementById('tier').value = customer.tier;
+                }
+                if (customer.license_status) {
+                    document.getElementById('license_status').value = customer.license_status;
+                }
+                if (customer.expires_at) {
+                    const date = new Date(customer.expires_at);
+                    document.getElementById('expires_at').value = date.toISOString().slice(0, 16);
+                }
                 
                 loadLicenseInfo();
             } catch (error) {
@@ -252,6 +290,39 @@
         }
         
         document.getElementById('customerForm').addEventListener('submit', saveCustomer);
+        
+        document.getElementById('licenseForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            
+            const sessionId = localStorage.getItem('sessionId');
+            const formData = new FormData(event.target);
+            const licenseData = {
+                tier: parseInt(formData.get('tier')),
+                license_status: formData.get('license_status'),
+                expires_at: formData.get('expires_at') || null
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/${customerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionId}`
+                    },
+                    body: JSON.stringify(licenseData)
+                });
+                
+                if (response.ok) {
+                    showMessage('License updated successfully', 'success');
+                    loadLicenseInfo(); // Refresh license display
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'License update failed');
+                }
+            } catch (error) {
+                showMessage('License update failed: ' + error.message);
+            }
+        });
         
         document.getElementById('logoutLink').addEventListener('click', async (e) => {
             e.preventDefault();

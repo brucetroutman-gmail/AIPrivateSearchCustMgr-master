@@ -73,7 +73,7 @@
             }
             
             try {
-                const response = await fetch(`${API_BASE}/api/customers`, {
+                const response = await fetch(`${API_BASE}/api/customers/with-licenses`, {
                     headers: { 'Authorization': `Bearer ${sessionId}` }
                 });
                 
@@ -102,30 +102,54 @@
                     <thead>
                         <tr>
                             <th>Email</th>
-                            <th>Phone</th>
-                            <th>Location</th>
+                            <th>License Tier</th>
                             <th>Status</th>
-                            <th>Created</th>
+                            <th>Devices</th>
+                            <th>Expires</th>
+                            <th>Location</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${customers.map(customer => `
+                        ${customers.map(customer => {
+                            const license = customer.license;
+                            const tierName = license ? license.tier_name : 'No License';
+                            const licenseStatus = license ? license.status : 'none';
+                            const deviceUsage = license ? `${license.device_count}/${license.max_devices}` : 'N/A';
+                            const expiresAt = license && license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'N/A';
+                            const daysRemaining = license ? license.days_remaining : 0;
+                            const isExpired = daysRemaining <= 0;
+                            
+                            return `
                             <tr>
                                 <td>${customer.email}</td>
-                                <td>${customer.phone || 'N/A'}</td>
-                                <td>${customer.city || 'N/A'}, ${customer.state || 'N/A'}</td>
                                 <td>
-                                    <span class="status-badge ${customer.active ? 'status-active' : 'status-inactive'}">
-                                        ${customer.active ? 'Active' : 'Inactive'}
+                                    <span class="tier-badge tier-${license ? license.tier : 0}">
+                                        ${tierName}
                                     </span>
                                 </td>
-                                <td>${new Date(customer.created_at).toLocaleDateString()}</td>
+                                <td>
+                                    <span class="status-badge status-${licenseStatus} ${!customer.active ? 'status-inactive' : ''}">
+                                        ${!customer.active ? 'Inactive' : licenseStatus.charAt(0).toUpperCase() + licenseStatus.slice(1)}
+                                    </span>
+                                    ${isExpired && customer.active ? '<br><small class="text-warning">Expired</small>' : ''}
+                                </td>
+                                <td>
+                                    <span class="device-usage ${license && license.device_count >= license.max_devices ? 'device-full' : ''}">
+                                        ${deviceUsage}
+                                    </span>
+                                </td>
+                                <td>
+                                    ${expiresAt}
+                                    ${license && daysRemaining > 0 && daysRemaining <= 7 ? `<br><small class="text-warning">${daysRemaining} days left</small>` : ''}
+                                </td>
+                                <td>${customer.city || 'N/A'}, ${customer.state || 'N/A'}</td>
                                 <td class="action-buttons">
                                     <button onclick="editCustomer(${customer.id})" class="btn-edit">Edit</button>
                                 </td>
                             </tr>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             `;

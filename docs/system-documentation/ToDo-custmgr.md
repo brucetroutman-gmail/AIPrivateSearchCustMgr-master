@@ -3,6 +3,7 @@
 019. Create admin dashboard for device management
 020. check conatcts pages etc for auth.
 022. create payment process using paypal.
+023. Chech search on customer-management page
 
 ### Customer Authentication System
 025. Extend custmgr auth system to handle customer role login
@@ -147,7 +148,16 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.33 Release (Current)
+## v1.34 Release (Current)
+135. Merged license fields into customers table for simplified 1:1 relationship --done
+136. Updated customer-management page to display integrated license information --done
+137. Added license management capabilities to customer-edit page for admin/manager roles --done
+138. Updated API endpoints to work with integrated schema (customers with license fields) --done
+139. Fixed my-account.html to work with integrated license endpoint --done
+140. Replaced License Management with Device Management on index page dashboard --done
+141. Completed database migration on Ubuntu server (licenses table removed) --done
+
+## v1.33 Release
 131. Fixed database hardcoding in userManager.mjs - removed 8 hardcoded changeUser() calls --done
 132. Fixed database hardcoding in customerManager.mjs - uses process.env.DB_DATABASE --done
 133. Fixed database hardcoding in trialNotificationService.mjs - uses process.env.DB_DATABASE --done

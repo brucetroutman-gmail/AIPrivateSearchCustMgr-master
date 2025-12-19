@@ -5,6 +5,8 @@ import dotenv from 'dotenv';
 const envPaths = [
   '/Users/Shared/AIPrivateSearch/.env-custmgr',  // macOS
   '/webs/AIPrivateSearch/.env-custmgr',          // Ubuntu
+  '.env-custmgr',                                // Local relative
+  '../.env-custmgr',                             // Parent directory
   '.env'                                         // Local fallback
 ];
 
@@ -13,8 +15,9 @@ for (const envPath of envPaths) {
   try {
     console.log(`[DB] Trying to load: ${envPath}`);
     dotenv.config({ path: envPath });
-    if (process.env.DB_HOST) {
+    if (process.env.DB_HOST && process.env.DB_DATABASE) {
       console.log(`[DB] Successfully loaded: ${envPath}`);
+      console.log(`[DB] DB_DATABASE set to: ${process.env.DB_DATABASE}`);
       envLoaded = true;
       break;
     }
@@ -25,6 +28,7 @@ for (const envPath of envPaths) {
 
 if (!envLoaded) {
   console.error('[DB] ERROR: No .env-custmgr file found! DB_HOST not set.');
+  console.error('[DB] Current working directory:', process.cwd());
 }
 
 console.log('[DB] Environment variables:', {
@@ -39,12 +43,18 @@ if (!process.env.DB_HOST || !process.env.DB_USERNAME) {
   throw new Error('[DB] FATAL: Required database credentials not found in .env-custmgr');
 }
 
+// Ensure we never use the old database name
+if (process.env.DB_DATABASE === 'aiprivatesearchcustmgr') {
+  console.error('[DB] ERROR: Old database name detected! Please update .env-custmgr to use DB_DATABASE=aiprivatesearch');
+  throw new Error('Invalid database configuration - old database name detected');
+}
+
 const dbConfig = {
   host: process.env.DB_HOST,
   port: process.env.DB_PORT || 3306,
   user: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
+  database: process.env.DB_DATABASE || 'aiprivatesearch',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

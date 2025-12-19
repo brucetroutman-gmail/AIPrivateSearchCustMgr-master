@@ -29,7 +29,7 @@ export async function initializeLicensingDB() {
   try {
     pool = mysql.createPool(dbConfig);
     
-    // Create customers table for customer registration
+    // Create customers table with integrated license info
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS customers (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,37 +42,35 @@ export async function initializeLicensingDB() {
         email_verified BOOLEAN DEFAULT FALSE,
         verification_code VARCHAR(10),
         verification_expires TIMESTAMP NULL,
+        password_hash VARCHAR(255),
+        role ENUM('customer') DEFAULT 'customer',
+        active BOOLEAN DEFAULT TRUE,
+        reset_token VARCHAR(64),
+        reset_expires TIMESTAMP NULL,
+        
+        -- License fields (integrated)
+        tier TINYINT NOT NULL DEFAULT 1,
+        license_status ENUM('trial', 'active', 'expired', 'suspended', 'cancelled') DEFAULT 'trial',
+        trial_started_at TIMESTAMP NULL,
+        expires_at TIMESTAMP NULL,
+        grace_period_ends TIMESTAMP NULL,
+        
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         INDEX idx_email (email),
         INDEX idx_customer_code (customer_code),
-        INDEX idx_email_verified (email_verified)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    `);
-
-    await pool.execute(`
-      CREATE TABLE IF NOT EXISTS licenses (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        customer_id INT NOT NULL,
-        tier TINYINT NOT NULL DEFAULT 1,
-        status ENUM('trial', 'active', 'expired', 'suspended', 'cancelled') DEFAULT 'trial',
-        trial_started_at TIMESTAMP NULL,
-        expires_at TIMESTAMP NOT NULL,
-        grace_period_ends TIMESTAMP NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-        INDEX idx_customer (customer_id),
-        INDEX idx_status (status),
+        INDEX idx_email_verified (email_verified),
+        INDEX idx_license_status (license_status),
         INDEX idx_expires (expires_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
+
+    -- Licenses table no longer needed - integrated into customers table
 
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS payments (
         id INT AUTO_INCREMENT PRIMARY KEY,
         customer_id INT NOT NULL,
-        license_id INT NOT NULL,
         amount DECIMAL(10,2) NOT NULL,
         currency VARCHAR(3) DEFAULT 'USD',
         payment_method VARCHAR(50) DEFAULT 'paypal',
@@ -84,7 +82,6 @@ export async function initializeLicensingDB() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         completed_at TIMESTAMP NULL,
         FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-        FOREIGN KEY (license_id) REFERENCES licenses(id) ON DELETE CASCADE,
         INDEX idx_customer_payments (customer_id),
         INDEX idx_status (status),
         INDEX idx_paypal_order (paypal_order_id)
@@ -121,7 +118,6 @@ export async function initializeLicensingDB() {
       CREATE TABLE IF NOT EXISTS devices (
         id INT AUTO_INCREMENT PRIMARY KEY,
         customer_id INT NOT NULL,
-        license_id INT NOT NULL,
         device_id VARCHAR(255) UNIQUE NOT NULL,
         hw_hash VARCHAR(64) NOT NULL,
         device_name VARCHAR(255),
@@ -130,9 +126,7 @@ export async function initializeLicensingDB() {
         last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         status ENUM('active', 'inactive', 'revoked') DEFAULT 'active',
         FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
-        FOREIGN KEY (license_id) REFERENCES licenses(id) ON DELETE CASCADE,
         INDEX idx_customer_devices (customer_id, status),
-        INDEX idx_license_devices (license_id, status),
         INDEX idx_hw_hash (hw_hash)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);

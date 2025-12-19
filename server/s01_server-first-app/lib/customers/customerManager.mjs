@@ -124,14 +124,13 @@ export class CustomerManager {
         [customer.id]
       );
       
-      // Create 60-day trial license (tier 1 = Standard)
+      // Update customer with 60-day trial license (tier 1 = Standard)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 60);
       
       await connection.execute(
-        `INSERT INTO licenses (customer_id, tier, status, trial_started_at, expires_at, created_at) 
-         VALUES (?, 1, 'trial', NOW(), ?, NOW())`,
-        [customer.id, expiresAt]
+        `UPDATE customers SET tier = 1, license_status = 'trial', trial_started_at = NOW(), expires_at = ? WHERE id = ?`,
+        [expiresAt, customer.id]
       );
       
       await connection.commit();

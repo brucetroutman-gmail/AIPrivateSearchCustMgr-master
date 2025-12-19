@@ -180,6 +180,79 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
+// Get all customers with license information (admin/manager only)
+router.get('/with-licenses', requireAuth, async (req, res) => {
+  try {
+    if (!['admin', 'manager'].includes(req.user.userRole)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const connection = await pool.getConnection();
+    const [customers] = await connection.execute(
+      `SELECT c.id, c.email, c.phone, c.city, c.state, c.postal_code, c.customer_code, 
+              c.email_verified, c.role, c.active, c.created_at,
+              c.tier, c.license_status, c.expires_at, c.trial_started_at, c.grace_period_ends,
+              COUNT(d.id) as device_count,
+              CASE c.tier 
+                WHEN 1 THEN 'Standard'
+                WHEN 2 THEN 'Premium' 
+                WHEN 3 THEN 'Professional'
+                ELSE 'Standard'
+              END as tier_name,
+              CASE c.tier
+                WHEN 1 THEN 2
+                WHEN 2 THEN 5
+                WHEN 3 THEN 10
+                ELSE 2
+              END as max_devices
+       FROM customers c
+       LEFT JOIN devices d ON c.id = d.customer_id AND d.status = 'active'
+       GROUP BY c.id
+       ORDER BY c.created_at DESC`
+    );
+    
+    // Process customers to include license info and calculate days remaining
+    const processedCustomers = customers.map(customer => {
+      const now = new Date();
+      const expiresAt = customer.expires_at ? new Date(customer.expires_at) : null;
+      const daysRemaining = expiresAt ? Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24)) : 0;
+      
+      const license = {
+        tier: customer.tier,
+        tier_name: customer.tier_name,
+        status: customer.license_status,
+        expires_at: customer.expires_at,
+        trial_started_at: customer.trial_started_at,
+        grace_period_ends: customer.grace_period_ends,
+        device_count: customer.device_count,
+        max_devices: customer.max_devices,
+        days_remaining: daysRemaining,
+        is_expired: daysRemaining <= 0
+      };
+      
+      return {
+        id: customer.id,
+        email: customer.email,
+        phone: customer.phone,
+        city: customer.city,
+        state: customer.state,
+        postal_code: customer.postal_code,
+        customer_code: customer.customer_code,
+        email_verified: customer.email_verified,
+        role: customer.role,
+        active: customer.active,
+        created_at: customer.created_at,
+        license
+      };
+    });
+    
+    connection.release();
+    res.json({ customers: processedCustomers });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get customer by ID (admin/manager can access any, customers only their own)
 router.get('/:customerId', requireAuth, async (req, res) => {
   try {
@@ -192,7 +265,7 @@ router.get('/:customerId', requireAuth, async (req, res) => {
 
     const connection = await pool.getConnection();
     const [customers] = await connection.execute(
-      'SELECT id, email, phone, city, state, postal_code, customer_code, email_verified, role, active, created_at FROM customers WHERE id = ?',
+      'SELECT id, email, phone, city, state, postal_code, customer_code, email_verified, role, active, tier, license_status, expires_at, trial_started_at, grace_period_ends, created_at FROM customers WHERE id = ?',
       [customerId]
     );
     connection.release();
@@ -211,7 +284,7 @@ router.get('/:customerId', requireAuth, async (req, res) => {
 router.put('/:customerId', requireAuth, async (req, res) => {
   try {
     const { customerId } = req.params;
-    const { email, phone, city, state, postal_code, active, password } = req.body;
+    const { email, phone, city, state, postal_code, active, password, tier, license_status, expires_at } = req.body;
     const isAdmin = ['admin', 'manager'].includes(req.user.userRole);
     
     if (!isAdmin && req.user.userType === 'customer' && req.user.id != customerId) {
@@ -223,10 +296,28 @@ router.put('/:customerId', requireAuth, async (req, res) => {
     let query = 'UPDATE customers SET email = ?, phone = ?, city = ?, state = ?, postal_code = ?';
     let params = [email, phone, city, state, postal_code];
     
-    // Only admin/manager can change active status
-    if (isAdmin && typeof active === 'boolean') {
-      query += ', active = ?';
-      params.push(active);
+    // Only admin/manager can change active status and license info
+    if (isAdmin) {
+      if (typeof active === 'boolean') {
+        query += ', active = ?';
+        params.push(active);
+      }
+      
+      // License management for admin/manager
+      if (tier && [1, 2, 3].includes(parseInt(tier))) {
+        query += ', tier = ?';
+        params.push(parseInt(tier));
+      }
+      
+      if (license_status && ['trial', 'active', 'expired', 'suspended', 'cancelled'].includes(license_status)) {
+        query += ', license_status = ?';
+        params.push(license_status);
+      }
+      
+      if (expires_at) {
+        query += ', expires_at = ?';
+        params.push(expires_at);
+      }
     }
     
     // Handle password update
@@ -282,52 +373,59 @@ router.get('/:customerId/license', requireAuth, async (req, res) => {
 
     const connection = await pool.getConnection();
     
-    // Get license info with device count
-    const [licenses] = await connection.execute(
-      `SELECT l.id, l.tier, l.status, l.trial_started_at, l.expires_at, l.grace_period_ends, l.created_at,
-              c.customer_code,
+    // Get customer with integrated license info and device count
+    const [customers] = await connection.execute(
+      `SELECT c.id, c.customer_code, c.tier, c.license_status as status, 
+              c.trial_started_at, c.expires_at, c.grace_period_ends, c.created_at,
               COUNT(d.id) as device_count,
-              CASE l.tier 
+              CASE c.tier 
                 WHEN 1 THEN 'Standard'
                 WHEN 2 THEN 'Premium' 
                 WHEN 3 THEN 'Professional'
-                ELSE 'Unknown'
+                ELSE 'Standard'
               END as tier_name,
-              CASE l.tier
+              CASE c.tier
                 WHEN 1 THEN 2
                 WHEN 2 THEN 5
                 WHEN 3 THEN 10
-                ELSE 0
+                ELSE 2
               END as max_devices
-       FROM licenses l
-       JOIN customers c ON l.customer_id = c.id
-       LEFT JOIN devices d ON l.id = d.license_id
-       WHERE l.customer_id = ?
-       GROUP BY l.id
-       ORDER BY l.created_at DESC
-       LIMIT 1`,
+       FROM customers c
+       LEFT JOIN devices d ON c.id = d.customer_id AND d.status = 'active'
+       WHERE c.id = ?
+       GROUP BY c.id`,
       [customerId]
     );
     
     connection.release();
     
-    if (licenses.length === 0) {
-      return res.status(404).json({ error: 'No license found' });
+    if (customers.length === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
     }
     
-    const license = licenses[0];
+    const customer = customers[0];
     
     // Calculate days remaining
     const now = new Date();
-    const expiresAt = new Date(license.expires_at);
-    const daysRemaining = Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24));
+    const expiresAt = customer.expires_at ? new Date(customer.expires_at) : null;
+    const daysRemaining = expiresAt ? Math.ceil((expiresAt - now) / (1000 * 60 * 60 * 24)) : 0;
     
     res.json({ 
       license: {
-        ...license,
+        id: customer.id,
+        tier: customer.tier,
+        tier_name: customer.tier_name,
+        status: customer.status,
+        trial_started_at: customer.trial_started_at,
+        expires_at: customer.expires_at,
+        grace_period_ends: customer.grace_period_ends,
+        created_at: customer.created_at,
+        customer_code: customer.customer_code,
+        device_count: customer.device_count,
+        max_devices: customer.max_devices,
         days_remaining: daysRemaining,
         is_expired: daysRemaining <= 0,
-        available_devices: license.max_devices - license.device_count
+        available_devices: customer.max_devices - customer.device_count
       }
     });
   } catch (error) {
