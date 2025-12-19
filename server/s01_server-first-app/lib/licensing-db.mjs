@@ -65,7 +65,7 @@ export async function initializeLicensingDB() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     `);
 
-    -- Licenses table no longer needed - integrated into customers table
+    // Licenses table no longer needed - integrated into customers table
 
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS payments (

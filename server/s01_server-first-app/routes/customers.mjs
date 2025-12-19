@@ -433,4 +433,29 @@ router.get('/:customerId/license', requireAuth, async (req, res) => {
   }
 });
 
+// Get customer devices (admin/manager can access any, customers only their own)
+router.get('/:customerId/devices', requireAuth, async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    const isAdmin = ['admin', 'manager'].includes(req.user.userRole);
+    
+    if (!isAdmin && req.user.userType === 'customer' && req.user.id != customerId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const connection = await pool.getConnection();
+    
+    const [devices] = await connection.execute(
+      'SELECT id, device_id as pc_code, last_seen as last_activity, first_seen as created_at, status FROM devices WHERE customer_id = ? ORDER BY first_seen DESC',
+      [customerId]
+    );
+    
+    connection.release();
+    
+    res.json({ devices });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

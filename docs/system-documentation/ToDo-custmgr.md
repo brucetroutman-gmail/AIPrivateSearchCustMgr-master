@@ -148,7 +148,14 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.34 Release (Current)
+## v1.35 Release (Current)
+142. Removed Update License button from customer-edit page - all fields save together --done
+143. Added Device Management section to customer-edit page showing tier limits and active devices --done
+144. Fixed devices API endpoint to use correct database schema (device_id, last_seen, first_seen) --done
+145. Created clear-customer-data.mjs script to reset all customer/device data for fresh relicensing --done
+146. Cleared all existing customer and device data for clean relicensing --done
+
+## v1.34 Release
 135. Merged license fields into customers table for simplified 1:1 relationship --done
 136. Updated customer-management page to display integrated license information --done
 137. Added license management capabilities to customer-edit page for admin/manager roles --done

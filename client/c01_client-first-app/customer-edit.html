@@ -51,19 +51,6 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="active">Account Status</label>
-                    <select id="active" name="active">
-                        <option value="1">Active</option>
-                        <option value="0">Inactive</option>
-                    </select>
-                </div>
-            </form>
-        </div>
-        
-        <div class="card">
-            <h2>License Management</h2>
-            <form id="licenseForm" class="profile-form">
-                <div class="form-group">
                     <label for="tier">License Tier</label>
                     <select id="tier" name="tier">
                         <option value="1">Standard (2 devices)</option>
@@ -89,13 +76,25 @@
                 </div>
                 
                 <div class="form-group">
-                    <button type="submit" id="saveLicenseBtn">Update License</button>
+                    <label for="active">Account Status</label>
+                    <select id="active" name="active">
+                        <option value="1">Active</option>
+                        <option value="0">Inactive</option>
+                    </select>
                 </div>
                 
                 <div class="form-group">
                     <button type="submit" id="saveBtn">Save Customer Info</button>
                     <button type="button" id="cancelBtn" onclick="window.history.back()">Cancel</button>
                 </div>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>Device Management</h2>
+            <div id="deviceInfo">
+                <p>Loading device information...</p>
+            </div>
         </div>
     </main>
     
@@ -173,48 +172,76 @@
                     document.getElementById('expires_at').value = date.toISOString().slice(0, 16);
                 }
                 
-                loadLicenseInfo();
+                loadDeviceInfo();
             } catch (error) {
                 console.error('Error loading customer:', error);
                 showMessage('Failed to load customer information');
             }
         }
         
-        async function loadLicenseInfo() {
+        async function loadDeviceInfo() {
             const sessionId = localStorage.getItem('sessionId');
             
             try {
-                const response = await fetch(`${API_BASE}/api/customers/${customerId}/license`, {
+                const response = await fetch(`${API_BASE}/api/customers/${customerId}/devices`, {
                     headers: { 'Authorization': `Bearer ${sessionId}` }
                 });
                 
                 if (response.ok) {
                     const data = await response.json();
-                    const license = data.license;
-                    
+                    const devices = data.devices || [];
+                    const tier = parseInt(document.getElementById('tier').value) || 1;
+                    const maxDevices = { 1: 2, 2: 5, 3: 10 }[tier];
                     const tierNames = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
-                    const statusColors = {
-                        'trial': '#17a2b8',
-                        'active': '#28a745',
-                        'expired': '#dc3545',
-                        'cancelled': '#6c757d'
-                    };
                     
-                    document.getElementById('licenseInfo').innerHTML = `
-                        <div class="license-details">
-                            <p><strong>Tier:</strong> ${tierNames[license.tier] || 'Unknown'}</p>
-                            <p><strong>Status:</strong> <span style="color: ${statusColors[license.status] || '#6c757d'}">${license.status}</span></p>
-                            <p><strong>Created:</strong> ${new Date(license.created_at).toLocaleDateString()}</p>
-                            ${license.expires_at ? `<p><strong>Expires:</strong> ${new Date(license.expires_at).toLocaleDateString()}</p>` : ''}
-                            ${license.trial_started_at ? `<p><strong>Trial Started:</strong> ${new Date(license.trial_started_at).toLocaleDateString()}</p>` : ''}
+                    let deviceHtml = `
+                        <div class="device-summary">
+                            <p><strong>Tier:</strong> ${tierNames[tier]} (${devices.length}/${maxDevices} devices used)</p>
+                            <p><strong>Available Slots:</strong> ${maxDevices - devices.length}</p>
                         </div>
                     `;
+                    
+                    if (devices.length > 0) {
+                        deviceHtml += `
+                            <div class="device-list">
+                                <h4>Active Devices:</h4>
+                                <table class="device-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Device ID</th>
+                                            <th>Last Activity</th>
+                                            <th>Registered</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        
+                        devices.forEach(device => {
+                            deviceHtml += `
+                                <tr>
+                                    <td>${device.pc_code}</td>
+                                    <td>${device.last_activity ? new Date(device.last_activity).toLocaleDateString() : 'Never'}</td>
+                                    <td>${new Date(device.created_at).toLocaleDateString()}</td>
+                                </tr>
+                            `;
+                        });
+                        
+                        deviceHtml += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    } else {
+                        deviceHtml += '<p><em>No devices registered</em></p>';
+                    }
+                    
+                    document.getElementById('deviceInfo').innerHTML = deviceHtml;
                 } else {
-                    document.getElementById('licenseInfo').innerHTML = '<p>No license information found</p>';
+                    document.getElementById('deviceInfo').innerHTML = '<p>Failed to load device information</p>';
                 }
             } catch (error) {
-                console.error('Error loading license:', error);
-                document.getElementById('licenseInfo').innerHTML = '<p>Failed to load license information</p>';
+                console.error('Error loading devices:', error);
+                document.getElementById('deviceInfo').innerHTML = '<p>Error loading device information</p>';
             }
         }
         
@@ -229,7 +256,10 @@
                 city: formData.get('city'),
                 state: formData.get('state'),
                 postal_code: formData.get('postal_code'),
-                active: formData.get('active') === '1'
+                active: formData.get('active') === '1',
+                tier: parseInt(formData.get('tier')),
+                license_status: formData.get('license_status'),
+                expires_at: formData.get('expires_at') || null
             };
             
             try {
@@ -290,39 +320,6 @@
         }
         
         document.getElementById('customerForm').addEventListener('submit', saveCustomer);
-        
-        document.getElementById('licenseForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            
-            const sessionId = localStorage.getItem('sessionId');
-            const formData = new FormData(event.target);
-            const licenseData = {
-                tier: parseInt(formData.get('tier')),
-                license_status: formData.get('license_status'),
-                expires_at: formData.get('expires_at') || null
-            };
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/customers/${customerId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionId}`
-                    },
-                    body: JSON.stringify(licenseData)
-                });
-                
-                if (response.ok) {
-                    showMessage('License updated successfully', 'success');
-                    loadLicenseInfo(); // Refresh license display
-                } else {
-                    const error = await response.json();
-                    showMessage(error.error || 'License update failed');
-                }
-            } catch (error) {
-                showMessage('License update failed: ' + error.message);
-            }
-        });
         
         document.getElementById('logoutLink').addEventListener('click', async (e) => {
             e.preventDefault();
