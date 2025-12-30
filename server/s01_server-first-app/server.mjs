@@ -117,6 +117,7 @@ app.use(async (req, res, next) => {
       req.path.startsWith('/api/licensing/') || 
       req.path.startsWith('/api/test/') ||
       req.path.startsWith('/api/customers/') ||
+      req.path.startsWith('/api/debug/') ||
       req.path === '/api/health' ||
       req.path.endsWith('.css') ||
       req.path.endsWith('.js') ||
@@ -264,6 +265,10 @@ app.use('/api/customers', customersRouter);
 // Test routes
 import testRouter from './routes/test.mjs';
 app.use('/api/test', testRouter);
+
+// Debug routes
+import debugRouter from './routes/debug.mjs';
+app.use('/api/debug', debugRouter);
 
 // app.use('/api/payments', validateOrigin, validateCSRFToken, paymentRouter);
 

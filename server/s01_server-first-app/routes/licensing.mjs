@@ -3,8 +3,18 @@ import rateLimit from 'express-rate-limit';
 import { body, validationResult } from 'express-validator';
 import { LicensingService } from '../lib/licensing-service.mjs';
 import { getPublicKey } from '../lib/jwt-manager.mjs';
+import { initializeLicensingDB, getDB } from '../lib/licensing-db.mjs';
 
 const router = express.Router();
+
+// Initialize licensing database connection
+let dbInitialized = false;
+const ensureDBInitialized = async () => {
+  if (!dbInitialized) {
+    await initializeLicensingDB();
+    dbInitialized = true;
+  }
+};
 
 // Rate limiting for activation endpoint
 const activationLimiter = rateLimit({
@@ -34,6 +44,8 @@ const validateRefreshToken = [
 // POST /activate - Initial license activation
 router.post('/activate', activationLimiter, validateActivation, async (req, res) => {
   try {
+    await ensureDBInitialized();
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
@@ -65,6 +77,8 @@ router.post('/activate', activationLimiter, validateActivation, async (req, res)
 // POST /refresh - Token refresh
 router.post('/refresh', validateRefreshToken, async (req, res) => {
   try {
+    await ensureDBInitialized();
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
@@ -88,6 +102,8 @@ router.post('/refresh', validateRefreshToken, async (req, res) => {
 // POST /validate - License validation
 router.post('/validate', validateRefresh, async (req, res) => {
   try {
+    await ensureDBInitialized();
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
@@ -158,6 +174,8 @@ router.get('/public-key', (req, res) => {
 // GET /check-limits - Check customer limits before activation
 router.get('/check-limits', async (req, res) => {
   try {
+    await ensureDBInitialized();
+    
     const { email } = req.query;
     
     if (!email) {
@@ -174,13 +192,36 @@ router.get('/check-limits', async (req, res) => {
 });
 
 // GET /status - Service status
-router.get('/status', (req, res) => {
-  res.json({
-    service: 'AIPrivateSearch Licensing',
-    status: 'active',
-    version: '1.0.0',
-    timestamp: new Date().toISOString()
-  });
+router.get('/status', async (req, res) => {
+  try {
+    await ensureDBInitialized();
+    const db = getDB();
+    
+    // Test database connection
+    const [result] = await db.execute('SELECT COUNT(*) as count FROM customers');
+    
+    res.json({
+      service: 'AIPrivateSearch Licensing',
+      status: 'active',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      database: {
+        connected: true,
+        customerCount: result[0].count
+      }
+    });
+  } catch (error) {
+    res.json({
+      service: 'AIPrivateSearch Licensing',
+      status: 'error',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      database: {
+        connected: false,
+        error: error.message
+      }
+    });
+  }
 });
 
 export default router;

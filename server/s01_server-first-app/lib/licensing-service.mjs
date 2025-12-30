@@ -132,7 +132,7 @@ export class LicensingService {
       // Verify customer and device still exist
       const [customer] = await db.execute(
         'SELECT c.id, c.tier FROM customers c JOIN devices d ON c.id = d.customer_id WHERE c.id = ? AND d.hw_hash = ? AND d.status = "active"',
-        [payload.customerId, payload.hwHash]
+        [payload.customerId || payload.sub, payload.hw || payload.hwHash]
       );
 
       if (customer.length === 0) {
@@ -141,12 +141,12 @@ export class LicensingService {
 
       // Generate new token
       const newTokenPayload = {
-        customerId: payload.customerId,
+        customerId: payload.customerId || payload.sub,
         email: payload.email,
-        hwHash: payload.hwHash,
-        deviceId: payload.deviceId,
+        hwHash: payload.hw || payload.hwHash,
+        deviceId: payload.deviceId || payload.device_id,
         tier: customer[0].tier,
-        appVersion: payload.appVersion
+        appVersion: payload.ver || payload.appVersion
       };
       const newToken = createLicenseToken(newTokenPayload);
 
@@ -172,7 +172,7 @@ export class LicensingService {
       // Deactivate device
       await db.execute(
         'UPDATE devices SET status = "revoked" WHERE customer_id = ? AND hw_hash = ?',
-        [payload.customerId, payload.hwHash]
+        [payload.customerId || payload.sub, payload.hw || payload.hwHash]
       );
 
       return { success: true };
@@ -201,7 +201,7 @@ export class LicensingService {
       // Check customer and device exist and are active
       const [result] = await db.execute(
         'SELECT c.tier, c.license_status, c.expires_at FROM customers c JOIN devices d ON c.id = d.customer_id WHERE c.id = ? AND d.hw_hash = ? AND d.status = "active"',
-        [payload.customerId, payload.hwHash]
+        [payload.customerId || payload.sub, payload.hw || payload.hwHash]
       );
 
       if (result.length === 0) {
