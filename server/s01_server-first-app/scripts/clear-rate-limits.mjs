@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 
@@ -23,27 +25,28 @@ const dbConfig = {
   database: process.env.DB_DATABASE || 'aiprivatesearch'
 };
 
-let pool;
-
-export async function initializeLicensingDB() {
+async function clearRateLimits() {
+  let connection;
+  
   try {
-    pool = mysql.createPool(dbConfig);
+    connection = await mysql.createConnection(dbConfig);
     
-    // Test connection
-    const connection = await pool.getConnection();
-    connection.release();
+    console.log('🧹 Clearing rate limiting records...');
     
-    console.log('Licensing database connection established successfully');
-    return pool;
+    const [result] = await connection.execute('DELETE FROM activation_attempts');
+    console.log(`✓ Cleared ${result.affectedRows} activation attempt records`);
+    
+    console.log('\n✅ Rate limits cleared successfully!');
+    console.log('You can now test device activation without rate limiting.');
+    
   } catch (error) {
-    console.error('Failed to initialize licensing database:', error);
-    throw error;
+    console.error('❌ Error clearing rate limits:', error.message);
+    process.exit(1);
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 }
 
-export function getDB() {
-  if (!pool) {
-    throw new Error('Database not initialized. Call initializeLicensingDB() first.');
-  }
-  return pool;
-}
+clearRateLimits();

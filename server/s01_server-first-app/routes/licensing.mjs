@@ -27,6 +27,10 @@ const validateRefresh = [
   body('token').notEmpty().trim()
 ];
 
+const validateRefreshToken = [
+  body('refreshToken').notEmpty().trim()
+];
+
 // POST /activate - Initial license activation
 router.post('/activate', activationLimiter, validateActivation, async (req, res) => {
   try {
@@ -41,36 +45,43 @@ router.post('/activate', activationLimiter, validateActivation, async (req, res)
     const result = await LicensingService.activateLicense(email, hwId, appVersion, ipAddress);
     
     res.json({
+      success: true,
       token: result.token,
+      refreshToken: result.refreshToken,
+      tier: result.tier,
+      features: result.features,
+      deviceLimit: result.deviceLimit,
+      devicesUsed: result.devicesUsed,
       existing: result.existing,
       message: result.existing ? 'License already exists' : 'License activated successfully'
     });
 
   } catch (error) {
     console.error('Activation error:', error);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 
 // POST /refresh - Token refresh
-router.post('/refresh', validateRefresh, async (req, res) => {
+router.post('/refresh', validateRefreshToken, async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
     }
 
-    const { token } = req.body;
-    const result = await LicensingService.refreshLicense(token);
+    const { refreshToken } = req.body;
+    const result = await LicensingService.refreshLicense(refreshToken);
     
     res.json({
+      success: true,
       token: result.token,
       message: 'Token refreshed successfully'
     });
 
   } catch (error) {
     console.error('Refresh error:', error);
-    res.status(401).json({ error: error.message });
+    res.status(401).json({ success: false, error: error.message });
   }
 });
 
@@ -86,9 +97,14 @@ router.post('/validate', validateRefresh, async (req, res) => {
     const result = await LicensingService.validateLicense(token);
     
     if (result.valid) {
+      const payload = result.payload;
       res.json({
         valid: true,
-        payload: result.payload,
+        email: payload.email,
+        tier: payload.tier,
+        features: payload.features || [],
+        deviceLimit: payload.deviceLimit || 0,
+        expiresAt: new Date(payload.exp * 1000).toISOString(),
         message: 'License is valid'
       });
     } else {

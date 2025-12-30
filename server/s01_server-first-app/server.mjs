@@ -205,13 +205,51 @@ app.get('/api/csrf-token', generateCSRFToken, (req, res) => {
 });
 
 // Initialize licensing database
-initializeLicensingDB().catch(console.error);
+const initLicensingDB = async () => {
+  try {
+    await initializeLicensingDB();
+    console.log('Licensing database initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize licensing database:', error);
+    process.exit(1);
+  }
+};
 
 // Initialize customer manager database
-import { initializeDB } from './lib/database/init.mjs';
-initializeDB().then(() => {
-  console.log('Customer manager database ready');
-}).catch(console.error);
+const initCustomerDB = async () => {
+  try {
+    const { initializeDB } = await import('./lib/database/init.mjs');
+    await initializeDB();
+    console.log('Customer manager database ready');
+  } catch (error) {
+    console.error('Failed to initialize customer database:', error);
+    process.exit(1);
+  }
+};
+
+// Initialize both databases before starting server
+Promise.all([initLicensingDB(), initCustomerDB()]).then(() => {
+  console.log('All databases initialized, starting server...');
+  
+  // Start server
+  const server = app.listen(PORT, () => {
+    console.log(`AI Private Search Customer Manager server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log('Session timeout: 5 minutes');
+    console.log('Trial notifications: Daily at midnight');
+  });
+
+  server.on('error', (err) => {
+    console.error('Server error:', err.message);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Port ${PORT} is already in use`);
+    }
+    process.exit(1);
+  });
+}).catch((error) => {
+  console.error('Database initialization failed:', error);
+  process.exit(1);
+});
 
 // API routes
 app.use('/api/auth', validateOrigin, authRouter);
@@ -283,20 +321,6 @@ const runTrialChecks = async () => {
 scheduleTrialChecks();
 console.log('Trial notification service scheduled');
 
-// Start server
-const server = app.listen(PORT, () => {
-  console.log(`AI Private Search Customer Manager server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('Session timeout: 5 minutes');
-  console.log('Trial notifications: Daily at midnight');
-});
 
-server.on('error', (err) => {
-  console.error('Server error:', err.message);
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use`);
-  }
-  process.exit(1);
-});
 
 export default app;
