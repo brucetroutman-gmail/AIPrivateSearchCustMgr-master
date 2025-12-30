@@ -202,7 +202,7 @@ CREATE TABLE devices (
 
 4. **Test new endpoint:**
    ```bash
-   curl "http://localhost:56304/api/licensing/check-limits?email=test@example.com"
+   curl "http://localhost:56304/api/licensing/check-limits?email=customer@example.com"
    ```
 
 5. **Update client applications:**

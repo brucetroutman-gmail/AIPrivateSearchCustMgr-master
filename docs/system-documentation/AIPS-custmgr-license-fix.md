@@ -90,7 +90,7 @@ CustMgr licensing server has multiple bugs preventing successful license activat
    ```bash
    curl -X POST http://custmgr.aiprivatesearch.com:56304/api/licensing/activate \
      -H "Content-Type: application/json" \
-     -d '{"email":"test@example.com","hwId":"NEW-HARDWARE-ID","appVersion":"19.83","appId":"aiprivatesearch"}'
+     -d '{"email":"customer@example.com","hwId":"NEW-HARDWARE-ID","appVersion":"19.83","appId":"aiprivatesearch"}'
    ```
 
 2. **Test Device Limit Enforcement**

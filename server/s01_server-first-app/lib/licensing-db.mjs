@@ -1,39 +1,12 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
-
-// Try multiple .env-custmgr locations
-const envPaths = [
-  '/Users/Shared/AIPrivateSearch/.env-custmgr',  // macOS
-  '/webs/AIPrivateSearch/.env-custmgr',          // Ubuntu
-  '.env'                                         // Local fallback
-];
-
-for (const envPath of envPaths) {
-  try {
-    dotenv.config({ path: envPath });
-    if (process.env.DB_HOST) break;
-  } catch (e) {}
-}
-
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USERNAME || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_DATABASE || 'aiprivatesearch'
-};
-
-let pool;
+import pool from './database/connection.mjs';
 
 export async function initializeLicensingDB() {
   try {
-    pool = mysql.createPool(dbConfig);
-    
-    // Test connection
+    // Test connection using shared pool
     const connection = await pool.getConnection();
     connection.release();
     
-    console.log('Licensing database connection established successfully');
+    console.log('Licensing database connection established successfully (using shared pool)');
     return pool;
   } catch (error) {
     console.error('Failed to initialize licensing database:', error);
@@ -42,8 +15,5 @@ export async function initializeLicensingDB() {
 }
 
 export function getDB() {
-  if (!pool) {
-    throw new Error('Database not initialized. Call initializeLicensingDB() first.');
-  }
   return pool;
 }

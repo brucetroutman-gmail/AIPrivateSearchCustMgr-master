@@ -47,7 +47,7 @@ curl "http://localhost:56304/api/licensing/check-limits?email=newuser@test.com"
 curl -X POST http://localhost:56304/api/licensing/activate \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "customer@example.com",
     "hwId": "test-device-001",
     "appVersion": "19.61"
   }'
@@ -82,7 +82,7 @@ jwt decode <your-token>
   "jti": "uuid-here",
   "iat": 1234567890,
   "exp": 1234654290,
-  "email": "test@example.com",
+  "email": "customer@example.com",
   "customer_id": 1,
   "tier": 1,
   "tier_name": "standard",
@@ -102,7 +102,7 @@ jwt decode <your-token>
 ### Test 4: Check Limits for Existing Customer
 
 ```bash
-curl "http://localhost:56304/api/licensing/check-limits?email=test@example.com"
+curl "http://localhost:56304/api/licensing/check-limits?email=customer@example.com"
 ```
 
 **Expected Response:**
@@ -136,7 +136,7 @@ curl "http://localhost:56304/api/licensing/check-limits?email=test@example.com"
 curl -X POST http://localhost:56304/api/licensing/activate \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "customer@example.com",
     "hwId": "test-device-002",
     "appVersion": "19.61"
   }'
@@ -150,7 +150,7 @@ curl -X POST http://localhost:56304/api/licensing/activate \
 curl -X POST http://localhost:56304/api/licensing/activate \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "customer@example.com",
     "hwId": "test-device-003",
     "appVersion": "19.61"
   }'
@@ -170,13 +170,13 @@ curl -X POST http://localhost:56304/api/licensing/activate \
 mysql -u root -p
 
 USE aiprivatesearch;
-UPDATE customers SET subscription_tier = 2 WHERE email = 'test@example.com';
+UPDATE customers SET subscription_tier = 2 WHERE email = 'customer@example.com';
 ```
 
 ### Test 8: Check Limits After Upgrade
 
 ```bash
-curl "http://localhost:56304/api/licensing/check-limits?email=test@example.com"
+curl "http://localhost:56304/api/licensing/check-limits?email=customer@example.com"
 ```
 
 **Expected Response:**
@@ -200,7 +200,7 @@ curl "http://localhost:56304/api/licensing/check-limits?email=test@example.com"
 curl -X POST http://localhost:56304/api/licensing/activate \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "customer@example.com",
     "hwId": "test-device-003",
     "appVersion": "19.61"
   }'
@@ -327,7 +327,7 @@ SELECT status, COUNT(*) FROM devices GROUP BY status;
 -- Clean up test data
 DELETE FROM devices WHERE customer_id = 1;
 DELETE FROM licenses WHERE customer_id = 1;
-DELETE FROM customers WHERE email = 'test@example.com';
+DELETE FROM customers WHERE email = 'customer@example.com';
 ```
 
 ### Issue: Token validation fails
@@ -358,7 +358,7 @@ pm2 restart ecosystem.config.cjs
 curl "https://custmgr.aiprivatesearch.com/api/licensing/status"
 
 # Test check-limits
-curl "https://custmgr.aiprivatesearch.com/api/licensing/check-limits?email=test@example.com"
+curl "https://custmgr.aiprivatesearch.com/api/licensing/check-limits?email=customer@example.com"
 ```
 
 ---

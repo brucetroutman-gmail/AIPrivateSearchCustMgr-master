@@ -482,7 +482,7 @@ STRIPE_SECRET_KEY=sk_test_***
 describe('LicensingService', () => {
   test('activateLicense creates new license', async () => {
     const result = await LicensingService.activateLicense(
-      'test@example.com',
+      'customer@example.com',
       'hw123',
       '1.0',
       '127.0.0.1'

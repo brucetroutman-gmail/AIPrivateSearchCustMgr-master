@@ -58,7 +58,7 @@ SELECT COUNT(*) as attempt_count FROM activation_attempts;
 2. **Verify Database Entry**
    ```sql
    SELECT id, email, tier, license_status, customer_code, email_verified 
-   FROM customers WHERE email = 'test@example.com';
+   FROM customers WHERE email = 'bruce.troutman@gmail.com';
    ```
 
 3. **Email Verification**
@@ -69,7 +69,7 @@ SELECT COUNT(*) as attempt_count FROM activation_attempts;
 4. **Verify License Creation**
    ```sql
    SELECT email, tier, license_status, trial_started_at, expires_at 
-   FROM customers WHERE email = 'test@example.com';
+   FROM customers WHERE email = 'bruce.troutman@gmail.com';
    -- Should show: tier=1, license_status='trial', 60-day expiration
    ```
 
@@ -78,10 +78,10 @@ SELECT COUNT(*) as attempt_count FROM activation_attempts;
 ### T21. First Device Activation
 ```bash
 # Test license activation via API
-curl -X POST http://localhost:56304/api/licensing/activate \
+curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/activate \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "bruce.troutman@gmail.com",
     "hwId": "MAC-DEVICE-001",
     "appVersion": "19.83",
     "appId": "aiprivatesearch"
@@ -107,16 +107,16 @@ curl -X POST http://localhost:56304/api/licensing/activate \
 SELECT customer_id, device_id, hw_hash, status, first_seen 
 FROM devices d
 JOIN customers c ON c.id = d.customer_id 
-WHERE c.email = 'test@example.com';
+WHERE c.email = 'bruce.troutman@gmail.com';
 ```
 
 ### T23. Second Device Activation (Standard Tier)
 ```bash
 # Activate second device for Standard tier (limit: 2)
-curl -X POST http://localhost:56304/api/licensing/activate \
+curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/activate \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "bruce.troutman@gmail.com",
     "hwId": "MAC-DEVICE-002",
     "appVersion": "19.83",
     "appId": "aiprivatesearch"
@@ -128,10 +128,10 @@ curl -X POST http://localhost:56304/api/licensing/activate \
 ### T24. Device Limit Enforcement
 ```bash
 # Try to activate third device (should fail for Standard tier)
-curl -X POST http://localhost:56304/api/licensing/activate \
+curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/activate \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "bruce.troutman@gmail.com",
     "hwId": "MAC-DEVICE-003",
     "appVersion": "19.83",
     "appId": "aiprivatesearch"
@@ -153,7 +153,7 @@ curl -X POST http://localhost:56304/api/licensing/activate \
 
 ### T25. Customer Management Interface
 1. **Login as Admin**
-   - Go to http://localhost:56303/user-management.html
+   - Go to https://custmgr.aiprivatesearch.com/user-management.html
    - Login: adm-custmgr@a.com / 123
 
 2. **View Customer List**
@@ -174,17 +174,17 @@ curl -X POST http://localhost:56304/api/licensing/activate \
    - Save customer info
    - Verify database update:
    ```sql
-   SELECT email, tier FROM customers WHERE email = 'test@example.com';
+   SELECT email, tier FROM customers WHERE email = 'bruce.troutman@gmail.com';
    -- Should show tier = 2
    ```
 
 2. **Test Increased Device Limit**
    ```bash
    # Now third device should activate (Premium allows 5 devices)
-   curl -X POST http://localhost:56304/api/licensing/activate \
+   curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/activate \
      -H "Content-Type: application/json" \
      -d '{
-       "email": "test@example.com",
+       "email": "bruce.troutman@gmail.com",
        "hwId": "MAC-DEVICE-003",
        "appVersion": "19.83",
        "appId": "aiprivatesearch"
@@ -198,9 +198,9 @@ curl -X POST http://localhost:56304/api/licensing/activate \
 ```bash
 # Make multiple rapid activation attempts
 for i in {1..10}; do
-  curl -X POST http://localhost:56304/api/licensing/activate \
+  curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/activate \
     -H "Content-Type: application/json" \
-    -d "{\"email\":\"test@example.com\",\"hwId\":\"SPAM-$i\",\"appVersion\":\"19.83\",\"appId\":\"aiprivatesearch\"}"
+    -d "{\"email\":\"bruce.troutman@gmail.com\",\"hwId\":\"SPAM-$i\",\"appVersion\":\"19.83\",\"appId\":\"aiprivatesearch\"}"
   sleep 0.1
 done
 ```
@@ -211,10 +211,10 @@ done
 ```bash
 # Wait for rate limit timeout, then try valid request
 sleep 60
-curl -X POST http://localhost:56304/api/licensing/activate \
+curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/activate \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "test@example.com",
+    "email": "bruce.troutman@gmail.com",
     "hwId": "MAC-DEVICE-004",
     "appVersion": "19.83",
     "appId": "aiprivatesearch"
@@ -229,7 +229,7 @@ curl -X POST http://localhost:56304/api/licensing/activate \
 ```bash
 # Extract token from activation response and validate
 TOKEN="eyJ..." # From activation response
-curl -X POST http://localhost:56304/api/licensing/validate \
+curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/validate \
   -H "Content-Type: application/json" \
   -d "{\"token\":\"$TOKEN\"}"
 ```
@@ -238,7 +238,7 @@ curl -X POST http://localhost:56304/api/licensing/validate \
 ```json
 {
   "valid": true,
-  "email": "test@example.com",
+  "email": "bruce.troutman@gmail.com",
   "tier": 2,
   "features": ["search", "multi-mode", "collections", "models"],
   "deviceLimit": 5,
@@ -250,7 +250,7 @@ curl -X POST http://localhost:56304/api/licensing/validate \
 ```bash
 # Test refresh token functionality
 REFRESH_TOKEN="eyJ..." # From activation response
-curl -X POST http://localhost:56304/api/licensing/refresh \
+curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/refresh \
   -H "Content-Type: application/json" \
   -d "{\"refreshToken\":\"$REFRESH_TOKEN\"}"
 ```
@@ -260,10 +260,10 @@ curl -X POST http://localhost:56304/api/licensing/refresh \
 ### T31. End-to-End AIPS Client Test
 1. **Setup AIPS Client**
    - Install AIPS on test machine
-   - Configure to use localhost:56304 as license server
+   - Configure to use custmgr.aiprivatesearch.com as license server
 
 2. **Test License Activation**
-   - Enter test@example.com in AIPS license dialog
+   - Enter bruce.troutman@gmail.com in AIPS license dialog
    - Verify successful activation
    - Check AIPS shows correct tier and features
 
