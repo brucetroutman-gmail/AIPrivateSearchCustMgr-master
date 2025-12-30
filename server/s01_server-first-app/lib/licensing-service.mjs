@@ -15,7 +15,7 @@ export class LicensingService {
 
       // Get customer with integrated license info
       const [customers] = await db.execute(
-        'SELECT id, tier, license_status, expires_at FROM customers WHERE email = ? AND email_verified = TRUE',
+        'SELECT id, tier, license_status, expires_at FROM customers WHERE email = ? AND email_verified = 1',
         [email]
       );
 
