@@ -18,9 +18,9 @@ const ensureDBInitialized = async () => {
 
 // Rate limiting for activation endpoint
 const activationLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes
   max: 5, // 5 attempts per window
-  message: { error: 'Too many activation attempts, please try again later' },
+  message: { error: 'Too many activation attempts. Please wait 5 minutes before trying again, or contact support to reset your rate limit.' },
   standardHeaders: true,
   legacyHeaders: false
 });

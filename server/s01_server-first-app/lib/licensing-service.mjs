@@ -290,7 +290,7 @@ export class LicensingService {
   static async checkActivationAttempts(email, hwHash, ipAddress) {
     const db = getDB();
     const maxAttempts = 5;
-    const timeWindow = 3600; // 1 hour
+    const timeWindow = 300; // 5 minutes
 
     const [attempts] = await db.execute(
       'SELECT attempts FROM activation_attempts WHERE email = ? AND hw_hash = ? AND ip_address = ? AND last_attempt > DATE_SUB(NOW(), INTERVAL ? SECOND)',
@@ -298,7 +298,7 @@ export class LicensingService {
     );
 
     if (attempts.length > 0 && attempts[0].attempts >= maxAttempts) {
-      throw new Error('Too many activation attempts. Please try again later.');
+      throw new Error('Too many activation attempts. Please wait 5 minutes before trying again, or contact support to reset your rate limit.');
     }
   }
 
