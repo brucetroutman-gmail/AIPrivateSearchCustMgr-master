@@ -60,6 +60,7 @@ app.use(cors({
     'http://127.0.0.1:53000',
     'http://127.0.0.1:53001',
     'http://localhost:56303',
+    'http://localhost:56305',  // AIPS client
     'https://custmgr.aiprivatesearch.com',
     /^http:\/\/localhost:\d+$/,
     /^http:\/\/127\.0\.0\.1:\d+$/,
