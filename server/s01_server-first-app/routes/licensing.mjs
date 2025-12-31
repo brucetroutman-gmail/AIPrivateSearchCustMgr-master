@@ -27,7 +27,7 @@ const activationLimiter = rateLimit({
 
 // Validation middleware
 const validateActivation = [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail(), // Removed .normalizeEmail() temporarily
   body('hwId').isLength({ min: 10, max: 100 }).trim(),
   body('appVersion').optional().isLength({ max: 20 }).trim(),
   body('appId').optional().isLength({ max: 50 }).trim()
@@ -46,6 +46,9 @@ router.post('/activate', activationLimiter, validateActivation, async (req, res)
   try {
     await ensureDBInitialized();
     
+    // Log raw request body before validation
+    console.log('[LICENSING ROUTE] Raw request body:', JSON.stringify(req.body));
+    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
@@ -53,6 +56,10 @@ router.post('/activate', activationLimiter, validateActivation, async (req, res)
 
     const { email, hwId, appVersion = '19.61' } = req.body;
     const ipAddress = req.ip || req.connection.remoteAddress;
+    
+    // Log email after validation/normalization
+    console.log('[LICENSING ROUTE] Email after validation:', email);
+    console.log('[LICENSING ROUTE] Original vs processed:', { original: req.body.email, processed: email });
 
     const result = await LicensingService.activateLicense(email, hwId, appVersion, ipAddress);
     
