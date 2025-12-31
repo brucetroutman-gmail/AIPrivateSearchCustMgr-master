@@ -28,7 +28,8 @@ T1. Customer Registration Flow
   - Register new customer with all fields
   - Verify email with 6-digit code
   - Check license created with status='trial', tier=1
-  - Verify trial_started_at timestamp set
+  - Verify
+   trial_started_at timestamp set
   - Confirm 60-day expiration date
   - Verify welcome email received with license key and download link
 

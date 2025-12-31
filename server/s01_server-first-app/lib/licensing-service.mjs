@@ -5,7 +5,9 @@ import { createLicenseToken, createRefreshToken, verifyLicenseToken, refreshLice
 export class LicensingService {
   
   static async activateLicense(email, hwId, appVersion, ipAddress, deviceInfo = {}) {
+    console.log('[LICENSING DEBUG] Activation request for:', email, 'hwId:', hwId);
     const db = getDB();
+    console.log('[LICENSING DEBUG] Database connection obtained');
     const hwHash = crypto.createHash('sha256').update(hwId).digest('hex');
     const deviceId = crypto.randomUUID();
 
@@ -14,12 +16,18 @@ export class LicensingService {
       await this.checkActivationAttempts(email, hwHash, ipAddress);
 
       // Get customer with integrated license info
+      console.log('[LICENSING DEBUG] Searching for customer:', email);
       const [customers] = await db.execute(
         'SELECT id, tier, license_status, expires_at FROM customers WHERE email = ? AND email_verified = 1',
         [email]
       );
+      console.log('[LICENSING DEBUG] Query result:', customers.length, 'customers found');
+      if (customers.length > 0) {
+        console.log('[LICENSING DEBUG] Customer data:', customers[0]);
+      }
 
       if (customers.length === 0) {
+        console.log('[LICENSING DEBUG] No customer found - throwing error');
         throw new Error('Customer not found or email not verified. Please register first.');
       }
 
