@@ -27,7 +27,7 @@ const activationLimiter = rateLimit({
 
 // Validation middleware
 const validateActivation = [
-  body('email').isEmail(), // Removed .normalizeEmail() temporarily
+  body('email').isEmail(), // Keep without normalizeEmail() to preserve Gmail dots
   body('hwId').isLength({ min: 10, max: 100 }).trim(),
   body('appVersion').optional().isLength({ max: 20 }).trim(),
   body('appId').optional().isLength({ max: 50 }).trim()
