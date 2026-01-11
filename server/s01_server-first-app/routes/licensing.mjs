@@ -41,13 +41,21 @@ const validateRefreshToken = [
   body('refreshToken').notEmpty().trim()
 ];
 
+const validateDeviceRegistration = [
+  body('email').isEmail(),
+  body('deviceUuid').isLength({ min: 10, max: 64 }).trim(),
+  body('deviceName').optional().isLength({ max: 255 }).trim()
+];
+
+const validateDeviceValidation = [
+  body('email').isEmail(),
+  body('deviceUuid').isLength({ min: 10, max: 64 }).trim()
+];
+
 // POST /activate - Initial license activation
 router.post('/activate', activationLimiter, validateActivation, async (req, res) => {
   try {
     await ensureDBInitialized();
-    
-    // Log raw request body before validation
-    console.log('[LICENSING ROUTE] Raw request body:', JSON.stringify(req.body));
     
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -56,10 +64,6 @@ router.post('/activate', activationLimiter, validateActivation, async (req, res)
 
     const { email, hwId, appVersion = '19.61' } = req.body;
     const ipAddress = req.ip || req.connection.remoteAddress;
-    
-    // Log email after validation/normalization
-    console.log('[LICENSING ROUTE] Email after validation:', email);
-    console.log('[LICENSING ROUTE] Original vs processed:', { original: req.body.email, processed: email });
 
     const result = await LicensingService.activateLicense(email, hwId, appVersion, ipAddress);
     
@@ -198,7 +202,140 @@ router.get('/check-limits', async (req, res) => {
   }
 });
 
-// GET /status - Service status
+// POST /register-device - Device registration without JWT
+router.post('/register-device', validateDeviceRegistration, async (req, res) => {
+  try {
+    await ensureDBInitialized();
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+    }
+
+    const { email, deviceUuid, deviceName } = req.body;
+    const db = getDB();
+    
+    // Find customer by email
+    const [customers] = await db.execute(
+      'SELECT id, email, tier, license_status FROM customers WHERE email = ? AND email_verified = 1',
+      [email]
+    );
+    
+    if (!customers.length) {
+      return res.status(400).json({ success: false, error: 'Customer not found or email not verified' });
+    }
+    
+    const customer = customers[0];
+    
+    // Check if device already registered
+    const [existingDevices] = await db.execute(
+      'SELECT id, device_name, status FROM devices WHERE customer_id = ? AND device_uuid = ?',
+      [customer.id, deviceUuid]
+    );
+    
+    if (existingDevices.length) {
+      // Update existing device
+      await db.execute(
+        'UPDATE devices SET device_name = ?, last_seen = NOW(), status = "active" WHERE id = ?',
+        [deviceName || existingDevices[0].device_name, existingDevices[0].id]
+      );
+    } else {
+      // Register new device
+      await db.execute(
+        'INSERT INTO devices (customer_id, device_uuid, device_name, registered_at, last_seen) VALUES (?, ?, ?, NOW(), NOW())',
+        [customer.id, deviceUuid, deviceName || 'Unknown Device']
+      );
+    }
+    
+    res.json({
+      success: true,
+      customer: {
+        email: customer.email,
+        tier: customer.tier || 1,
+        license_status: customer.license_status
+      },
+      device: {
+        uuid: deviceUuid,
+        name: deviceName || 'Unknown Device',
+        status: 'active'
+      }
+    });
+
+  } catch (error) {
+    console.error('Device registration error:', error);
+    res.status(500).json({ success: false, error: 'Registration failed' });
+  }
+});
+
+// POST /validate-device - Device validation without JWT
+router.post('/validate-device', validateDeviceValidation, async (req, res) => {
+  try {
+    await ensureDBInitialized();
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Invalid input', details: errors.array() });
+    }
+
+    const { email, deviceUuid } = req.body;
+    const db = getDB();
+    
+    // Find customer by email
+    const [customers] = await db.execute(
+      'SELECT id, email, tier, license_status, expires_at FROM customers WHERE email = ? AND email_verified = 1',
+      [email]
+    );
+    
+    if (!customers.length) {
+      return res.json({ valid: false, reason: 'Customer not found or email not verified' });
+    }
+    
+    const customer = customers[0];
+    
+    // Check license status and expiration
+    if (customer.license_status !== 'trial' && customer.license_status !== 'active') {
+      return res.json({ valid: false, reason: 'License not active' });
+    }
+    
+    if (customer.expires_at && new Date() > new Date(customer.expires_at)) {
+      return res.json({ valid: false, reason: 'License expired' });
+    }
+    
+    // Check if device is registered
+    const [devices] = await db.execute(
+      'SELECT id, device_name, registered_at FROM devices WHERE customer_id = ? AND device_uuid = ? AND status = "active"',
+      [customer.id, deviceUuid]
+    );
+    
+    if (!devices.length) {
+      return res.json({ valid: false, reason: 'Device not registered' });
+    }
+    
+    const device = devices[0];
+    
+    // Update last seen
+    await db.execute('UPDATE devices SET last_seen = NOW() WHERE id = ?', [device.id]);
+    
+    res.json({
+      valid: true,
+      customer: {
+        email: customer.email,
+        tier: customer.tier || 1,
+        license_status: customer.license_status,
+        expires_at: customer.expires_at
+      },
+      device: {
+        uuid: deviceUuid,
+        name: device.device_name,
+        registered_at: device.registered_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Device validation error:', error);
+    res.status(500).json({ valid: false, reason: 'Server error' });
+  }
+});
 router.get('/status', async (req, res) => {
   try {
     await ensureDBInitialized();

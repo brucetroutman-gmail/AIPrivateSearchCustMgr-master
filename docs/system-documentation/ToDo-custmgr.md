@@ -2,6 +2,7 @@
 018. Test enhanced JWT tokens and device limit enforcement on Ubuntu server
 019. Create admin dashboard for device management
 020. check conatcts pages etc for auth.
+021. Add edit/delete device functionality to customer-edit page
 022. create payment process using paypal.
 023. Chech search on customer-management page
 
@@ -149,11 +150,14 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.35 Release (Current)
-142. Removed Update License button from customer-edit page - all fields save together --done
-143. Added Device Management section to customer-edit page showing tier limits and active devices --done
-144. Fixed devices API endpoint to use correct database schema (device_id, last_seen, first_seen) --done
-145. Created clear-customer-data.mjs script to reset all customer/device data for fresh relicensing --done
+## v1.42 Release (Current)
+147. Fixed email normalization issue - removed normalizeEmail() to preserve Gmail dots --done
+148. Added device-based licensing endpoints (register-device, validate-device) --done
+149. Implemented JWT-free device registration and validation system --done
+150. Fixed bruce.troutman@gmail.com vs brucetroutman@gmail.com email mismatch --done
+151. Created device registration without token expiration issues --done
+
+## v1.41 Release
 146. Cleared all existing customer and device data for clean relicensing --done
 
 ## v1.34 Release
