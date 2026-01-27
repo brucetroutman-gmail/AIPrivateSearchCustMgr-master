@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import pool from '../database/connection.mjs';
+import { EmailService } from '../email/emailService.mjs';
 
 export class UnifiedUserManager {
   constructor() {
@@ -231,6 +232,49 @@ export class UnifiedUserManager {
     
     try {
       await connection.execute('DELETE FROM users WHERE id = ?', [userId]);
+    } finally {
+      connection.release();
+    }
+  }
+
+  async sendPasswordResetEmail(email) {
+    const connection = await pool.getConnection();
+    
+    try {
+      // Check if user exists (admin or customer)
+      const [adminUsers] = await connection.execute(
+        'SELECT id, email FROM users WHERE email = ?',
+        [email]
+      );
+      
+      const [customers] = await connection.execute(
+        'SELECT id, email FROM customers WHERE email = ?',
+        [email]
+      );
+      
+      if (adminUsers.length === 0 && customers.length === 0) {
+        // Don't reveal if email exists
+        return;
+      }
+      
+      const user = adminUsers.length > 0 ? adminUsers[0] : customers[0];
+      const userType = adminUsers.length > 0 ? 'admin' : 'customer';
+      
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+      
+      // Store reset token
+      const table = userType === 'admin' ? 'users' : 'customers';
+      await connection.execute(
+        `UPDATE ${table} SET reset_token = ?, reset_expires = ? WHERE id = ?`,
+        [resetToken, resetExpires, user.id]
+      );
+      
+      // Send email using EmailService
+      const emailService = new EmailService();
+      await emailService.sendPasswordResetEmail(email, resetToken);
+      
     } finally {
       connection.release();
     }

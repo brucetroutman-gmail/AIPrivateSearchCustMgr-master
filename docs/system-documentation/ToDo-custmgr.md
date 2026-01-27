@@ -150,7 +150,12 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.42 Release (Current)
+## v1.43 Release (Current)
+152. Fixed customerManager to use shared connection pool instead of separate connections --done
+153. Eliminated localhost database fallback - now uses only remote database from .env-custmgr --done
+154. Updated password reset flow to work consistently across local and production environments --done
+
+## v1.42 Release
 147. Fixed email normalization issue - removed normalizeEmail() to preserve Gmail dots --done
 148. Added device-based licensing endpoints (register-device, validate-device) --done
 149. Implemented JWT-free device registration and validation system --done

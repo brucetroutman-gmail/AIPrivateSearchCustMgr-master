@@ -29,6 +29,7 @@
                     <input type="email" id="loginEmail" placeholder="Email" required>
                     <input type="password" id="loginPassword" placeholder="Password" required>
                     <button type="submit">Login</button>
+                    <a href="#" id="forgotPasswordLink" style="display: block; text-align: center; margin-top: 1rem; color: var(--accent-color); text-decoration: none;">Forgot Password?</a>
                 </form>
             </div>
             
@@ -209,6 +210,7 @@
                 document.getElementById('logoutBtn').addEventListener('click', () => this.handleLogout());
                 document.getElementById('showRegisterBtn').addEventListener('click', () => this.toggleRegisterForm());
                 document.getElementById('updateProfileBtn').addEventListener('click', () => this.updateProfile());
+                document.getElementById('forgotPasswordLink').addEventListener('click', (e) => this.handleForgotPassword(e));
             }
             
             async handleLogin(e) {
@@ -280,6 +282,29 @@
             async handleLogout() {
                 localStorage.removeItem('sessionId');
                 window.location.href = '/user-management.html';
+            }
+            
+            async handleForgotPassword(e) {
+                e.preventDefault();
+                const email = await securePrompt('Enter your email address:');
+                if (!email) return;
+                
+                try {
+                    const response = await fetch(`${API_BASE}/api/auth/forgot-password`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        showMessage('Password reset link sent to your email', 'success');
+                    } else {
+                        showMessage(data.error || 'Failed to send reset link');
+                    }
+                } catch (error) {
+                    showMessage('Failed to send reset link: ' + error.message);
+                }
             }
             
             showLogin() {

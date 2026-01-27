@@ -206,7 +206,8 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(email, resetToken) {
-    const resetUrl = process.env.RESET_URL || `https://custmgr.aiprivatesearch.com/reset-password.html?token=${resetToken}`;
+    const baseUrl = process.env.RESET_BASE_URL || 'https://custmgr.aiprivatesearch.com';
+    const resetUrl = `${baseUrl}/reset-password.html?token=${resetToken}`;
     
     const mailOptions = {
       from: 'AI Private Search <aiprivatesearch@gmail.com>',
