@@ -206,6 +206,7 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(email, resetToken) {
+    // Use RESET_BASE_URL from env, or default to production URL
     const baseUrl = process.env.RESET_BASE_URL || 'https://custmgr.aiprivatesearch.com';
     const resetUrl = `${baseUrl}/reset-password.html?token=${resetToken}`;
     
