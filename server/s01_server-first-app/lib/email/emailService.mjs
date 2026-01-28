@@ -205,32 +205,24 @@ export class EmailService {
     }
   }
 
-  async sendPasswordResetEmail(email, resetToken) {
-    // Use RESET_BASE_URL from env, or default to production URL
-    const baseUrl = process.env.RESET_BASE_URL || 'https://custmgr.aiprivatesearch.com';
-    const resetUrl = `${baseUrl}/reset-password.html?token=${resetToken}`;
-    
+  async sendPasswordResetCode(email, code) {
     const mailOptions = {
       from: 'AI Private Search <aiprivatesearch@gmail.com>',
       to: email,
-      subject: 'Reset Your Password - AI Private Search',
+      subject: 'Password Reset Code - AI Private Search',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #87ceeb; margin-bottom: 20px;">Password Reset Request</h2>
           
           <p>You requested a password reset for your AI Private Search account.</p>
           
-          <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 20px; margin: 20px 0;">
-            <p style="margin: 0; font-weight: bold;">Click the button below to reset your password:</p>
-            <div style="text-align: center; margin: 20px 0;">
-              <a href="${resetUrl}" style="display: inline-block; background: #87ceeb; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Reset Password</a>
-            </div>
-            <p style="margin: 0; font-size: 14px; color: #666;">This link will expire in 1 hour.</p>
+          <div style="background: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; font-weight: bold;">Your reset code is:</p>
+            <h1 style="color: #333; letter-spacing: 5px; margin: 0;">${code}</h1>
           </div>
           
-          <p style="font-size: 14px; color: #666;">If you didn't request this reset, please ignore this email. Your password will remain unchanged.</p>
-          
-          <p style="font-size: 14px; color: #666;">If the button doesn't work, copy and paste this link: <br><a href="${resetUrl}" style="color: #87ceeb;">${resetUrl}</a></p>
+          <p style="font-size: 14px; color: #666;">This code will expire in 15 minutes.</p>
+          <p style="font-size: 14px; color: #666;">If you didn't request this reset, please ignore this email.</p>
           
           <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
           <p style="color: #666; font-size: 12px; text-align: center;">AI Private Search - Your Private AI Assistant</p>
@@ -242,8 +234,8 @@ export class EmailService {
       await this.transporter.sendMail(mailOptions);
       return { success: true };
     } catch (error) {
-      console.error('Password reset email error:', error);
-      throw new Error('Failed to send password reset email');
+      console.error('Password reset code email error:', error);
+      throw new Error('Failed to send password reset code');
     }
   }
 

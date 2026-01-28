@@ -138,22 +138,22 @@ export class CustomerManager {
         throw new Error('Email not found or not verified');
       }
       
-      // Generate reset token
-      const resetToken = crypto.randomBytes(32).toString('hex');
+      // Generate 6-digit reset code
+      const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
       
-      // Store reset token with 1 hour expiry
+      // Store reset code with 15 minute expiry
       await connection.execute(
-        'UPDATE customers SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL 1 HOUR) WHERE email = ?',
-        [resetToken, email]
+        'UPDATE customers SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE email = ?',
+        [resetCode, email]
       );
       
-      return { resetToken };
+      return { resetCode };
     } finally {
       connection.release();
     }
   }
 
-  async resetPassword(token, newPassword) {
+  async resetPassword(code, newPassword) {
     const connection = await this.getConnection();
     
     try {
@@ -162,14 +162,14 @@ export class CustomerManager {
         throw new Error('Password must be at least 8 characters with uppercase, lowercase, and number');
       }
       
-      // Check reset token
+      // Check reset code
       const [customers] = await connection.execute(
         'SELECT id, email FROM customers WHERE reset_token = ? AND reset_expires > NOW()',
-        [token]
+        [code]
       );
       
       if (customers.length === 0) {
-        throw new Error('Invalid or expired reset token');
+        throw new Error('Invalid or expired reset code');
       }
       
       const customer = customers[0];

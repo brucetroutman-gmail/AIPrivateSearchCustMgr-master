@@ -90,36 +90,37 @@ router.post('/forgot-password', async (req, res) => {
 
     const result = await customerManager.requestPasswordReset(email);
     
-    // Send reset email
+    // Send reset code email
     try {
-      await emailService.sendPasswordResetEmail(email, result.resetToken);
+      await emailService.sendPasswordResetCode(email, result.resetCode);
     } catch (emailError) {
       console.error('Failed to send reset email:', emailError);
     }
+    console.log(`Reset code for ${email}: ${result.resetCode}`);
     
     res.json({ 
       success: true, 
-      message: 'If the email exists, a password reset link has been sent.'
+      message: 'If the email exists, a reset code has been sent.'
     });
   } catch (error) {
     // Don't reveal if email exists or not
     res.json({ 
       success: true, 
-      message: 'If the email exists, a password reset link has been sent.'
+      message: 'If the email exists, a reset code has been sent.'
     });
   }
 });
 
-// Password reset
+// Password reset with code
 router.post('/reset-password', async (req, res) => {
   try {
-    const { token, password } = req.body;
+    const { email, code, password } = req.body;
     
-    if (!token || !password) {
-      return res.status(400).json({ error: 'Token and password are required' });
+    if (!email || !code || !password) {
+      return res.status(400).json({ error: 'Email, code, and password are required' });
     }
 
-    const result = await customerManager.resetPassword(token, password);
+    const result = await customerManager.resetPassword(code, password);
     
     // Send confirmation email
     try {
