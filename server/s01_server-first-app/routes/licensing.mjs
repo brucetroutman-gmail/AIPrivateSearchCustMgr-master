@@ -44,7 +44,9 @@ const validateRefreshToken = [
 const validateDeviceRegistration = [
   body('email').isEmail(),
   body('deviceUuid').isLength({ min: 10, max: 64 }).trim(),
-  body('deviceName').optional().isLength({ max: 255 }).trim()
+  body('deviceName').optional().isLength({ max: 255 }).trim(),
+  body('pcCode').optional().isLength({ max: 10 }).trim(),
+  body('ipAddress').optional().isLength({ max: 45 }).trim()
 ];
 
 const validateDeviceValidation = [
@@ -212,7 +214,12 @@ router.post('/register-device', validateDeviceRegistration, async (req, res) => 
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
     }
 
-    const { email, deviceUuid, deviceName } = req.body;
+    const { email, deviceUuid, deviceName, pcCode, ipAddress } = req.body;
+    console.log('🔐 CUSTMGR: Saving pcCode:', pcCode, 'ipAddress:', ipAddress);
+    
+    if (!pcCode || !ipAddress) {
+      console.log('🔐 CUSTMGR: WARNING - Missing data: pcCode=', pcCode, 'ipAddress=', ipAddress);
+    }
     const db = getDB();
     
     // Find customer by email
@@ -234,16 +241,16 @@ router.post('/register-device', validateDeviceRegistration, async (req, res) => 
     );
     
     if (existingDevices.length) {
-      // Update existing device
+      // Update existing device with new fields
       await db.execute(
-        'UPDATE devices SET device_name = ?, last_seen = NOW(), status = "active" WHERE id = ?',
-        [deviceName || existingDevices[0].device_name, existingDevices[0].id]
+        'UPDATE devices SET device_name = ?, last_seen = NOW(), status = "active", pc_code = ?, ip_address = ? WHERE id = ?',
+        [deviceName || existingDevices[0].device_name, pcCode, ipAddress, existingDevices[0].id]
       );
     } else {
-      // Register new device
+      // Register new device with all fields
       await db.execute(
-        'INSERT INTO devices (customer_id, device_uuid, device_name, registered_at, last_seen) VALUES (?, ?, ?, NOW(), NOW())',
-        [customer.id, deviceUuid, deviceName || 'Unknown Device']
+        'INSERT INTO devices (customer_id, device_uuid, device_name, pc_code, ip_address, registered_at, last_seen) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+        [customer.id, deviceUuid, deviceName || 'Unknown Device', pcCode, ipAddress]
       );
     }
     
