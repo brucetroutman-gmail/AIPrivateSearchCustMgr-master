@@ -336,6 +336,8 @@
                     const data = await response.json();
                     displayDevices(data.devices, customerId, sessionId);
                 } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Failed to load devices:', response.status, errorData);
                     document.getElementById('devicesInfo').innerHTML = '<p>Unable to load devices</p>';
                 }
             } catch (error) {
