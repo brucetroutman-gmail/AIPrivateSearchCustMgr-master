@@ -49,23 +49,6 @@ router.post('/logout', requireAuth, async (req, res) => {
   }
 });
 
-// Forgot password endpoint
-router.post('/forgot-password', async (req, res) => {
-  try {
-    const { email } = req.body;
-    
-    if (!email) {
-      return res.status(400).json({ error: 'Email required' });
-    }
-
-    await userManager.sendPasswordResetEmail(email);
-    res.json({ success: true, message: 'Password reset link sent to your email' });
-  } catch (error) {
-    // Don't reveal if email exists or not for security
-    res.json({ success: true, message: 'If the email exists, a reset link has been sent' });
-  }
-});
-
 // Get current user endpoint
 router.get('/me', requireAuth, (req, res) => {
   res.json({ user: req.user });
