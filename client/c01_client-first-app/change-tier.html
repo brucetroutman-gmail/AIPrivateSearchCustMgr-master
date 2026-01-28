@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change Tier - AI Private Search</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; color: var(--accent-color);">AI Private Search</h1>
+            <a href="my-account.html" style="color: var(--accent-color);">← Back to My Account</a>
+        </div>
+    </div>
+    
+    <main class="container" style="max-width: 600px; margin: 2rem auto; padding: 2rem;">
+        <h1>Change Subscription Tier</h1>
+        
+        <div class="card" style="border-color: var(--border-color); background: var(--card-bg);">
+            <form id="tierForm">
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; padding: 1rem; border: 2px solid var(--border-color); border-radius: 4px; margin-bottom: 1rem; cursor: pointer;">
+                        <input type="radio" name="tier" value="1" style="margin-right: 10px;">
+                        <strong>Standard</strong> - 2 devices, Basic features
+                        <div style="margin-left: 24px; color: #999; font-size: 0.9em;">$9.99/month</div>
+                    </label>
+                    
+                    <label style="display: block; padding: 1rem; border: 2px solid var(--border-color); border-radius: 4px; margin-bottom: 1rem; cursor: pointer;">
+                        <input type="radio" name="tier" value="2" style="margin-right: 10px;">
+                        <strong>Premium</strong> - 5 devices, Advanced features
+                        <div style="margin-left: 24px; color: #999; font-size: 0.9em;">$19.99/month</div>
+                    </label>
+                    
+                    <label style="display: block; padding: 1rem; border: 2px solid var(--border-color); border-radius: 4px; margin-bottom: 1rem; cursor: pointer;">
+                        <input type="radio" name="tier" value="3" style="margin-right: 10px;">
+                        <strong>Professional</strong> - 10 devices, All features
+                        <div style="margin-left: 24px; color: #999; font-size: 0.9em;">$29.99/month</div>
+                    </label>
+                </div>
+                
+                <button type="submit" style="width: 100%;">Continue to Payment</button>
+            </form>
+        </div>
+    </main>
+    
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        
+        async function loadCurrentTier() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/user-management.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                const data = await response.json();
+                
+                const licenseResponse = await fetch(`${API_BASE}/api/customers/${data.user.id}/license`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                const licenseData = await licenseResponse.json();
+                
+                // Check current tier radio button
+                const currentTier = licenseData.license.tier;
+                document.querySelector(`input[value="${currentTier}"]`).checked = true;
+                
+                // Store customer ID for later
+                sessionStorage.setItem('customerId', data.user.id);
+            } catch (error) {
+                console.error('Error loading tier:', error);
+                window.location.href = '/user-management.html';
+            }
+        }
+        
+        document.getElementById('tierForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const selectedTier = document.querySelector('input[name="tier"]:checked').value;
+            sessionStorage.setItem('selectedTier', selectedTier);
+            window.location.href = 'payment-confirm.html';
+        });
+        
+        loadCurrentTier();
+    </script>
+</body>
+</html>

@@ -32,7 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
         '/user-management.html',
         '/customer-registration.html',
         '/reset-password.html',
-        '/email-test.html'
+        '/email-test.html',
+        '/change-tier.html',
+        '/payment-confirm.html'
     ];
     
     // If on root path without session, redirect to user-management

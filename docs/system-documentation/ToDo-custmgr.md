@@ -150,7 +150,15 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.44 Release (Current)
+## v1.45 Release (Current)
+160. Added Manage Devices section to my-account.html with device listing and deletion --done
+161. Created devices.mjs route with DELETE endpoint for device removal --done
+162. Added Change Tier and Payment History buttons to my-account.html --done
+163. Created change-tier.html page with radio buttons for tier selection --done
+164. Created payment-confirm.html page with OK button to complete tier change --done
+165. Updated auth.js to include change-tier.html and payment-confirm.html as public pages --done
+
+## v1.44 Release
 155. Replaced token-based password reset with 6-digit code system (15 min expiry) --done
 156. Removed old forgot-password endpoint from auth.mjs route --done
 157. Updated user-management.html to redirect to reset-password.html page --done

@@ -263,6 +263,10 @@ app.use('/api/licensing', licensingRouter);
 import customersRouter from './routes/customers.mjs';
 app.use('/api/customers', customersRouter);
 
+// Device routes
+import devicesRouter from './routes/devices.mjs';
+app.use('/api/devices', devicesRouter);
+
 // Test routes
 import testRouter from './routes/test.mjs';
 app.use('/api/test', testRouter);

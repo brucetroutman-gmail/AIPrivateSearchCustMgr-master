@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Payment - AI Private Search</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="margin: 0; color: var(--accent-color);">AI Private Search</h1>
+            <a href="change-tier.html" style="color: var(--accent-color);">← Back</a>
+        </div>
+    </div>
+    
+    <main class="container" style="max-width: 600px; margin: 2rem auto; padding: 2rem;">
+        <h1>Confirm Payment</h1>
+        
+        <div class="card" style="border-color: var(--border-color); background: var(--card-bg);">
+            <div id="paymentInfo" style="margin-bottom: 2rem;">
+                <p>Loading payment details...</p>
+            </div>
+            
+            <div style="padding: 1rem; background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 2rem;">
+                <strong>⚠️ Note:</strong> Payment processing will be implemented later. Clicking OK will change your tier immediately.
+            </div>
+            
+            <button id="confirmBtn" style="width: 100%; background: var(--accent-color);">OK - Confirm Tier Change</button>
+        </div>
+    </main>
+    
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        
+        const tierNames = {
+            '1': 'Standard',
+            '2': 'Premium',
+            '3': 'Professional'
+        };
+        
+        const tierPrices = {
+            '1': '$9.99',
+            '2': '$19.99',
+            '3': '$29.99'
+        };
+        
+        function showMessage(message, type = 'error') {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'toast-message toast-' + type;
+            messageEl.textContent = message;
+            document.body.appendChild(messageEl);
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+        
+        function loadPaymentInfo() {
+            const selectedTier = sessionStorage.getItem('selectedTier');
+            if (!selectedTier) {
+                window.location.href = 'change-tier.html';
+                return;
+            }
+            
+            document.getElementById('paymentInfo').innerHTML = `
+                <h3>Subscription Details</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div>
+                        <strong>New Tier:</strong><br>
+                        ${tierNames[selectedTier]}
+                    </div>
+                    <div>
+                        <strong>Price:</strong><br>
+                        ${tierPrices[selectedTier]}/month
+                    </div>
+                </div>
+            `;
+        }
+        
+        document.getElementById('confirmBtn').addEventListener('click', async () => {
+            const sessionId = localStorage.getItem('sessionId');
+            const customerId = sessionStorage.getItem('customerId');
+            const selectedTier = sessionStorage.getItem('selectedTier');
+            
+            if (!sessionId || !customerId || !selectedTier) {
+                showMessage('Session expired. Please try again.');
+                window.location.href = 'my-account.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/${customerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionId}`
+                    },
+                    body: JSON.stringify({ tier: parseInt(selectedTier) })
+                });
+                
+                if (response.ok) {
+                    sessionStorage.removeItem('selectedTier');
+                    sessionStorage.removeItem('customerId');
+                    showMessage('Tier changed successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'my-account.html';
+                    }, 1500);
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Failed to change tier');
+                }
+            } catch (error) {
+                showMessage('Failed to change tier: ' + error.message);
+            }
+        });
+        
+        loadPaymentInfo();
+    </script>
+</body>
+</html>
