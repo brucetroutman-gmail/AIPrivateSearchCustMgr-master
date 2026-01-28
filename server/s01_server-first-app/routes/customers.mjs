@@ -294,41 +294,74 @@ router.put('/:customerId', requireAuth, async (req, res) => {
 
     const connection = await pool.getConnection();
     
-    let query = 'UPDATE customers SET email = ?, phone = ?, city = ?, state = ?, postal_code = ?';
-    let params = [email, phone, city, state, postal_code];
+    const updates = [];
+    const params = [];
+    
+    // Profile fields (customers can update these)
+    if (email !== undefined) {
+      updates.push('email = ?');
+      params.push(email);
+    }
+    if (phone !== undefined) {
+      updates.push('phone = ?');
+      params.push(phone);
+    }
+    if (city !== undefined) {
+      updates.push('city = ?');
+      params.push(city);
+    }
+    if (state !== undefined) {
+      updates.push('state = ?');
+      params.push(state);
+    }
+    if (postal_code !== undefined) {
+      updates.push('postal_code = ?');
+      params.push(postal_code);
+    }
     
     // Only admin/manager can change active status and license info
     if (isAdmin) {
       if (typeof active === 'boolean') {
-        query += ', active = ?';
+        updates.push('active = ?');
         params.push(active);
       }
       
       // License management for admin/manager
       if (tier && [1, 2, 3].includes(parseInt(tier))) {
-        query += ', tier = ?';
+        updates.push('tier = ?');
         params.push(parseInt(tier));
       }
       
       if (license_status && ['trial', 'active', 'expired', 'suspended', 'cancelled'].includes(license_status)) {
-        query += ', license_status = ?';
+        updates.push('license_status = ?');
         params.push(license_status);
       }
       
       if (expires_at) {
-        query += ', expires_at = ?';
+        updates.push('expires_at = ?');
         params.push(expires_at);
+      }
+    } else if (tier) {
+      // Customers can also change their own tier (for upgrades)
+      if ([1, 2, 3].includes(parseInt(tier))) {
+        updates.push('tier = ?');
+        params.push(parseInt(tier));
       }
     }
     
     // Handle password update
     if (password) {
       const passwordHash = await bcrypt.hash(password, 12);
-      query += ', password_hash = ?';
+      updates.push('password_hash = ?');
       params.push(passwordHash);
     }
     
-    query += ' WHERE id = ?';
+    if (updates.length === 0) {
+      connection.release();
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    
+    const query = `UPDATE customers SET ${updates.join(', ')} WHERE id = ?`;
     params.push(customerId);
     
     await connection.execute(query, params);
