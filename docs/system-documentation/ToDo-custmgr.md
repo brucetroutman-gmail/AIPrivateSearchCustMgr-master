@@ -150,7 +150,13 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.45 Release (Current)
+## v1.46 Release (Current)
+166. Fixed customer PUT endpoint to build dynamic UPDATE query with only provided fields --done
+167. Fixed devices query to use device_uuid instead of device_id column --done
+168. Fixed devices query to use last_seen for both last_activity and created_at --done
+169. Added error logging to devices endpoint for better debugging --done
+
+## v1.45 Release
 160. Added Manage Devices section to my-account.html with device listing and deletion --done
 161. Created devices.mjs route with DELETE endpoint for device removal --done
 162. Added Change Tier and Payment History buttons to my-account.html --done
