@@ -5,6 +5,7 @@
 021. Add edit/delete device functionality to customer-edit page
 022. create payment process using paypal.
 023. Chech search on customer-management page
+024. Collect IP address during customer registration and store in customers table
 
 ### Customer Authentication System
 025. Extend custmgr auth system to handle customer role login
