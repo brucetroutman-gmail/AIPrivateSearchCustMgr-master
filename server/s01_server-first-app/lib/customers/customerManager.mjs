@@ -15,7 +15,7 @@ export class CustomerManager {
     return minLength && hasUpper && hasLower && hasNumber;
   }
 
-  async registerCustomer({ email, phone, city, state, postalCode, password }) {
+  async registerCustomer({ email, phone, city, state, postalCode, password, ipAddress }) {
     const connection = await this.getConnection();
     
     try {
@@ -44,9 +44,9 @@ export class CustomerManager {
       
       // Insert customer with unverified status
       const [customerResult] = await connection.execute(
-        `INSERT INTO customers (email, phone, city, state, postal_code, customer_code, password_hash, role, active, email_verified, verification_code, verification_expires, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'customer', 1, 0, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW())`,
-        [email, phone, city, state, postalCode, customerCode, passwordHash, verificationCode]
+        `INSERT INTO customers (email, phone, city, state, postal_code, customer_code, customer_ipaddr, password_hash, role, active, email_verified, verification_code, verification_expires, created_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'customer', 1, 0, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW())`,
+        [email, phone, city, state, postalCode, customerCode, ipAddress, passwordHash, verificationCode]
       );
       
       const customerId = customerResult.insertId;

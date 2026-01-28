@@ -18,13 +18,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
+    const ipAddress = req.ip || req.connection.remoteAddress;
+
     const result = await customerManager.registerCustomer({
       email,
       phone,
       city,
       state,
       postalCode,
-      password
+      password,
+      ipAddress
     });
     
     // Send verification code via email
@@ -266,7 +269,7 @@ router.get('/:customerId', requireAuth, async (req, res) => {
 
     const connection = await pool.getConnection();
     const [customers] = await connection.execute(
-      'SELECT id, email, phone, city, state, postal_code, customer_code, email_verified, role, active, tier, license_status, expires_at, trial_started_at, grace_period_ends, created_at FROM customers WHERE id = ?',
+      'SELECT id, email, phone, city, state, postal_code, customer_code, customer_ipaddr, email_verified, role, active, tier, license_status, expires_at, trial_started_at, grace_period_ends, created_at FROM customers WHERE id = ?',
       [customerId]
     );
     connection.release();

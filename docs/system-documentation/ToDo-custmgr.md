@@ -5,7 +5,6 @@
 021. Add edit/delete device functionality to customer-edit page
 022. create payment process using paypal.
 023. Chech search on customer-management page
-024. Collect IP address during customer registration and store in customers table
 
 ### Customer Authentication System
 025. Extend custmgr auth system to handle customer role login
@@ -151,7 +150,14 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.46 Release (Current)
+## v1.47 Release (Current)
+170. Added customer_ipaddr field to capture IP address during registration --done
+171. Updated customerManager to accept and store ipAddress parameter --done
+172. Updated customers route to capture req.ip and pass to registration --done
+173. Added readonly IP address field to customer-edit page after postal code --done
+174. Fixed password validation regex in my-account.html (\\d to \d) --done
+
+## v1.46 Release
 166. Fixed customer PUT endpoint to build dynamic UPDATE query with only provided fields --done
 167. Fixed devices query to use device_uuid instead of device_id column --done
 168. Fixed devices query to use last_seen for both last_activity and created_at --done
