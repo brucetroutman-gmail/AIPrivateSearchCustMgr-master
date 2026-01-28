@@ -150,7 +150,14 @@ T17. Password Reset and Security
 
 =====================================================
 
-## v1.43 Release (Current)
+## v1.44 Release (Current)
+155. Replaced token-based password reset with 6-digit code system (15 min expiry) --done
+156. Removed old forgot-password endpoint from auth.mjs route --done
+157. Updated user-management.html to redirect to reset-password.html page --done
+158. Fixed form validation errors by removing required attribute from hidden fields --done
+159. Added sendPasswordResetCode email method with 6-digit code display --done
+
+## v1.43 Release
 152. Fixed customerManager to use shared connection pool instead of separate connections --done
 153. Eliminated localhost database fallback - now uses only remote database from .env-custmgr --done
 154. Updated password reset flow to work consistently across local and production environments --done
