@@ -215,11 +215,6 @@ router.post('/register-device', validateDeviceRegistration, async (req, res) => 
     }
 
     const { email, deviceUuid, deviceName, pcCode, ipAddress } = req.body;
-    console.log('🔐 CUSTMGR: Saving pcCode:', pcCode, 'ipAddress:', ipAddress);
-    
-    if (!pcCode || !ipAddress) {
-      console.log('🔐 CUSTMGR: WARNING - Missing data: pcCode=', pcCode, 'ipAddress=', ipAddress);
-    }
     const db = getDB();
     
     // Find customer by email
