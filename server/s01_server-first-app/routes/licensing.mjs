@@ -264,8 +264,8 @@ router.post('/register-device', validateDeviceRegistration, async (req, res) => 
     });
 
   } catch (error) {
-    console.error('Device registration error:', error);
-    res.status(500).json({ success: false, error: 'Registration failed' });
+    console.error('Device registration error:', error.message, error.code, error.sqlMessage);
+    res.status(500).json({ success: false, error: `Registration failed: ${error.sqlMessage || error.message}` });
   }
 });
 
