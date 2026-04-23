@@ -34,14 +34,12 @@
 - Last-seen tracking on validation
 - Device deletion by customer (own devices) or admin
 
-### **2.3 License Token Management** ✅
-- JWT tokens signed with RSA-256 (auto-generated key pair)
-- Access tokens (24-hour expiry) and refresh tokens (30-day expiry)
-- Token payload: customer ID, email, hw hash, device ID, tier, features, device limits
-- Token revocation via revocation_list table with hash lookup
-- Token validation with revocation check, customer/device verification, and expiration check
-- Public key endpoint for client-side local validation
-- Activation attempt rate limiting (5 attempts per 5 minutes per email/device/IP)
+### **2.3 License Validation** ✅
+- Device-based licensing (no JWT tokens)
+- Device registration via email + deviceUuid + deviceName + pcCode
+- Device validation checks: customer exists, email verified, license status (trial/active), not expired, device registered
+- Last-seen tracking updated on each validation
+- Tier helpers: getTierName, getTierFeatures, getMaxDevices (tier-helpers.mjs)
 
 ## **Phase 3: Subscription Management** 🔶 PARTIAL
 
@@ -203,7 +201,7 @@
 - **Service Layer**: LicensingService, CustomerManager, EmailService, TrialNotificationService
 - **Unified Auth**: UnifiedUserManager handles both admin and customer auth
 - **Middleware Chain**: auth → role check → route handler
-- **Token Revocation**: Database-backed revocation list with hash lookup
+- **Device Licensing**: Registration + validation without JWT tokens
 
 ### **Tier Structure**
 - **Standard (Tier 1)**: 2 devices, features: search, collections
