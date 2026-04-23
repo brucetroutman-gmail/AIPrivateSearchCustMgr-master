@@ -53,7 +53,7 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(email, licenseKey, expiresAt) {
-    const downloadUrl = process.env.AIPS_DOWNLOAD_URL || 'https://custmgr.aiprivatesearch.com/downloads/load-AIPrivateSearch-1108.command';
+    const downloadUrl = process.env.AIPS_DOWNLOAD_URL || 'https://aiprivatesearch.com/downloads/AIPrivateSearch.dmg';
     const expiryDate = new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const mailOptions = {
