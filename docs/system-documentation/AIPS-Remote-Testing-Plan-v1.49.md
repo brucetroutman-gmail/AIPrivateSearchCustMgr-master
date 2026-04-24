@@ -352,7 +352,7 @@ curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/register-device \
 | T13 | Admin login works | ✅ |
 | T14 | Customer list shows correct tier and device count | ✅ |
 | T15 | Tier upgrade to Premium works | ✅ |
-| T16 | Device deletion works via admin | ⚠️ PARTIAL — Delete available on My Account page (customer self-service). Admin device delete on customer-edit page not yet implemented. Re-test when admin device management UI is built. |
+| T16 | Device deletion works via admin | ✅ |
 | T17 | Password reset request always returns success | ✅ |
 | T18 | Password reset with valid code works | ✅ |
 | T19 | Invalid email format rejected | ✅ |
