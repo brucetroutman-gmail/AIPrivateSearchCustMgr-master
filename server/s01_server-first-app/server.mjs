@@ -84,34 +84,15 @@ const userManager = new UnifiedUserManager();
 app.use(async (req, res, next) => {
   console.log('[SERVER AUTH] Path:', req.path, 'Method:', req.method);
   
-  // Redirect root based on authentication status
+  // Redirect root to index.html — client-side auth handles role-based redirects
   if (req.path === '/') {
-    console.log('[SERVER AUTH] Root path, checking session...');
-    const sessionId = req.headers.authorization?.replace('Bearer ', '') || req.cookies?.sessionId;
-    
-    if (sessionId) {
-      try {
-        const user = await userManager.validateSession(sessionId);
-        if (user) {
-          console.log('[SERVER AUTH] Valid session, redirecting based on user type:', user.userType);
-          if (user.userType === 'customer') {
-            return res.redirect('/my-account.html');
-          } else {
-            return res.redirect('/index.html');
-          }
-        }
-      } catch (error) {
-        console.log('[SERVER AUTH] Session validation failed:', error.message);
-      }
-    }
-    
-    console.log('[SERVER AUTH] No valid session, redirecting to user-management.html');
-    return res.redirect('/user-management.html');
+    return res.redirect('/index.html');
   }
   
   // Skip auth for login pages, auth endpoints, and static assets
   if (req.path === '/user-management.html' || 
       req.path === '/login.html' ||
+      req.path === '/index.html' ||
       req.path === '/email-test.html' ||
       req.path === '/customer-registration.html' ||
       req.path === '/reset-password.html' ||

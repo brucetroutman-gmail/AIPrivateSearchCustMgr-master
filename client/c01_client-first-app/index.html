@@ -210,6 +210,10 @@
             
             // Check authentication and redirect customers
             const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) {
+                window.location.href = '/login.html';
+                return;
+            }
             if (sessionId) {
                 try {
                     const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
