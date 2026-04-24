@@ -5,6 +5,7 @@
 021. Add edit/delete device functionality to customer-edit page
 022. create payment process using paypal.
 023. Chech search on customer-management page
+024. Add Change Password field to My Account - Account Information section
 
 ### Customer Authentication System
 025. Extend custmgr auth system to handle customer role login

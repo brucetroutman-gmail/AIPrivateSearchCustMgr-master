@@ -483,7 +483,7 @@ router.get('/:customerId/devices', requireAuth, async (req, res) => {
     const connection = await pool.getConnection();
     
     const [devices] = await connection.execute(
-      'SELECT id, device_uuid as pc_code, last_seen as last_activity, last_seen as created_at, status FROM devices WHERE customer_id = ? ORDER BY last_seen DESC',
+      'SELECT id, device_name, pc_code, last_seen as last_activity, registered_at as created_at, status FROM devices WHERE customer_id = ? ORDER BY last_seen DESC',
       [customerId]
     );
     

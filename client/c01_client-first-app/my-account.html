@@ -362,7 +362,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: start;">
                             <div style="flex: 1;">
                                 <div style="font-weight: bold; margin-bottom: 0.5rem;">
-                                    <span style="color: ${statusColor};">●</span> Device ID: ${device.pc_code}
+                                    <span style="color: ${statusColor};">●</span> ${device.device_name || device.pc_code || 'Unknown Device'}
                                 </div>
                                 <div style="font-size: 0.9em; color: #999;">
                                     <div>Registered: ${registered}</div>

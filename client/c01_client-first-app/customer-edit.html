@@ -214,9 +214,11 @@
                                 <table class="device-table">
                                     <thead>
                                         <tr>
-                                            <th>Device ID</th>
+                                            <th>PC Code</th>
+                                            <th>Device Name</th>
                                             <th>Last Activity</th>
                                             <th>Registered</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -225,9 +227,11 @@
                         devices.forEach(device => {
                             deviceHtml += `
                                 <tr>
-                                    <td>${device.pc_code}</td>
+                                    <td>${device.pc_code || 'N/A'}</td>
+                                    <td style="font-size:0.85em;">${device.device_name || 'Unknown'}</td>
                                     <td>${device.last_activity ? new Date(device.last_activity).toLocaleDateString() : 'Never'}</td>
                                     <td>${new Date(device.created_at).toLocaleDateString()}</td>
+                                    <td><button onclick="deleteDevice(${device.id})" style="background:#dc3545;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;">Remove</button></td>
                                 </tr>
                             `;
                         });
@@ -292,6 +296,28 @@
             }
         }
         
+        async function deleteDevice(deviceId) {
+            if (!confirm('Remove this device? The customer will need to re-register it.')) return;
+            
+            const sessionId = localStorage.getItem('sessionId');
+            try {
+                const response = await fetch(`${API_BASE}/api/devices/${deviceId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                
+                if (response.ok) {
+                    showMessage('Device removed successfully', 'success');
+                    loadDeviceInfo();
+                } else {
+                    const error = await response.json();
+                    showMessage(error.error || 'Failed to remove device');
+                }
+            } catch (error) {
+                showMessage('Failed to remove device: ' + error.message);
+            }
+        }
+
         async function checkAuth() {
             const sessionId = localStorage.getItem('sessionId');
             if (!sessionId) {

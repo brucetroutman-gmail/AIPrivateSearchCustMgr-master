@@ -52,7 +52,7 @@ router.post('/register-device', validateDeviceRegistration, async (req, res) => 
       return res.status(400).json({ error: 'Invalid input', details: errors.array() });
     }
 
-    const { email, deviceUuid, deviceName, pcCode, ipAddress } = req.body;
+    const { email, deviceUuid, deviceName, pcCode, ipAddress = null } = req.body;
     const db = getDB();
 
     const [customers] = await db.execute(
@@ -74,7 +74,7 @@ router.post('/register-device', validateDeviceRegistration, async (req, res) => 
     if (existingDevices.length) {
       await db.execute(
         'UPDATE devices SET device_name = ?, last_seen = NOW(), status = "active", pc_code = ?, ip_address = ? WHERE id = ?',
-        [deviceName || existingDevices[0].device_name, pcCode, ipAddress, existingDevices[0].id]
+        [deviceName || existingDevices[0].device_name, pcCode || null, ipAddress, existingDevices[0].id]
       );
     } else {
       await db.execute(

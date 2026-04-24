@@ -341,25 +341,25 @@ curl -X POST https://custmgr.aiprivatesearch.com/api/licensing/register-device \
 | T2 | License service status shows active with DB connected | ✅ |
 | T3 | Customer registration completes, verification email sent | ✅ |
 | T4 | Email verification grants 60-day Standard trial | ✅ |
-| T5 | Customer data accessible via check-limits API | ☐ |
-| T6 | AIPS DMG downloads and installs | ☐ |
-| T7 | First device registration succeeds | ☐ |
-| T8 | Device validation confirms license is valid | ☐ |
-| T9 | Re-registration updates existing device, no duplicate | ☐ |
-| T10 | Standard features work, Premium features restricted | ☐ |
-| T11 | Second device registration succeeds | ☐ |
-| T12 | Check-limits shows correct device count and limit | ☐ |
-| T13 | Admin login works | ☐ |
-| T14 | Customer list shows correct tier and device count | ☐ |
-| T15 | Tier upgrade to Premium works | ☐ |
-| T16 | Device deletion works via admin | ☐ |
-| T17 | Password reset request always returns success | ☐ |
-| T18 | Password reset with valid code works | ☐ |
-| T19 | Invalid email format rejected | ☐ |
-| T20 | Missing required fields rejected | ☐ |
-| T21 | DeviceUuid too short rejected | ☐ |
-| T22 | License persists across AIPS restarts | ☐ |
-| T23 | Offline mode works with cached status | ☐ |
+| T5 | Customer data accessible via check-limits API | ✅ |
+| T6 | AIPS DMG downloads and installs | ✅ |
+| T7 | First device registration succeeds | ✅ |
+| T8 | Device validation confirms license is valid | ✅ |
+| T9 | Re-registration updates existing device, no duplicate | ✅ |
+| T10 | Standard features work, Premium features restricted | ✅ |
+| T11 | Second device registration succeeds | ✅ |
+| T12 | Check-limits shows correct device count and limit | ✅ |
+| T13 | Admin login works | ✅ |
+| T14 | Customer list shows correct tier and device count | ✅ |
+| T15 | Tier upgrade to Premium works | ✅ |
+| T16 | Device deletion works via admin | ⚠️ PARTIAL — Delete available on My Account page (customer self-service). Admin device delete on customer-edit page not yet implemented. Re-test when admin device management UI is built. |
+| T17 | Password reset request always returns success | ✅ |
+| T18 | Password reset with valid code works | ✅ |
+| T19 | Invalid email format rejected | ✅ |
+| T20 | Missing required fields rejected | ✅ |
+| T21 | DeviceUuid too short rejected | ✅ |
+| T22 | License persists across AIPS restarts | ✅ |
+| T23 | Offline mode works with cached status | ✅ |
 
 ## Troubleshooting
 
