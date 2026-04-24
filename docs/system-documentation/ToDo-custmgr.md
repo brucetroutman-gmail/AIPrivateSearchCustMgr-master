@@ -1,5 +1,5 @@
 ## Pending Tasks
-020. Check contacts pages etc for auth
+020. Check contacts pages etc for auth --done
 022. Create payment process using paypal
 023. Check search on customer-management page
 024. Add Change Password field to My Account - Account Information section

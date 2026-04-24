@@ -82,7 +82,24 @@
                 }
                 
                 const data = await response.json();
-                displayCustomers(data.customers);
+                
+                const searchEmail = document.getElementById('searchEmail').value.toLowerCase().trim();
+                const filterTier = document.getElementById('filterTier').value;
+                const filterStatus = document.getElementById('filterStatus').value;
+                
+                let customers = data.customers;
+                
+                if (searchEmail) {
+                    customers = customers.filter(c => c.email.toLowerCase().includes(searchEmail));
+                }
+                if (filterTier) {
+                    customers = customers.filter(c => c.license && String(c.license.tier) === filterTier);
+                }
+                if (filterStatus) {
+                    customers = customers.filter(c => c.license && c.license.status === filterStatus);
+                }
+                
+                displayCustomers(customers);
             } catch (error) {
                 console.error('Error loading customers:', error);
                 document.getElementById('customersList').innerHTML = '<p>Error loading customers</p>';
@@ -217,6 +234,12 @@
                 }
                 
                 document.getElementById('userEmail').textContent = user.email;
+                
+                // Trigger search on Enter key and filter changes
+                document.getElementById('searchEmail').addEventListener('keyup', e => { if (e.key === 'Enter') loadCustomers(); });
+                document.getElementById('filterTier').addEventListener('change', loadCustomers);
+                document.getElementById('filterStatus').addEventListener('change', loadCustomers);
+                
                 loadCustomers();
             } catch (error) {
                 console.error('Auth check failed:', error);
