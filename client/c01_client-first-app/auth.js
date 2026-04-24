@@ -40,16 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
         '/contact.html'
     ];
     
-    // If on root path without session, redirect to login
-    if (path === '/' && !sessionId) {
-        console.log('[AUTH.JS] Root path without session, redirecting to login.html');
+    // If on root path, redirect to login
+    if (path === '/') {
         window.location.href = '/login.html';
-        return;
-    }
-    
-    // If on root path with session, redirect to user-management to handle role-based redirect
-    if (path === '/' && sessionId) {
-        window.location.href = '/user-management.html';
         return;
     }
     
