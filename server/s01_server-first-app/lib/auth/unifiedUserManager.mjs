@@ -10,7 +10,7 @@ export class UnifiedUserManager {
     // Load timeout from app.json
     let bearerTokenTimeout = 300; // Default 5 minutes
     try {
-      const appConfigPath = path.join(process.cwd(), '../../client/c01_client-first-app/config/app.json');
+      const appConfigPath = path.join(process.cwd(), 'client/c01_client-first-app/config/app.json');
       const appConfig = JSON.parse(fs.readFileSync(appConfigPath, 'utf8'));
       bearerTokenTimeout = appConfig['bearer-token-timeout'] || 300;
     } catch (error) {
