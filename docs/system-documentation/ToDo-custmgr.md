@@ -1,157 +1,107 @@
 ## Pending Tasks
-018. Test enhanced JWT tokens and device limit enforcement on Ubuntu server
-019. Create admin dashboard for device management
-020. check conatcts pages etc for auth.
-021. Add edit/delete device functionality to customer-edit page
-022. create payment process using paypal.
-023. Chech search on customer-management page
+020. Check contacts pages etc for auth
+022. Create payment process using paypal
+023. Check search on customer-management page
 024. Add Change Password field to My Account - Account Information section
-
-### Customer Authentication System
-025. Extend custmgr auth system to handle customer role login
-026. Add customer role to existing user management (admin/manager/customer)
-027. Create customer portal dashboard (my-account.html) for customers
-028. Admin can manage customer accounts (activate/deactivate/reset password)
-029. Customer sessions use same system but longer timeout (30 min vs 5 min)
-031. Customer login redirects to my-account.html, admin login to index.html
-032. Update user-management.html to handle both admin and customer login
-033. Add customer account management to admin interface
-034. Implement role-based redirects after login
-035. Use new mysql account  aips-readwrite
+035. Use new mysql account aips-readwrite (verify .env-custmgr on server uses aips-readwrite)
+038. Dashboard Payment Processing card — build or remove until Stripe/PayPal implemented
+040. Dashboard Analytics card — build or stub out
+041. Dashboard System Settings card — build or stub out
+043. my-account.html — Payment History button is a stub until payments implemented
+044. change-tier.html / payment-confirm.html — UI exists but no real payment processing behind it
+047. contact.html — verify auth behavior is correct
 
 
-### Phase 1: Trial & Registration Fixes (v1.29-1.30)
-[All tasks complete]
-
-### Phase 1 Testing (v1.30)
+### Phase 1 Testing (v1.53) — Pending
 Test on macOS localhost before Ubuntu deployment:
 
-T1. Customer Registration Flow
-  - Register new customer with all fields
-  - Verify email with 6-digit code
-  - Check license created with status='trial', tier=1
-  - Verify
-   trial_started_at timestamp set
-  - Confirm 60-day expiration date
-  - Verify welcome email received with license key and download link
+- [ ] T5. Trial Expiration Warnings (Manual Test)
+  - [ ] Manually set license expires_at to 7 days from now
+  - [ ] Run trial check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().checkExpiringTrials())"
+  - [ ] Verify 7-day warning email received
+  - [ ] Repeat for 3-day and 1-day warnings
 
-T2. Download Link Verification
-  - Check download button on verification success screen
-  - Verify download link in welcome email
-  - Test download URL: http://localhost:56303/downloads/load-AIPrivateSearch-1108.command
-  - Confirm file downloads successfully
+- [ ] T6. Grace Period Handling (Manual Test)
+  - [ ] Manually set license expires_at to yesterday
+  - [ ] Run expired check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().handleExpiredTrials())"
+  - [ ] Verify status changed to 'expired'
+  - [ ] Verify grace_period_ends set to 7 days from now
+  - [ ] Verify grace period email received
 
-T3. Database Schema Validation
-  - Verify customers table has all fields (email, phone, city, state, postal_code, customer_code, email_verified)
-  - Verify licenses table has trial fields (status='trial', trial_started_at, grace_period_ends)
-  - Check payments table exists with PayPal fields
-  - Verify devices table has license_id foreign key
+- [ ] T7. Duplicate Registration Prevention
+  - [ ] Try registering same email twice
+  - [ ] Verify error message returned
+  - [ ] Confirm no duplicate customer created
 
-T4. Email Templates
-  - Test verification code email format
-  - Test welcome email with license info and download link
-  - Verify trial expiration date displayed correctly
-  - Check all links work (download, upgrade)
+- [ ] T8. Verification Code Expiry
+  - [ ] Register customer
+  - [ ] Wait 16 minutes (code expires in 15 min)
+  - [ ] Try to verify with expired code
+  - [ ] Verify error message returned
 
-T5. Trial Expiration Warnings (Manual Test)
-  - Manually set license expires_at to 7 days from now
-  - Run trial check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().checkExpiringTrials())"
-  - Verify 7-day warning email received
-  - Repeat for 3-day and 1-day warnings
+- [ ] T9. Invalid Verification Code
+  - [ ] Register customer
+  - [ ] Try verifying with wrong code
+  - [ ] Verify error message returned
+  - [ ] Confirm license not created
 
-T6. Grace Period Handling (Manual Test)
-  - Manually set license expires_at to yesterday
-  - Run expired check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().handleExpiredTrials())"
-  - Verify status changed to 'expired'
-  - Verify grace_period_ends set to 7 days from now
-  - Verify grace period email received
+### Unified Authentication Tests — Pending
+- [ ] T15. Admin Customer Management
+  - [ ] Login as admin (adm-custmgr@a.com / 123)
+  - [ ] Test admin can view all customers: GET /api/customers
+  - [ ] Test admin can view any customer: GET /api/customers/:id
+  - [ ] Test admin can update any customer: PUT /api/customers/:id
+  - [ ] Test admin can deactivate customer: DELETE /api/customers/:id
+  - [ ] Verify admin can change customer active status
+  - [ ] Test admin can reset customer passwords
 
-T7. Duplicate Registration Prevention
-  - Try registering same email twice
-  - Verify error message returned
-  - Confirm no duplicate customer created
-
-T8. Verification Code Expiry
-  - Register customer
-  - Wait 16 minutes (code expires in 15 min)
-  - Try to verify with expired code
-  - Verify error message returned
-
-T9. Invalid Verification Code
-  - Register customer
-  - Try verifying with wrong code
-  - Verify error message returned
-  - Confirm license not created
-
-T10. Production Deployment Test (Ubuntu)
-  - Copy installer to Ubuntu: /webs/AIPrivateSearch/repo/aiprivatesearchcustmgr/client/c01_client-first-app/downloads/
-  - Test registration flow on https://custmgr.aiprivatesearch.com/customer-registration.html
-  - Verify download URL: https://custmgr.aiprivatesearch.com/downloads/load-AIPrivateSearch-1108.command
-  - Confirm all emails sent successfully
-  - Check trial notification job scheduled in PM2 logs
-
-### Unified Authentication Tests
-T11. Single Database Verification
-  - Verify aiprivatesearch database contains users, customers, sessions tables  --done
-  - Check admin accounts exist: adm-custmgr@a.com, custmgr-adm@c.com  --done
-  - Verify customers table has password_hash, role, active fields  --done
-  - Confirm sessions table has user_type field (admin/customer) --done
-
-T12. Admin Login Test
-  - Login with adm-custmgr@a.com / 123 at /user-management.html  --done
-  - Verify redirects to /index.html (admin dashboard)  --done
-  - Check session timeout is 5 minutes  --done
-  - Verify admin can access user management functions  --done
-
-T13. Customer Registration with Password
-  - Register new customer with password at /customer-registration.html
-  - Test password validation (8+ chars, upper, lower, number)
-  - Verify password confirmation matching
-  - Check customer created with role='customer' in database
-  - Verify customer receives license key and welcome email
-
-T14. Customer Login and Self-Management
-  - Login with registered customer credentials at /user-management.html
-  - Verify customer login works with unified auth system
-  - Check session timeout is 30 minutes (longer than admin)
-  - Test customer can view own profile: GET /api/customers/:id
-  - Test customer can update own profile: PUT /api/customers/:id
-  - Verify customer cannot access other customers' data
-  - Confirm customer cannot access admin functions
-
-T15. Admin Customer Management
-  - Login as admin (adm-custmgr@a.com / 123)
-  - Test admin can view all customers: GET /api/customers
-  - Test admin can view any customer: GET /api/customers/:id
-  - Test admin can update any customer: PUT /api/customers/:id
-  - Test admin can deactivate customer: DELETE /api/customers/:id
-  - Verify admin can change customer active status
-  - Test admin can reset customer passwords
-
-T16. Role-Based Access Control
-  - Test customer cannot access GET /api/customers (403 error)
-  - Test customer cannot deactivate other customers (403 error)
-  - Test customer cannot update other customers (403 error)
-  - Verify manager role has same customer access as admin
-  - Test session validation for both admin and customer types
-
-T17. Password Reset and Security
-  - Test forgot password at /user-management.html
-  - Verify reset email sent with token
-  - Test reset-password.html page with token
-  - Confirm password reset and login with new password
-  - Test password complexity validation on reset
-  - Verify old sessions invalidated after password change
-
-
-
-
-
+- [ ] T17. Password Reset and Security
+  - [ ] Test forgot password at /user-management.html
+  - [ ] Verify reset email sent with token
+  - [ ] Test reset-password.html page with token
+  - [ ] Confirm password reset and login with new password
+  - [ ] Test password complexity validation on reset
+  - [ ] Verify old sessions invalidated after password change
 
 
 =====================================================
 
-## v1.47 Release (Current)
+## v1.53 Release (Current)
+189. Phase 1 Testing T1 — Customer Registration Flow --done
+190. Phase 1 Testing T2 — Download Link Verification (updated URL to DMG) --done
+191. Phase 1 Testing T3 — Database Schema Validation --done
+192. Phase 1 Testing T4 — Email Templates --done
+193. Phase 1 Testing T10 — Production Deployment Test (Ubuntu) --done
+194. Unified Auth T11 — Single Database Verification --done
+195. Unified Auth T12 — Admin Login Test --done
+196. Unified Auth T13 — Customer Registration with Password --done
+197. Unified Auth T14 — Customer Login and Self-Management --done
+198. Unified Auth T16 — Role-Based Access Control --done
+199. Removed Device Management and Token Management cards from admin dashboard --done
+200. Updated ToDo completed items to v1.52 release section --done
+201. Fixed trialNotificationService.mjs — updated to query 'customers' table instead of deleted 'licenses' table --done
+202. Removed Dashboard Device Management card (built into customer-edit) --done
+203. Fixed customer-management.html row click — navigates to customer-edit.html --done
+204. Removed group.html — not needed --done
+205. Removed email-test.html — not needed in production --done
+
+## v1.52 Release
+175. Removed all JWT licensing code (jwt-manager.mjs deleted, tier-helpers.mjs created) --done
+176. Rewrote licensing-service.mjs — device-based only, removed activateLicense/refreshLicense/revokeLicense/validateLicense --done
+177. Rewrote routes/licensing.mjs — removed /activate, /refresh, /validate, /revoke, /public-key endpoints --done
+178. Fixed check-limits query — device_id column replaced with device_uuid --done
+179. Fixed register-device — ipAddress and pcCode default to null to prevent MySQL bind error --done
+180. Added Remove button and device name column to customer-edit.html device list --done
+181. Updated customers route devices query to return device_name and pc_code --done
+182. Updated my-account.html to show device name instead of Device ID --done
+183. Removed Device Management and Token Management cards from admin dashboard --done
+184. Updated download links to https://aiprivatesearch.com/downloads/AIPrivateSearch.dmg --done
+185. Fixed welcome email fallback download URL to DMG --done
+186. Completed all 23 remote licensing tests (AIPS-Remote-Testing-Plan-v1.49.md) --done
+187. Marked completed tasks 018, 021, 025-034, 039 as done in ToDo --done
+188. Updated aips-custmgr-licensing-plan.md to current implementation state --done
+
+## v1.47 Release
 170. Added customer_ipaddr field to capture IP address during registration --done
 171. Updated customerManager to accept and store ipAddress parameter --done
 172. Updated customers route to capture req.ip and pass to registration --done
