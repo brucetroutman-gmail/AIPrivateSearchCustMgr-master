@@ -111,9 +111,13 @@ app.use(async (req, res, next) => {
   
   // Skip auth for login pages, auth endpoints, and static assets
   if (req.path === '/user-management.html' || 
+      req.path === '/login.html' ||
       req.path === '/email-test.html' ||
       req.path === '/customer-registration.html' ||
       req.path === '/reset-password.html' ||
+      req.path === '/privacy-policy.html' ||
+      req.path === '/terms-of-service.html' ||
+      req.path === '/contact.html' ||
       req.path.startsWith('/api/auth/') || 
       req.path.startsWith('/api/licensing/') || 
       req.path.startsWith('/api/test/') ||

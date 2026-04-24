@@ -689,7 +689,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   // Skip authentication check on licensing pages
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-  const licensingPages = ['license-activation.html', 'index.html'];
+  const licensingPages = ['license-activation.html', 'index.html', 'login.html', 'user-management.html', 'customer-registration.html', 'reset-password.html', 'privacy-policy.html', 'terms-of-service.html', 'contact.html', 'change-tier.html', 'payment-confirm.html'];
   
   if (!licensingPages.includes(currentPage)) {
     // Check authentication status - require login with fallback

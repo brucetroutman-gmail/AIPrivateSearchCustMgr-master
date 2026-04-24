@@ -29,17 +29,26 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Pages that don't require authentication
     const publicPages = [
+        '/login.html',
         '/user-management.html',
         '/customer-registration.html',
         '/reset-password.html',
-        '/email-test.html',
         '/change-tier.html',
-        '/payment-confirm.html'
+        '/payment-confirm.html',
+        '/privacy-policy.html',
+        '/terms-of-service.html',
+        '/contact.html'
     ];
     
-    // If on root path without session, redirect to user-management
+    // If on root path without session, redirect to login
     if (path === '/' && !sessionId) {
-        console.log('[AUTH.JS] Root path without session, redirecting to user-management.html');
+        console.log('[AUTH.JS] Root path without session, redirecting to login.html');
+        window.location.href = '/login.html';
+        return;
+    }
+    
+    // If on root path with session, redirect to user-management to handle role-based redirect
+    if (path === '/' && sessionId) {
         window.location.href = '/user-management.html';
         return;
     }

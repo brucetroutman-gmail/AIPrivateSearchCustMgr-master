@@ -1,11 +1,7 @@
 ## Pending Tasks
-020. Check contacts pages etc for auth --done
 022. Create payment process using paypal
-023. Check search on customer-management page --done
 024. Add Change Password field to My Account - Account Information section
-035. Use new mysql account aips-readwrite (verify .env-custmgr on server uses aips-readwrite)
 038. Dashboard Payment Processing card — build or remove until Stripe/PayPal implemented
-040. Dashboard Analytics card — build or stub out --done
 041. Dashboard System Settings card — build or stub out
 048. System Settings page — when built, include:
      - Email: SMTP host, port, username, password, from address, test email button
@@ -17,7 +13,6 @@
      - System: session timeout admin (5 min) and customer (30 min), rate limiting thresholds
 043. my-account.html — Payment History button is a stub until payments implemented
 044. change-tier.html / payment-confirm.html — UI exists but no real payment processing behind it
-047. contact.html — verify auth behavior is correct
 
 
 ### Phase 1 Testing (v1.53) — Pending
@@ -73,6 +68,18 @@ Test on macOS localhost before Ubuntu deployment:
 
 
 =====================================================
+
+## v1.54 Release (Current)
+206. Built System Analytics page (analytics.html) with customer, license, tier, device, registration and geographic stats --done
+207. Created routes/analytics.mjs with 6 SQL queries --done
+208. Wired up Analytics button on admin dashboard --done
+209. Fixed customer-management search/filter (email, tier, status) --done
+210. Verified DB_USERNAME=aips-readwrite on Ubuntu server --done
+211. Checked contacts pages for auth — contact.html kept public (footer link) --done
+212. Updated contact.html to use support@aiprivatesearch.com, removed personal PII --done
+213. Marked 023 done — customer-management search fixed --done
+214. Marked 035 done — aips-readwrite confirmed --done
+215. Marked 040 done — analytics built --done
 
 ## v1.53 Release (Current)
 189. Phase 1 Testing T1 — Customer Registration Flow --done
