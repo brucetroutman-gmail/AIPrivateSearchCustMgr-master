@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - AI Private Search</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        .stat-card .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            margin-top: 0.25rem;
+        }
+        .stat-card.warning .stat-value { color: #ffc107; }
+        .stat-card.danger .stat-value { color: #dc3545; }
+        .stat-card.success .stat-value { color: #28a745; }
+        .section-title {
+            color: var(--accent-color);
+            margin: 2rem 0 1rem;
+            font-size: 1.1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        .bar-chart { margin-top: 0.5rem; }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            gap: 0.75rem;
+        }
+        .bar-label { width: 120px; font-size: 0.85rem; text-align: right; opacity: 0.8; flex-shrink: 0; }
+        .bar-track { flex: 1; background: var(--border-color); border-radius: 4px; height: 20px; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--accent-color); border-radius: 4px; transition: width 0.5s; }
+        .bar-count { width: 40px; font-size: 0.85rem; opacity: 0.8; }
+        .sparkline { display: flex; align-items: flex-end; gap: 2px; height: 60px; margin-top: 0.5rem; }
+        .spark-bar { flex: 1; background: var(--accent-color); border-radius: 2px 2px 0 0; opacity: 0.7; min-height: 2px; }
+        .spark-bar:hover { opacity: 1; }
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } }
+        .refresh-btn { float: right; padding: 0.4rem 1rem; font-size: 0.85rem; }
+        .last-updated { font-size: 0.8rem; opacity: 0.5; text-align: right; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>System Analytics</h1>
+            <div class="header-nav">
+                <a href="/index.html" class="nav-link">← Dashboard</a>
+                <span id="userEmail" class="user-email"></span>
+                <a href="#" id="logoutLink" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <main class="container">
+        <button class="refresh-btn" onclick="loadAnalytics()">↻ Refresh</button>
+        <div class="last-updated" id="lastUpdated"></div>
+
+        <!-- Customer Stats -->
+        <div class="section-title">Customer Overview</div>
+        <div class="stats-grid" id="customerStats">
+            <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Total Customers</div></div>
+        </div>
+
+        <!-- License Stats -->
+        <div class="section-title">License Status</div>
+        <div class="stats-grid" id="licenseStats">
+            <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Loading...</div></div>
+        </div>
+
+        <div class="two-col">
+            <!-- Tier Distribution -->
+            <div class="card">
+                <div class="section-title" style="margin-top:0;">Tier Distribution</div>
+                <div class="bar-chart" id="tierChart"></div>
+            </div>
+
+            <!-- Device Stats -->
+            <div class="card">
+                <div class="section-title" style="margin-top:0;">Device Stats</div>
+                <div class="stats-grid" id="deviceStats" style="grid-template-columns: repeat(2, 1fr);"></div>
+            </div>
+        </div>
+
+        <div class="two-col">
+            <!-- Registrations Last 30 Days -->
+            <div class="card">
+                <div class="section-title" style="margin-top:0;">Registrations — Last 30 Days</div>
+                <div class="sparkline" id="sparkline"></div>
+            </div>
+
+            <!-- Top States -->
+            <div class="card">
+                <div class="section-title" style="margin-top:0;">Top States</div>
+                <div class="bar-chart" id="stateChart"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="auth.js"></script>
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+
+        function statCard(value, label, type = '') {
+            return `<div class="stat-card ${type}"><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`;
+        }
+
+        function barChart(items, maxVal) {
+            return items.map(item => `
+                <div class="bar-row">
+                    <div class="bar-label">${item.label}</div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${maxVal ? Math.round((item.count / maxVal) * 100) : 0}%"></div></div>
+                    <div class="bar-count">${item.count}</div>
+                </div>`).join('');
+        }
+
+        async function loadAnalytics() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) { window.location.href = '/login.html'; return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/analytics`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                if (!res.ok) throw new Error('Failed to load analytics');
+                const d = await res.json();
+
+                // Customer stats
+                document.getElementById('customerStats').innerHTML =
+                    statCard(d.customers.total, 'Total Customers') +
+                    statCard(d.customers.verified, 'Verified', 'success') +
+                    statCard(d.customers.unverified, 'Unverified', d.customers.unverified > 0 ? 'warning' : '') +
+                    statCard(d.customers.active, 'Active') +
+                    statCard(d.customers.inactive, 'Inactive', d.customers.inactive > 0 ? 'warning' : '') +
+                    statCard(d.customers.new_today, 'New Today', 'success') +
+                    statCard(d.customers.new_this_week, 'This Week') +
+                    statCard(d.customers.new_this_month, 'This Month');
+
+                // License stats
+                document.getElementById('licenseStats').innerHTML =
+                    statCard(d.licenses.trial, 'Trial') +
+                    statCard(d.licenses.active, 'Active (Paid)', 'success') +
+                    statCard(d.licenses.expired, 'Expired', d.licenses.expired > 0 ? 'danger' : '') +
+                    statCard(d.licenses.suspended, 'Suspended', d.licenses.suspended > 0 ? 'warning' : '') +
+                    statCard(d.licenses.cancelled, 'Cancelled') +
+                    statCard(d.licenses.expiring_7_days, 'Expiring in 7 Days', d.licenses.expiring_7_days > 0 ? 'warning' : '') +
+                    statCard(d.licenses.expiring_30_days, 'Expiring in 30 Days');
+
+                // Tier chart
+                const totalTier = d.tiers.reduce((s, t) => s + t.count, 0);
+                document.getElementById('tierChart').innerHTML = barChart(
+                    d.tiers.map(t => ({ label: t.tier_name, count: t.count })),
+                    totalTier
+                );
+
+                // Device stats
+                document.getElementById('deviceStats').innerHTML =
+                    statCard(d.devices.total_devices, 'Total Devices') +
+                    statCard(d.devices.customers_with_devices, 'Customers w/ Devices') +
+                    statCard(d.devices.avg_per_customer, 'Avg per Customer') +
+                    statCard(d.devices.customers_at_limit, 'At Device Limit', d.devices.customers_at_limit > 0 ? 'warning' : '');
+
+                // Sparkline — last 30 days
+                const days = d.registrations_by_day;
+                const maxReg = Math.max(...days.map(d => d.count), 1);
+                document.getElementById('sparkline').innerHTML = days.map(day =>
+                    `<div class="spark-bar" style="height:${Math.round((day.count / maxReg) * 100)}%" title="${day.date}: ${day.count}"></div>`
+                ).join('');
+
+                // Top states
+                const maxState = d.top_states[0]?.count || 1;
+                document.getElementById('stateChart').innerHTML = barChart(
+                    d.top_states.map(s => ({ label: s.state, count: s.count })),
+                    maxState
+                );
+
+                document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+
+            } catch (error) {
+                console.error('Analytics error:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) { window.location.href = '/login.html'; return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                if (!res.ok) throw new Error('Session expired');
+                const data = await res.json();
+                if (data.user.userType === 'customer') { window.location.href = '/my-account.html'; return; }
+                document.getElementById('userEmail').textContent = data.user.email;
+            } catch (error) {
+                localStorage.removeItem('sessionId');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            loadAnalytics();
+        });
+
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                try { await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${sessionId}` } }); } catch {}
+            }
+            localStorage.removeItem('sessionId');
+            window.location.href = '/login.html';
+        });
+    </script>
+</body>
+</html>

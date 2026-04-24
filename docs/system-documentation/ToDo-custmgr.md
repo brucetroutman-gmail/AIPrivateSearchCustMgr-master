@@ -1,12 +1,20 @@
 ## Pending Tasks
 020. Check contacts pages etc for auth --done
 022. Create payment process using paypal
-023. Check search on customer-management page
+023. Check search on customer-management page --done
 024. Add Change Password field to My Account - Account Information section
 035. Use new mysql account aips-readwrite (verify .env-custmgr on server uses aips-readwrite)
 038. Dashboard Payment Processing card — build or remove until Stripe/PayPal implemented
-040. Dashboard Analytics card — build or stub out
+040. Dashboard Analytics card — build or stub out --done
 041. Dashboard System Settings card — build or stub out
+048. System Settings page — when built, include:
+     - Email: SMTP host, port, username, password, from address, test email button
+     - License: trial period length (60 days), grace period (7 days), device limits per tier (2/5/10)
+     - Download: installer download URL
+     - Registration: password requirements, verification code expiry (15 min), welcome email on/off
+     - Notifications: trial warning days (7/3/1), enable/disable expiration emails, upgrade URL
+     - Admin: change admin password, link to user-management
+     - System: session timeout admin (5 min) and customer (30 min), rate limiting thresholds
 043. my-account.html — Payment History button is a stub until payments implemented
 044. change-tier.html / payment-confirm.html — UI exists but no real payment processing behind it
 047. contact.html — verify auth behavior is correct
