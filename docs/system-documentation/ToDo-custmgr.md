@@ -1,78 +1,14 @@
 ## Pending Tasks
 022. Create payment process using paypal
-024. Add Change Password field to My Account - Account Information section  --done
 038. Dashboard Payment Processing card — build or remove until Stripe/PayPal implemented
-041. Dashboard System Settings card — build or stub out
-048. System Settings page — when built, include:
-     - Email: SMTP host, port, username, password, from address, test email button
-     - License: trial period length (60 days), grace period (7 days), device limits per tier (2/5/10)
-     - Download: installer oot@formr:/webs/AIPrivateSearch/repo/aiprivatesearchcustmgr# cat /webs/AIPrivateSearch/repo/aiprivatesearchcustmgr/client/c01_client-first-app/auth.js
-// Auth utility functions
-function getSessionId() {
-    return localStorage.getItem('sessionId');
-}
-
-function setAuthHeaders() {
-    const sessionId = getSessionId();
-    if (sessionId) {
-        return {
-            'Authorization': `Bearer ${sessionId}`,
-            'Content-Type': 'application/json'
-        };
-    }
-    return {
-        'Content-Type': 'application/json'
-    };
-}
-
-function logout() {
-    localStorage.removeItem('sessionId');
-    window.location.href = '/login.html';
-}
-
-// Check auth on page load
-document.addEventListener('DOMContentLoaded', () => {
-    const sessionId = getSessionId();
-    const path = window.location.pathname;
-    console.log('[AUTH.JS] Path:', path, 'SessionId:', sessionId ? 'exists' : 'none');
-
-    // Pages that don't require authentication
-    const publicPages = [
-        '/login.html',
-        '/user-management.html',
-        '/customer-registration.html',
-        '/reset-password.html',
-        '/change-tier.html',
-        '/payment-confirm.html',
-        '/privacy-policy.html',
-        '/terms-of-service.html',
-        '/contact.html'
-    ];
-
-    // If on root path, redirect to login
-    if (path === '/') {
-        window.location.href = '/login.html';
-        return;
-    }
-
-    // Check if current page is public
-    const isPublicPage = publicPages.some(page => path.includes(page));
-
-    // Redirect to user-management.html if not logged in and not on a public page
-    if (!sessionId && !isPublicPage) {
-        console.log('[AUTH.JS] No session, redirecting to user-management.html');
-        window.location.href = '/user-management.html';
-    } else {
-        console.log('[AUTH.JS] Auth check passed, staying on', path);
-    }
-});root@formr:/webs/AIPrivateSearch/repo/aiprivatesearchcustmgr#
-download URL
-     - Registration: password requirements, verification code expiry (15 min), welcome email on/off
-     - Notifications: trial warning days (7/3/1), enable/disable expiration emails, upgrade URL
-     - Admin: change admin password, link to user-management
-     - System: session timeout admin (5 min) and customer (30 min), rate limiting thresholds
 043. my-account.html — Payment History button is a stub until payments implemented
 044. change-tier.html / payment-confirm.html — UI exists but no real payment processing behind it
+049. Create client/c01_client-first-app/config/settings.json to store configurable system settings.
+     Admin can edit values via the Settings page instead of requiring code deployment.
+     Server reads from this file at startup with hardcoded defaults as fallback.
+     Settings to include: trial_period_days, grace_period_days, verification_expiry_minutes,
+     password_reset_expiry_minutes, trial_warning_days, device_limits per tier,
+     session_timeout_admin, session_timeout_customer, download_url, upgrade_url.
 
 
 ### Phase 1 Testing (v1.53) — Pending
@@ -129,7 +65,22 @@ Test on macOS localhost before Ubuntu deployment:
 
 =====================================================
 
-## v1.54 Release (Current)
+## v1.55 Release (Current)
+216. Added Change Password field to My Account - Account Information section --done
+217. Removed npx serve frontend process — Express now serves static files and API on port 56304 --done
+218. Fixed static file path in server.mjs --done
+219. Stripped server-side page auth middleware — client-side handles all page auth --done
+220. Added scriptSrcAttr unsafe-inline to Helmet CSP for inline onclick handlers --done
+221. Fixed app.json path in unifiedUserManager.mjs --done
+222. Updated Caddy config to route all traffic to port 56304 --done
+223. Removed aipscust-c56303 from ecosystem.config.cjs --done
+224. Fixed login redirect loop caused by common.js clearing session --done
+225. Fixed serve.json with cleanUrls: false --done
+226. Built System Settings page (settings.html) displaying all hardcoded system values --done
+227. Created routes/settings.mjs API endpoint --done
+228. Wired up Settings button on admin dashboard --done
+
+## v1.54 Release
 206. Built System Analytics page (analytics.html) with customer, license, tier, device, registration and geographic stats --done
 207. Created routes/analytics.mjs with 6 SQL queries --done
 208. Wired up Analytics button on admin dashboard --done

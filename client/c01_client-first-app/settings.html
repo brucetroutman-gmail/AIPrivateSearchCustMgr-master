@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Settings - AI Private Search</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .settings-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        .settings-card h3 {
+            color: var(--accent-color);
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+        }
+        .setting-row:last-child { border-bottom: none; }
+        .setting-label { opacity: 0.7; }
+        .setting-value {
+            color: var(--accent-color);
+            font-weight: 500;
+            text-align: right;
+            max-width: 60%;
+            word-break: break-all;
+        }
+        .tag {
+            display: inline-block;
+            background: rgba(135,206,235,0.15);
+            color: var(--accent-color);
+            border-radius: 3px;
+            padding: 1px 6px;
+            font-size: 0.8rem;
+            margin: 1px;
+        }
+        .note {
+            font-size: 0.8rem;
+            opacity: 0.5;
+            margin-top: 0.75rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>System Settings</h1>
+            <div class="header-nav">
+                <a href="/index.html" class="nav-link">← Dashboard</a>
+                <span id="userEmail" class="user-email"></span>
+                <a href="#" id="logoutLink" class="nav-link">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <main class="container">
+        <p style="opacity:0.6; margin-bottom:0;">Current system configuration. These values are set in the server code and environment variables.</p>
+
+        <div class="settings-grid" id="settingsGrid">
+            <div class="settings-card"><h3>Loading...</h3></div>
+        </div>
+    </main>
+
+    <script src="auth.js"></script>
+    <script>
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+
+        function row(label, value) {
+            return `<div class="setting-row"><span class="setting-label">${label}</span><span class="setting-value">${value}</span></div>`;
+        }
+
+        function tags(arr) {
+            return arr.map(v => `<span class="tag">${v}</span>`).join('');
+        }
+
+        async function loadSettings() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) { window.location.href = '/login.html'; return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/settings`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                if (!res.ok) throw new Error('Failed to load settings');
+                const s = await res.json();
+
+                document.getElementById('settingsGrid').innerHTML = `
+                    <div class="settings-card">
+                        <h3>📋 License Settings</h3>
+                        ${row('Trial Period', `${s.license.trial_period_days} days`)}
+                        ${row('Grace Period', `${s.license.grace_period_days} days`)}
+                        ${row('Verification Code Expiry', `${s.license.verification_code_expiry_minutes} minutes`)}
+                        ${row('Password Reset Code Expiry', `${s.license.password_reset_expiry_minutes} minutes`)}
+                        ${row('Trial Warning Days', tags(s.license.trial_warning_days.map(d => `${d} days`)))}
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>💻 Device Limits per Tier</h3>
+                        ${row('Standard', `${s.device_limits.standard} devices`)}
+                        ${row('Premium', `${s.device_limits.premium} devices`)}
+                        ${row('Professional', `${s.device_limits.professional} devices`)}
+                        <h3 style="margin-top:1rem;">🔑 Tier Features</h3>
+                        ${row('Standard', tags(s.tier_features.standard))}
+                        ${row('Premium', tags(s.tier_features.premium))}
+                        ${row('Professional', tags(s.tier_features.professional))}
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>⏱️ Session Timeouts</h3>
+                        ${row('Admin', `${s.sessions.admin_timeout_minutes} minutes`)}
+                        ${row('Customer', `${s.sessions.customer_timeout_minutes} minutes`)}
+                        <h3 style="margin-top:1rem;">🔒 Password Requirements</h3>
+                        ${row('Minimum Length', `${s.password_requirements.min_length} characters`)}
+                        ${row('Requires Uppercase', s.password_requirements.requires_uppercase ? '✅' : '❌')}
+                        ${row('Requires Lowercase', s.password_requirements.requires_lowercase ? '✅' : '❌')}
+                        ${row('Requires Number', s.password_requirements.requires_number ? '✅' : '❌')}
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>📧 Email Configuration</h3>
+                        ${row('SMTP Host', s.email.host)}
+                        ${row('SMTP Port', s.email.port)}
+                        ${row('From Address', s.email.user)}
+                        ${row('Download URL', `<a href="${s.email.download_url}" target="_blank" style="color:var(--accent-color);font-size:0.8em;">DMG Link</a>`)}
+                        ${row('Upgrade URL', `<a href="${s.email.upgrade_url}" target="_blank" style="color:var(--accent-color);font-size:0.8em;">Upgrade Link</a>`)}
+                        <p class="note">Email credentials are set via environment variables in .env-custmgr</p>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3>🚦 Rate Limiting</h3>
+                        ${row('General API', `${s.rate_limiting.general_api.requests} requests / ${s.rate_limiting.general_api.window_minutes} min`)}
+                        ${row('Device Activation', `${s.rate_limiting.device_activation.attempts} attempts / ${s.rate_limiting.device_activation.window_minutes} min`)}
+                        <p class="note">Rate limits are enforced server-side and cannot be changed without a code deployment.</p>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('settingsGrid').innerHTML = '<div class="settings-card"><h3>Error loading settings</h3></div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) { window.location.href = '/login.html'; return; }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                if (!res.ok) throw new Error('Session expired');
+                const data = await res.json();
+                if (data.user.userType === 'customer') { window.location.href = '/my-account.html'; return; }
+                document.getElementById('userEmail').textContent = data.user.email;
+            } catch (error) {
+                localStorage.removeItem('sessionId');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            loadSettings();
+        });
+
+        document.getElementById('logoutLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const sessionId = localStorage.getItem('sessionId');
+            if (sessionId) {
+                try { await fetch(`${API_BASE}/api/auth/logout`, { method: 'POST', headers: { 'Authorization': `Bearer ${sessionId}` } }); } catch {}
+            }
+            localStorage.removeItem('sessionId');
+            window.location.href = '/login.html';
+        });
+    </script>
+</body>
+</html>

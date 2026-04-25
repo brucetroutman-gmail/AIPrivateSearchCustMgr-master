@@ -219,8 +219,10 @@ app.use('/api/test', testRouter);
 // Debug routes
 import debugRouter from './routes/debug.mjs';
 import analyticsRouter from './routes/analytics.mjs';
+import settingsRouter from './routes/settings.mjs';
 app.use('/api/debug', debugRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/settings', settingsRouter);
 
 // app.use('/api/payments', validateOrigin, validateCSRFToken, paymentRouter);
 
