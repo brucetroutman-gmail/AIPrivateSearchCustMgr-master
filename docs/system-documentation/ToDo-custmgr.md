@@ -1,6 +1,6 @@
 ## Pending Tasks
 022. Create payment process using paypal
-024. Add Change Password field to My Account - Account Information section
+024. Add Change Password field to My Account - Account Information section  --done
 038. Dashboard Payment Processing card — build or remove until Stripe/PayPal implemented
 041. Dashboard System Settings card — build or stub out
 048. System Settings page — when built, include:
