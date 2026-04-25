@@ -9,6 +9,7 @@
      Settings to include: trial_period_days, grace_period_days, verification_expiry_minutes,
      password_reset_expiry_minutes, trial_warning_days, device_limits per tier,
      session_timeout_admin, session_timeout_customer, download_url, upgrade_url.
+050. Fix missing eslint-plugin-security package — pre-commit hook shows ERR_MODULE_NOT_FOUND. --done
 
 
 ### Phase 1 Testing (v1.53) — Pending
