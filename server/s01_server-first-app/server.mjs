@@ -80,93 +80,50 @@ app.use(cookieParser());
 import { UnifiedUserManager } from './lib/auth/unifiedUserManager.mjs';
 const userManager = new UnifiedUserManager();
 
-// Auth check middleware for protected routes
+// Auth check middleware — only protects API endpoints, not page navigation
 app.use(async (req, res, next) => {
-  console.log('[SERVER AUTH] Path:', req.path, 'Method:', req.method);
-  
-  // Redirect root to index.html — client-side auth handles role-based redirects
-  if (req.path === '/') {
-    return res.redirect('/index.html');
-  }
-  
-  // Skip auth for login pages, auth endpoints, and static assets
-  if (req.path === '/user-management.html' || 
-      req.path === '/login.html' ||
-      req.path === '/index.html' ||
-      req.path === '/email-test.html' ||
-      req.path === '/customer-registration.html' ||
-      req.path === '/reset-password.html' ||
-      req.path === '/privacy-policy.html' ||
-      req.path === '/terms-of-service.html' ||
-      req.path === '/contact.html' ||
-      req.path.startsWith('/api/auth/') || 
-      req.path.startsWith('/api/licensing/') || 
-      req.path.startsWith('/api/test/') ||
-      req.path.startsWith('/api/customers/') ||
-      req.path.startsWith('/api/debug/') ||
-      req.path === '/api/health' ||
-      req.path.endsWith('.css') ||
-      req.path.endsWith('.js') ||
-      req.path.endsWith('.ico') ||
-      req.path.endsWith('.png') ||
-      req.path.startsWith('/downloads/')) {
-    console.log('[SERVER AUTH] Skipping auth for:', req.path);
+  // Only enforce auth on API routes (except public ones)
+  if (!req.path.startsWith('/api/')) {
     return next();
   }
-  
-  // Check for session token in localStorage (sent via Authorization header)
-  const sessionId = req.headers.authorization?.replace('Bearer ', '');
-  console.log('[SERVER AUTH] SessionId:', sessionId ? 'exists' : 'none');
-  
-  if (!sessionId) {
-    if (req.path.startsWith('/api/')) {
-      console.log('[SERVER AUTH] No session for API, returning 401');
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    console.log('[SERVER AUTH] No session, redirecting to user-management.html');
-    return res.redirect('/user-management.html');
+
+  // Public API endpoints
+  if (req.path.startsWith('/api/auth/') ||
+      req.path.startsWith('/api/licensing/') ||
+      req.path.startsWith('/api/customers/register') ||
+      req.path.startsWith('/api/customers/verify-email') ||
+      req.path.startsWith('/api/customers/forgot-password') ||
+      req.path.startsWith('/api/customers/reset-password') ||
+      req.path.startsWith('/api/customers/login') ||
+      req.path.startsWith('/api/test/') ||
+      req.path.startsWith('/api/debug/') ||
+      req.path === '/api/health') {
+    return next();
   }
-  
-  // Verify session
+
+  // All other API routes require a valid session
+  const sessionId = req.headers.authorization?.replace('Bearer ', '');
+  if (!sessionId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   try {
     const user = await userManager.validateSession(sessionId);
-    
     if (!user) {
-      console.log('[SERVER AUTH] Session validation failed - no user');
-      if (req.path.startsWith('/api/')) {
-        return res.status(401).json({ error: 'Session expired' });
-      }
-      return res.redirect('/user-management.html');
+      return res.status(401).json({ error: 'Session expired' });
     }
-    
-    console.log('[SERVER AUTH] Session valid for user:', user.email, 'role:', user.userRole, 'type:', user.userType);
-    
-    // Role-based access control
-    if (req.path === '/index.html' || req.path === '/customer-management.html' || req.path === '/customer-edit.html' || req.path.startsWith('/admin/')) {
-      console.log('[SERVER AUTH] Admin page check - Path:', req.path, 'UserType:', user.userType, 'UserRole:', user.userRole);
-      if (user.userType !== 'admin' || !['admin', 'manager'].includes(user.userRole)) {
-        console.log('[SERVER AUTH] Access denied - admin page requires admin role');
-        if (req.path.startsWith('/api/')) {
-          return res.status(403).json({ error: 'Access denied - admin required' });
-        }
-        return res.redirect('/user-management.html');
-      }
-      console.log('[SERVER AUTH] Admin access granted for:', req.path);
-    }
-    
     req.user = user;
     next();
   } catch (error) {
-    console.log('[SERVER AUTH] Session validation error:', error.message);
-    if (req.path.startsWith('/api/')) {
-      return res.status(401).json({ error: 'Invalid session' });
-    }
-    return res.redirect('/user-management.html');
+    return res.status(401).json({ error: 'Invalid session' });
   }
 });
 
 // Serve static files from client
-app.use(express.static(path.join(process.cwd(), '../../client/c01_client-first-app')));
+app.use(express.static(path.join(process.cwd(), 'client/c01_client-first-app')));
+
+// Root redirect
+app.get('/', (req, res) => res.redirect('/login.html'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
