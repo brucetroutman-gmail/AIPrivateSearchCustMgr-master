@@ -33,6 +33,7 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'"],
@@ -122,8 +123,10 @@ app.use(async (req, res, next) => {
 // Serve static files from client
 app.use(express.static(path.join(process.cwd(), 'client/c01_client-first-app')));
 
-// Root redirect
+// Root and clean URL redirects
 app.get('/', (req, res) => res.redirect('/login.html'));
+app.get('/login', (req, res) => res.redirect('/login.html'));
+app.get('/index', (req, res) => res.redirect('/index.html'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
