@@ -32,15 +32,26 @@
             padding: 0.4rem 0;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             font-size: 0.9rem;
+            gap: 1rem;
         }
         .setting-row:last-child { border-bottom: none; }
-        .setting-label { opacity: 0.7; }
-        .setting-value {
-            color: var(--accent-color);
-            font-weight: 500;
+        .setting-label { opacity: 0.7; flex-shrink: 0; }
+        .setting-input {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            width: 140px;
             text-align: right;
-            max-width: 60%;
-            word-break: break-all;
+            font-size: 0.9rem;
+        }
+        .setting-input.error { border-color: #dc3545; }
+        .field-error {
+            color: #dc3545;
+            font-size: 0.78rem;
+            text-align: right;
+            display: none;
         }
         .tag {
             display: inline-block;
@@ -51,12 +62,23 @@
             font-size: 0.8rem;
             margin: 1px;
         }
-        .note {
-            font-size: 0.8rem;
-            opacity: 0.5;
-            margin-top: 0.75rem;
-            font-style: italic;
+        .note { font-size: 0.8rem; opacity: 0.5; margin-top: 0.75rem; font-style: italic; }
+        .save-bar {
+            position: sticky;
+            bottom: 0;
+            background: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
         }
+        .save-btn { padding: 0.6rem 2rem; font-size: 1rem; }
+        .save-status { font-size: 0.9rem; }
+        .save-status.success { color: #28a745; }
+        .save-status.error { color: #dc3545; }
+        .readonly-value { color: var(--accent-color); font-weight: 500; text-align: right; }
     </style>
 </head>
 <body>
@@ -72,23 +94,52 @@
     </div>
 
     <main class="container">
-        <p style="opacity:0.6; margin-bottom:0;">Current system configuration. These values are set in the server code and environment variables.</p>
+        <p style="opacity:0.6; margin-bottom:0;">Edit system configuration. Changes take effect immediately without server restart.</p>
 
         <div class="settings-grid" id="settingsGrid">
             <div class="settings-card"><h3>Loading...</h3></div>
+        </div>
+
+        <div class="save-bar">
+            <button class="save-btn" onclick="saveSettings()">💾 Save All Settings</button>
+            <span class="save-status" id="saveStatus"></span>
         </div>
     </main>
 
     <script src="auth.js"></script>
     <script>
         const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        let currentSettings = null;
 
-        function row(label, value) {
-            return `<div class="setting-row"><span class="setting-label">${label}</span><span class="setting-value">${value}</span></div>`;
+        function row(label, inputId, value, type = 'number') {
+            return `
+                <div>
+                    <div class="setting-row">
+                        <span class="setting-label">${label}</span>
+                        <input class="setting-input" id="${inputId}" type="${type}" value="${value}">
+                    </div>
+                    <div class="field-error" id="${inputId}-error"></div>
+                </div>`;
+        }
+
+        function readonlyRow(label, value) {
+            return `<div class="setting-row"><span class="setting-label">${label}</span><span class="readonly-value">${value}</span></div>`;
         }
 
         function tags(arr) {
             return arr.map(v => `<span class="tag">${v}</span>`).join('');
+        }
+
+        function showFieldError(id, msg) {
+            const input = document.getElementById(id);
+            const err = document.getElementById(`${id}-error`);
+            if (input) input.classList.add('error');
+            if (err) { err.textContent = msg; err.style.display = 'block'; }
+        }
+
+        function clearErrors() {
+            document.querySelectorAll('.setting-input').forEach(el => el.classList.remove('error'));
+            document.querySelectorAll('.field-error').forEach(el => { el.textContent = ''; el.style.display = 'none'; });
         }
 
         async function loadSettings() {
@@ -101,58 +152,145 @@
                 });
                 if (!res.ok) throw new Error('Failed to load settings');
                 const s = await res.json();
-
-                document.getElementById('settingsGrid').innerHTML = `
-                    <div class="settings-card">
-                        <h3>📋 License Settings</h3>
-                        ${row('Trial Period', `${s.license.trial_period_days} days`)}
-                        ${row('Grace Period', `${s.license.grace_period_days} days`)}
-                        ${row('Verification Code Expiry', `${s.license.verification_code_expiry_minutes} minutes`)}
-                        ${row('Password Reset Code Expiry', `${s.license.password_reset_expiry_minutes} minutes`)}
-                        ${row('Trial Warning Days', tags(s.license.trial_warning_days.map(d => `${d} days`)))}
-                    </div>
-
-                    <div class="settings-card">
-                        <h3>💻 Device Limits per Tier</h3>
-                        ${row('Standard', `${s.device_limits.standard} devices`)}
-                        ${row('Premium', `${s.device_limits.premium} devices`)}
-                        ${row('Professional', `${s.device_limits.professional} devices`)}
-                        <h3 style="margin-top:1rem;">🔑 Tier Features</h3>
-                        ${row('Standard', tags(s.tier_features.standard))}
-                        ${row('Premium', tags(s.tier_features.premium))}
-                        ${row('Professional', tags(s.tier_features.professional))}
-                    </div>
-
-                    <div class="settings-card">
-                        <h3>⏱️ Session Timeouts</h3>
-                        ${row('Admin', `${s.sessions.admin_timeout_minutes} minutes`)}
-                        ${row('Customer', `${s.sessions.customer_timeout_minutes} minutes`)}
-                        <h3 style="margin-top:1rem;">🔒 Password Requirements</h3>
-                        ${row('Minimum Length', `${s.password_requirements.min_length} characters`)}
-                        ${row('Requires Uppercase', s.password_requirements.requires_uppercase ? '✅' : '❌')}
-                        ${row('Requires Lowercase', s.password_requirements.requires_lowercase ? '✅' : '❌')}
-                        ${row('Requires Number', s.password_requirements.requires_number ? '✅' : '❌')}
-                    </div>
-
-                    <div class="settings-card">
-                        <h3>📧 Email Configuration</h3>
-                        ${row('SMTP Host', s.email.host)}
-                        ${row('SMTP Port', s.email.port)}
-                        ${row('From Address', s.email.user)}
-                        ${row('Download URL', `<a href="${s.email.download_url}" target="_blank" style="color:var(--accent-color);font-size:0.8em;">DMG Link</a>`)}
-                        ${row('Upgrade URL', `<a href="${s.email.upgrade_url}" target="_blank" style="color:var(--accent-color);font-size:0.8em;">Upgrade Link</a>`)}
-                        <p class="note">Email credentials are set via environment variables in .env-custmgr</p>
-                    </div>
-
-                    <div class="settings-card">
-                        <h3>🚦 Rate Limiting</h3>
-                        ${row('General API', `${s.rate_limiting.general_api.requests} requests / ${s.rate_limiting.general_api.window_minutes} min`)}
-                        ${row('Device Activation', `${s.rate_limiting.device_activation.attempts} attempts / ${s.rate_limiting.device_activation.window_minutes} min`)}
-                        <p class="note">Rate limits are enforced server-side and cannot be changed without a code deployment.</p>
-                    </div>
-                `;
+                currentSettings = s;
+                renderSettings(s);
             } catch (error) {
-                document.getElementById('settingsGrid').innerHTML = '<div class="settings-card"><h3>Error loading settings</h3></div>';
+                document.getElementById('settingsGrid').innerHTML = `<div class="settings-card"><h3>Error loading settings: ${error.message}</h3></div>`;
+            }
+        }
+
+        function renderSettings(s) {
+            document.getElementById('settingsGrid').innerHTML = `
+                <div class="settings-card">
+                    <h3>📋 License Settings</h3>
+                    ${row('Trial Period (days)', 'trial_period_days', s.license.trial_period_days)}
+                    ${row('Grace Period (days)', 'grace_period_days', s.license.grace_period_days)}
+                    ${row('Verification Code Expiry (min)', 'verification_expiry_minutes', s.license.verification_code_expiry_minutes)}
+                    ${row('Password Reset Expiry (min)', 'password_reset_expiry_minutes', s.license.password_reset_expiry_minutes)}
+                    ${row('Trial Warning Days (comma-separated)', 'trial_warning_days', s.license.trial_warning_days.join(','), 'text')}
+                </div>
+
+                <div class="settings-card">
+                    <h3>💻 Device Limits per Tier</h3>
+                    ${row('Standard', 'device_limits_standard', s.device_limits.standard)}
+                    ${row('Premium', 'device_limits_premium', s.device_limits.premium)}
+                    ${row('Professional', 'device_limits_professional', s.device_limits.professional)}
+                    <h3 style="margin-top:1rem;">🔑 Tier Features</h3>
+                    ${readonlyRow('Standard', tags(s.tier_features.standard))}
+                    ${readonlyRow('Premium', tags(s.tier_features.premium))}
+                    ${readonlyRow('Professional', tags(s.tier_features.professional))}
+                </div>
+
+                <div class="settings-card">
+                    <h3>⏱️ Session Timeouts</h3>
+                    ${row('Admin Timeout (seconds)', 'session_timeout_admin', s.sessions.admin_timeout_minutes * 60)}
+                    ${row('Customer Timeout (seconds)', 'session_timeout_customer', s.sessions.customer_timeout_minutes * 60)}
+                    <h3 style="margin-top:1rem;">🔒 Password Requirements</h3>
+                    ${readonlyRow('Minimum Length', `${s.password_requirements.min_length} characters`)}
+                    ${readonlyRow('Requires Uppercase', s.password_requirements.requires_uppercase ? '✅' : '❌')}
+                    ${readonlyRow('Requires Lowercase', s.password_requirements.requires_lowercase ? '✅' : '❌')}
+                    ${readonlyRow('Requires Number', s.password_requirements.requires_number ? '✅' : '❌')}
+                </div>
+
+                <div class="settings-card">
+                    <h3>📧 Email & URLs</h3>
+                    ${readonlyRow('SMTP Host', s.email.host)}
+                    ${readonlyRow('SMTP Port', s.email.port)}
+                    ${readonlyRow('From Address', s.email.user)}
+                    ${row('Download URL', 'download_url', s.email.download_url, 'url')}
+                    ${row('Upgrade URL', 'upgrade_url', s.email.upgrade_url, 'url')}
+                    <p class="note">SMTP credentials are set via environment variables in .env-custmgr</p>
+                </div>
+
+                <div class="settings-card">
+                    <h3>🚦 Rate Limiting</h3>
+                    ${readonlyRow('General API', `${s.rate_limiting.general_api.requests} requests / ${s.rate_limiting.general_api.window_minutes} min`)}
+                    ${readonlyRow('Device Activation', `${s.rate_limiting.device_activation.attempts} attempts / ${s.rate_limiting.device_activation.window_minutes} min`)}
+                    <p class="note">Rate limits require a code deployment to change.</p>
+                </div>
+            `;
+        }
+
+        async function saveSettings() {
+            clearErrors();
+            const statusEl = document.getElementById('saveStatus');
+            statusEl.textContent = '';
+            statusEl.className = 'save-status';
+
+            const sessionId = localStorage.getItem('sessionId');
+
+            // Parse trial_warning_days from comma-separated string
+            const warningDaysRaw = document.getElementById('trial_warning_days').value;
+            const warningDays = warningDaysRaw.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+
+            const payload = {
+                trial_period_days: parseInt(document.getElementById('trial_period_days').value),
+                grace_period_days: parseInt(document.getElementById('grace_period_days').value),
+                verification_expiry_minutes: parseInt(document.getElementById('verification_expiry_minutes').value),
+                password_reset_expiry_minutes: parseInt(document.getElementById('password_reset_expiry_minutes').value),
+                trial_warning_days: warningDays,
+                device_limits: {
+                    standard: parseInt(document.getElementById('device_limits_standard').value),
+                    premium: parseInt(document.getElementById('device_limits_premium').value),
+                    professional: parseInt(document.getElementById('device_limits_professional').value)
+                },
+                session_timeout_admin: parseInt(document.getElementById('session_timeout_admin').value),
+                session_timeout_customer: parseInt(document.getElementById('session_timeout_customer').value),
+                download_url: document.getElementById('download_url').value.trim(),
+                upgrade_url: document.getElementById('upgrade_url').value.trim()
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/settings`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionId}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    statusEl.textContent = '✅ Settings saved successfully';
+                    statusEl.className = 'save-status success';
+                    await loadSettings();
+                } else {
+                    // Show inline errors
+                    if (data.errors) {
+                        data.errors.forEach(err => {
+                            // Map error field names to input IDs
+                            const fieldMap = {
+                                'trial_period_days': 'trial_period_days',
+                                'grace_period_days': 'grace_period_days',
+                                'verification_expiry_minutes': 'verification_expiry_minutes',
+                                'password_reset_expiry_minutes': 'password_reset_expiry_minutes',
+                                'trial_warning_days': 'trial_warning_days',
+                                'device_limits.standard': 'device_limits_standard',
+                                'device_limits.premium': 'device_limits_premium',
+                                'device_limits.professional': 'device_limits_professional',
+                                'session_timeout_admin': 'session_timeout_admin',
+                                'session_timeout_customer': 'session_timeout_customer',
+                                'download_url': 'download_url',
+                                'upgrade_url': 'upgrade_url'
+                            };
+                            for (const [field, inputId] of Object.entries(fieldMap)) {
+                                if (err.includes(`"${field}"`)) {
+                                    showFieldError(inputId, err);
+                                }
+                            }
+                        });
+                        statusEl.textContent = `❌ ${data.errors.length} validation error(s)`;
+                        statusEl.className = 'save-status error';
+                    } else {
+                        statusEl.textContent = `❌ ${data.error || 'Save failed'}`;
+                        statusEl.className = 'save-status error';
+                    }
+                }
+            } catch (error) {
+                statusEl.textContent = `❌ Network error: ${error.message}`;
+                statusEl.className = 'save-status error';
             }
         }
 

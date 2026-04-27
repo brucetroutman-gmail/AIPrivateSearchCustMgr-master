@@ -1,30 +1,28 @@
 import mysql from 'mysql2/promise';
 import { EmailService } from '../email/emailService.mjs';
+import { getSettings } from '../settings-loader.mjs';
 import dotenv from 'dotenv';
 
-// Try multiple .env-custmgr locations
 const envPaths = [
-  '/Users/Shared/AIPrivateSearch/.env-custmgr',  // macOS
-  '/webs/AIPrivateSearch/.env-custmgr',          // Ubuntu
-  '.env'                                         // Local fallback
+  '/Users/Shared/AIPrivateSearch/.env-custmgr',
+  '/webs/AIPrivateSearch/.env-custmgr',
+  '.env'
 ];
 
 for (const envPath of envPaths) {
   try {
     dotenv.config({ path: envPath });
     if (process.env.DB_HOST) break;
-  } catch (e) {
-    // Continue to next path
-  }
+  } catch (e) {}
 }
 
 export class TrialNotificationService {
   constructor() {
     this.dbConfig = {
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USERNAME || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_DATABASE || 'aiprivatesearch'
+      host: process.env.DB_HOST,
+      user: process.env.DB_USERNAME,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_DATABASE
     };
     this.emailService = new EmailService();
   }
@@ -35,20 +33,17 @@ export class TrialNotificationService {
 
   async checkExpiringTrials() {
     const connection = await this.getConnection();
-    
+    const warningDays = getSettings().trial_warning_days;
+
     try {
+      const placeholders = warningDays.map(() => `DATE(expires_at) = DATE_ADD(CURDATE(), INTERVAL ? DAY)`).join(' OR ');
       const [trials] = await connection.execute(`
-        SELECT l.id, l.customer_id, l.expires_at, c.email, c.customer_code
-        FROM licenses l
-        JOIN customers c ON l.customer_id = c.id
-        WHERE l.status = 'trial'
-        AND l.expires_at IS NOT NULL
-        AND (
-          DATE(l.expires_at) = DATE_ADD(CURDATE(), INTERVAL 7 DAY) OR
-          DATE(l.expires_at) = DATE_ADD(CURDATE(), INTERVAL 3 DAY) OR
-          DATE(l.expires_at) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
-        )
-      `);
+        SELECT id, customer_code, expires_at, email
+        FROM customers
+        WHERE license_status = 'trial'
+        AND expires_at IS NOT NULL
+        AND (${placeholders})
+      `, warningDays);
 
       for (const trial of trials) {
         const daysLeft = Math.ceil((new Date(trial.expires_at) - new Date()) / (1000 * 60 * 60 * 24));
@@ -63,23 +58,23 @@ export class TrialNotificationService {
 
   async handleExpiredTrials() {
     const connection = await this.getConnection();
-    
+    const graceDays = getSettings().grace_period_days;
+
     try {
       const [expired] = await connection.execute(`
-        SELECT l.id, l.customer_id, l.expires_at, c.email
-        FROM licenses l
-        JOIN customers c ON l.customer_id = c.id
-        WHERE l.status = 'trial'
-        AND l.expires_at < NOW()
-        AND (l.grace_period_ends IS NULL OR l.grace_period_ends < NOW())
+        SELECT id, expires_at, email
+        FROM customers
+        WHERE license_status = 'trial'
+        AND expires_at < NOW()
+        AND (grace_period_ends IS NULL OR grace_period_ends < NOW())
       `);
 
       for (const trial of expired) {
         const gracePeriodEnds = new Date();
-        gracePeriodEnds.setDate(gracePeriodEnds.getDate() + 7);
-        
+        gracePeriodEnds.setDate(gracePeriodEnds.getDate() + graceDays);
+
         await connection.execute(
-          'UPDATE licenses SET status = ?, grace_period_ends = ? WHERE id = ?',
+          'UPDATE customers SET license_status = ?, grace_period_ends = ? WHERE id = ?',
           ['expired', gracePeriodEnds, trial.id]
         );
 
@@ -94,15 +89,13 @@ export class TrialNotificationService {
 
   async sendExpirationWarning(email, licenseKey, expiresAt, daysLeft) {
     const expiryDate = new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const upgradeUrl = process.env.UPGRADE_URL || 'https://custmgr.aiprivatesearch.com/subscription-plans.html';
-    
+    const upgradeUrl = getSettings().upgrade_url;
     await this.emailService.sendTrialExpirationEmail(email, licenseKey, expiryDate, daysLeft, upgradeUrl);
   }
 
   async sendGracePeriodNotification(email, gracePeriodEnds) {
     const graceDate = new Date(gracePeriodEnds).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const upgradeUrl = process.env.UPGRADE_URL || 'https://custmgr.aiprivatesearch.com/subscription-plans.html';
-    
+    const upgradeUrl = getSettings().upgrade_url;
     await this.emailService.sendGracePeriodEmail(email, graceDate, upgradeUrl);
   }
 }

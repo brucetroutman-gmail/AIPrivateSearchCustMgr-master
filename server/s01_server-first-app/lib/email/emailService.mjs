@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { getSettings } from '../settings-loader.mjs';
 
 dotenv.config();
 
@@ -53,7 +54,7 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(email, licenseKey, expiresAt) {
-    const downloadUrl = process.env.AIPS_DOWNLOAD_URL || 'https://aiprivatesearch.com/downloads/AIPrivateSearch.dmg';
+    const downloadUrl = getSettings().download_url;
     const expiryDate = new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const mailOptions = {
@@ -64,12 +65,12 @@ export class EmailService {
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #87ceeb; margin-bottom: 20px;">Welcome to AI Private Search!</h2>
           
-          <p>Congratulations! Your email has been verified and your 60-day free trial has started.</p>
+          <p>Congratulations! Your email has been verified and your ${getSettings().trial_period_days}-day free trial has started.</p>
           
           <div style="background: #f8f9fa; border-left: 4px solid #87ceeb; padding: 20px; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #333;">Your License Information</h3>
             <p style="margin: 10px 0;"><strong>License Key:</strong> <code style="background: #fff; padding: 5px 10px; border-radius: 4px;">${licenseKey}</code></p>
-            <p style="margin: 10px 0;"><strong>Tier:</strong> Standard (60 days free)</p>
+            <p style="margin: 10px 0;"><strong>Tier:</strong> Standard (${getSettings().trial_period_days} days free)</p>
             <p style="margin: 10px 0;"><strong>Trial Expires:</strong> ${expiryDate}</p>
           </div>
           
@@ -86,7 +87,7 @@ export class EmailService {
               <li>Private AI-powered search</li>
               <li>Document collections</li>
               <li>2 device activations</li>
-              <li>60 days of full access</li>
+              <li>${getSettings().trial_period_days} days of full access</li>
             </ul>
           </div>
           

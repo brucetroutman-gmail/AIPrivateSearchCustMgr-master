@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
 import pool from '../database/connection.mjs';
+import { getSettings } from '../settings-loader.mjs';
 
 export class CustomerManager {
   async getConnection() {
@@ -45,8 +46,8 @@ export class CustomerManager {
       // Insert customer with unverified status
       const [customerResult] = await connection.execute(
         `INSERT INTO customers (email, phone, city, state, postal_code, customer_code, customer_ipaddr, password_hash, role, active, email_verified, verification_code, verification_expires, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'customer', 1, 0, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW())`,
-        [email, phone, city, state, postalCode, customerCode, ipAddress, passwordHash, verificationCode]
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'customer', 1, 0, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE), NOW())`,
+        [email, phone, city, state, postalCode, customerCode, ipAddress, passwordHash, verificationCode, getSettings().verification_expiry_minutes]
       );
       
       const customerId = customerResult.insertId;
@@ -100,7 +101,7 @@ export class CustomerManager {
       
       // Update customer with 60-day trial license (tier 1 = Standard)
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 60);
+      expiresAt.setDate(expiresAt.getDate() + getSettings().trial_period_days);
       
       await connection.execute(
         `UPDATE customers SET tier = 1, license_status = 'trial', trial_started_at = NOW(), expires_at = ? WHERE id = ?`,
@@ -143,8 +144,8 @@ export class CustomerManager {
       
       // Store reset code with 15 minute expiry
       await connection.execute(
-        'UPDATE customers SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL 15 MINUTE) WHERE email = ?',
-        [resetCode, email]
+        'UPDATE customers SET reset_token = ?, reset_expires = DATE_ADD(NOW(), INTERVAL ? MINUTE) WHERE email = ?',
+        [resetCode, getSettings().password_reset_expiry_minutes, email]
       );
       
       return { resetCode };

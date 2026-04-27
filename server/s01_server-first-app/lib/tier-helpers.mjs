@@ -1,3 +1,5 @@
+import { getSettings } from './settings-loader.mjs';
+
 function getTierName(tier) {
   const names = { 1: 'standard', 2: 'premium', 3: 'professional' };
   return names[tier] || 'standard';
@@ -13,8 +15,9 @@ function getTierFeatures(tier) {
 }
 
 function getMaxDevices(tier) {
-  const limits = { 1: 2, 2: 5, 3: 10 };
-  return limits[tier] || 2;
+  const limits = getSettings().device_limits;
+  const map = { 1: limits.standard, 2: limits.premium, 3: limits.professional };
+  return map[tier] || limits.standard;
 }
 
 export { getTierName, getTierFeatures, getMaxDevices };

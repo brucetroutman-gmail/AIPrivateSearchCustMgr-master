@@ -1,0 +1,16 @@
+{
+  "trial_period_days": 60,
+  "grace_period_days": 7,
+  "verification_expiry_minutes": 15,
+  "password_reset_expiry_minutes": 15,
+  "trial_warning_days": [7, 3, 1],
+  "device_limits": {
+    "standard": 2,
+    "premium": 5,
+    "professional": 10
+  },
+  "session_timeout_admin": 300,
+  "session_timeout_customer": 1800,
+  "download_url": "https://aiprivatesearch.com/downloads/AIPrivateSearch.dmg",
+  "upgrade_url": "https://custmgr.aiprivatesearch.com/change-tier.html"
+}

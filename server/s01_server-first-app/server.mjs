@@ -5,6 +5,16 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
+import { loadSettings } from './lib/settings-loader.mjs';
+
+// Load and validate settings.json — server will not start if invalid
+try {
+  loadSettings();
+  console.log('Settings loaded successfully from settings.json');
+} catch (error) {
+  console.error('FATAL: Failed to load settings.json:', error.message);
+  process.exit(1);
+}
 
 // Load environment variables
 // Try multiple .env-custmgr locations
