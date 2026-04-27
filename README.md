@@ -1,14 +1,15 @@
-# AI Private Search Customer Manager v1.57
+# AI Private Search Customer Manager v1.59
 
-A comprehensive customer and license management system for AI Private Search, handling user registrations, subscriptions, payments, and token generation.
+A comprehensive customer and license management system for AI Private Search, handling user registrations, subscriptions, payments, and device-based licensing.
 
 ## Features
 
 - **User Management**: Customer registration and account management
 - **License Management**: Subscription tiers (Standard, Premium, Professional)
-- **Payment Processing**: Stripe integration for secure payments
-- **Token Generation**: JWT-based authentication tokens
+- **Device Licensing**: Device registration and validation (no JWT)
+- **Payment Processing**: PayPal integration (in progress)
 - **Analytics**: Usage statistics and reporting
+- **System Settings**: Configurable settings via settings.json
 - **Security**: Rate limiting, input validation, and secure authentication
 
 ## Architecture
@@ -16,15 +17,23 @@ A comprehensive customer and license management system for AI Private Search, ha
 ```
 aiprivatesearchcustmgr/
 ├── client/c01_client-first-app/     # Frontend application
-│   ├── index.html                   # Main dashboard
+│   ├── config/settings.json         # Configurable system settings
+│   ├── index.html                   # Admin dashboard
+│   ├── analytics.html               # Analytics dashboard
+│   ├── settings.html                # System settings editor
 │   ├── styles.css                   # Application styles
 │   └── ...                          # Additional client files
 ├── server/s01_server-first-app/     # Backend API server
 │   ├── server.mjs                   # Main server file
 │   ├── routes/                      # API route handlers
 │   ├── middleware/                  # Custom middleware
-│   ├── models/                      # Database models
-│   └── utils/                       # Utility functions
+│   └── lib/                         # Business logic
+│       ├── settings-loader.mjs      # Settings validation and loader
+│       ├── tier-helpers.mjs         # Device limit helpers
+│       ├── auth/                    # Authentication
+│       ├── customers/               # Customer management
+│       ├── email/                   # Email service
+│       └── notifications/           # Trial notifications
 └── package.json                     # Project configuration
 ```
 
@@ -33,7 +42,7 @@ aiprivatesearchcustmgr/
 ### Prerequisites
 - Node.js 18+ 
 - MySQL database
-- Stripe account (for payments)
+- PayPal account (for payments)
 
 ### Installation
 
@@ -61,8 +70,7 @@ npm run dev
 ```
 
 5. **Access application**:
-- Frontend: http://localhost:56303
-- API: http://localhost:56304
+- App + API: http://localhost:56304 (Express serves both static files and API)
 - Login with default admin accounts:
   - `adm-custmgr@a.com` / password: `123`
   - `custmgr-adm@c.com` / password: `123`
@@ -70,66 +78,74 @@ npm run dev
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
+- `POST /api/auth/login` - User login (admin/manager)
 - `POST /api/auth/logout` - User logout
-- `POST /api/auth/refresh` - Token refresh
+- `POST /api/customers/login` - Customer login
+- `POST /api/customers/register` - Customer registration
+- `POST /api/customers/verify-email` - Email verification
 
-### License Management
-- `GET /api/licenses` - List user licenses
-- `POST /api/licenses` - Create new license
-- `PUT /api/licenses/:id` - Update license
-- `DELETE /api/licenses/:id` - Revoke license
+### Customer Management
+- `GET /api/customers` - List all customers (admin)
+- `GET /api/customers/:id` - Get customer details
+- `PUT /api/customers/:id` - Update customer
+- `DELETE /api/customers/:id` - Deactivate customer
 
-### Payment Processing
-- `POST /api/payments/create-intent` - Create payment intent
-- `POST /api/payments/webhook` - Stripe webhook handler
-- `GET /api/payments/history` - Payment history
+### Device Licensing
+- `POST /api/licensing/register-device` - Register a device
+- `POST /api/licensing/validate-device` - Validate a registered device
+- `POST /api/licensing/check-limits` - Check device limits for a tier
+- `DELETE /api/devices/:id` - Remove a device
 
-### Token Management
-- `POST /api/tokens/generate` - Generate access token
-- `POST /api/tokens/validate` - Validate token
-- `POST /api/tokens/revoke` - Revoke token
+### Analytics & Settings
+- `GET /api/analytics` - Usage statistics and reporting
+- `GET /api/settings` - Get system settings
+- `PUT /api/settings` - Update system settings
 
 ## Database Schema
 
-### Users Table
+### Customers Table
+Holds both customer account info and license data (1:1 relationship, no separate licenses table).
 ```sql
-CREATE TABLE users (
+CREATE TABLE customers (
   id INT PRIMARY KEY AUTO_INCREMENT,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   first_name VARCHAR(100),
   last_name VARCHAR(100),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  status ENUM('active', 'inactive', 'suspended') DEFAULT 'active'
-);
-```
-
-### Licenses Table
-```sql
-CREATE TABLE licenses (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  user_id INT NOT NULL,
-  tier ENUM('standard', 'premium', 'professional') NOT NULL,
-  status ENUM('active', 'expired', 'cancelled') DEFAULT 'active',
+  tier ENUM('standard', 'premium', 'professional') DEFAULT 'standard',
+  license_status ENUM('trial', 'active', 'expired', 'cancelled') DEFAULT 'trial',
+  trial_started_at TIMESTAMP,
   expires_at TIMESTAMP,
+  grace_period_ends TIMESTAMP,
+  customer_ipaddr VARCHAR(45),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 ```
 
-### PC Registrations Table
+### Devices Table
 ```sql
-CREATE TABLE pc_registrations (
+CREATE TABLE devices (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  user_id INT NOT NULL,
-  pc_code VARCHAR(255) NOT NULL,
-  device_info JSON,
-  last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  customer_id INT NOT NULL,
+  device_uuid VARCHAR(255) NOT NULL,
+  device_name VARCHAR(255),
+  pc_code VARCHAR(255),
+  last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+```
+
+### Admin Users Table
+```sql
+CREATE TABLE users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role ENUM('admin', 'manager') NOT NULL,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -137,7 +153,7 @@ CREATE TABLE pc_registrations (
 
 - **Rate Limiting**: Prevents abuse and brute force attacks
 - **Input Validation**: Validates all user inputs
-- **JWT Authentication**: Secure token-based authentication
+- **Session Authentication**: Secure session-based authentication
 - **Password Hashing**: bcrypt for secure password storage
 - **CORS Protection**: Configurable cross-origin resource sharing
 - **Helmet Security**: Security headers and protections

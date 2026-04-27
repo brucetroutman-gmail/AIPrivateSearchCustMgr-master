@@ -3,15 +3,6 @@
 038. Dashboard Payment Processing card — build or remove until Stripe/PayPal implemented
 043. my-account.html — Payment History button is a stub until payments implemented
 044. change-tier.html / payment-confirm.html — UI exists but no real payment processing behind it
-049. Create client/c01_client-first-app/config/settings.json to store configurable system settings.
-     Admin can edit values via the Settings page instead of requiring code deployment.
-     Server reads from this file at startup with hardcoded defaults as fallback.
-     Settings to include: trial_period_days, grace_period_days, verification_expiry_minutes,
-     password_reset_expiry_minutes, trial_warning_days, device_limits per tier,
-     session_timeout_admin, session_timeout_customer, download_url, upgrade_url.
-050. Fix missing eslint-plugin-security package — pre-commit hook shows ERR_MODULE_NOT_FOUND. --done
-
-
 ### Phase 1 Testing (v1.53) — Pending
 Test on macOS localhost before Ubuntu deployment:
 
@@ -66,7 +57,20 @@ Test on macOS localhost before Ubuntu deployment:
 
 =====================================================
 
-## v1.55 Release (Current)
+## v1.58 Release (Current)
+237. Fixed settings.html number input spinner arrows — added CSS for all browsers (webkit + moz) --done
+
+## v1.57 Release
+229. Created settings.json with configurable system settings (trial_period_days, grace_period_days, verification_expiry_minutes, password_reset_expiry_minutes, trial_warning_days, device_limits, session timeouts, download_url, upgrade_url) --done
+230. Created settings-loader.mjs with strict validation — server refuses to start if settings invalid --done
+231. Updated 7 server files to use getSettings() instead of hardcoded values --done
+232. Fixed trialNotificationService.mjs to query customers table (not deleted licenses table) --done
+233. Fixed UnifiedUserManager session timeout to lazy-load getSettings() — avoids startup error --done
+234. Settings page (settings.html) updated to editable form with Save All button and inline validation --done
+235. Removed spinner arrows from number inputs on settings edit form --done
+236. Fixed eslint-plugin-security missing package — pre-commit hook ERR_MODULE_NOT_FOUND resolved --done
+
+## v1.55 Release
 216. Added Change Password field to My Account - Account Information section --done
 217. Removed npx serve frontend process — Express now serves static files and API on port 56304 --done
 218. Fixed static file path in server.mjs --done
