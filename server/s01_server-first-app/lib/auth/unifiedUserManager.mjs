@@ -8,10 +8,13 @@ import { getSettings } from '../settings-loader.mjs';
 
 export class UnifiedUserManager {
   constructor() {
+    // Session timeouts are read lazily from settings when creating sessions
+    console.log('[AUTH] UnifiedUserManager initialized');
+  }
+
+  getSessionTimeout(userType) {
     const s = getSettings();
-    this.sessionTimeout = s.session_timeout_admin * 1000;
-    this.customerSessionTimeout = s.session_timeout_customer * 1000;
-    console.log('[AUTH] Session timeouts - Admin:', s.session_timeout_admin, 'seconds, Customer:', s.session_timeout_customer / 60, 'minutes');
+    return userType === 'admin' ? s.session_timeout_admin * 1000 : s.session_timeout_customer * 1000;
   }
 
   async validateLogin(email, password) {
@@ -88,7 +91,7 @@ export class UnifiedUserManager {
     
     try {
       const sessionId = crypto.randomBytes(32).toString('hex');
-      const timeout = user.userType === 'admin' ? this.sessionTimeout : this.customerSessionTimeout;
+      const timeout = this.getSessionTimeout(user.userType);
       const expiresAt = new Date(Date.now() + timeout);
       
       await connection.execute(
