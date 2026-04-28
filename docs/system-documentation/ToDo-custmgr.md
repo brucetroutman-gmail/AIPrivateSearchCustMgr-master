@@ -19,10 +19,10 @@ Test on macOS localhost before Ubuntu deployment:
   - [ ] Verify grace_period_ends set to 7 days from now
   - [ ] Verify grace period email received
 
-- [ ] T7. Duplicate Registration Prevention
-  - [ ] Try registering same email twice
-  - [ ] Verify error message returned
-  - [ ] Confirm no duplicate customer created
+- [x] T7. Duplicate Registration Prevention
+  - [x] Try registering same email twice
+  - [x] Verify error message returned
+  - [x] Confirm no duplicate customer created
 
 - [ ] T8. Verification Code Expiry
   - [ ] Register customer
@@ -30,21 +30,21 @@ Test on macOS localhost before Ubuntu deployment:
   - [ ] Try to verify with expired code
   - [ ] Verify error message returned
 
-- [ ] T9. Invalid Verification Code
-  - [ ] Register customer
-  - [ ] Try verifying with wrong code
-  - [ ] Verify error message returned
-  - [ ] Confirm license not created
+- [x] T9. Invalid Verification Code
+  - [x] Register customer
+  - [x] Try verifying with wrong code
+  - [x] Verify error message returned
+  - [x] Confirm license not created
 
 ### Unified Authentication Tests — Pending
-- [ ] T15. Admin Customer Management
-  - [ ] Login as admin (adm-custmgr@a.com / 123)
-  - [ ] Test admin can view all customers: GET /api/customers
-  - [ ] Test admin can view any customer: GET /api/customers/:id
-  - [ ] Test admin can update any customer: PUT /api/customers/:id
-  - [ ] Test admin can deactivate customer: DELETE /api/customers/:id
-  - [ ] Verify admin can change customer active status
-  - [ ] Test admin can reset customer passwords
+- [x] T15. Admin Customer Management
+  - [x] Login as admin (adm-custmgr@a.com / 123)
+  - [x] Test admin can view all customers: GET /api/customers
+  - [x] Test admin can view any customer: GET /api/customers/:id
+  - [x] Test admin can update any customer: PUT /api/customers/:id
+  - [x] Test admin can deactivate customer: DELETE /api/customers/:id
+  - [x] Verify admin can change customer active status
+  - [ ] Customer self-service password reset — not yet implemented (see T17)
 
 - [ ] T17. Password Reset and Security
   - [ ] Test forgot password at /user-management.html
