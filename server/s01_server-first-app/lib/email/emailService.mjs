@@ -256,7 +256,7 @@ export class EmailService {
           </div>
           
           <div style="text-align: center; margin: 20px 0;">
-            <a href="https://custmgr.aiprivatesearch.com/user-management.html" style="display: inline-block; background: #87ceeb; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Login to Account</a>
+            <a href="https://custmgr.aiprivatesearch.com/login.html" style="display: inline-block; background: #87ceeb; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Login to Account</a>
           </div>
           
           <p style="font-size: 14px; color: #666;">If you didn't make this change, please contact support immediately.</p>

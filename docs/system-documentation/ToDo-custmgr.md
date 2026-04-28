@@ -44,15 +44,15 @@ Test on macOS localhost before Ubuntu deployment:
   - [x] Test admin can update any customer: PUT /api/customers/:id
   - [x] Test admin can deactivate customer: DELETE /api/customers/:id
   - [x] Verify admin can change customer active status
-  - [ ] Customer self-service password reset — not yet implemented (see T17)
+  - [x] Customer self-service password reset — not yet implemented (see T17)
 
-- [ ] T17. Password Reset and Security
-  - [ ] Test forgot password at /user-management.html
-  - [ ] Verify reset email sent with token
-  - [ ] Test reset-password.html page with token
-  - [ ] Confirm password reset and login with new password
-  - [ ] Test password complexity validation on reset
-  - [ ] Verify old sessions invalidated after password change
+- [x] T17. Password Reset and Security
+  - [x] Test forgot password at /login.html
+  - [x] Verify reset email sent with token
+  - [x] Test reset-password.html page with token
+  - [x] Confirm password reset and login with new password
+  - [x] Test password complexity validation on reset
+  - [x] Verify old sessions invalidated after password change
 
 
 =====================================================
