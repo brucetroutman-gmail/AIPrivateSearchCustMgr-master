@@ -50,6 +50,27 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Resend verification code
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+
+    const result = await customerManager.resendVerificationCode(email);
+
+    try {
+      await emailService.sendVerificationCode(email, result.verificationCode);
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError);
+    }
+    console.log(`Resent verification code for ${email}: ${result.verificationCode}`);
+
+    res.json({ success: true, message: 'New verification code sent.' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Email verification endpoint
 router.post('/verify-email', async (req, res) => {
   try {

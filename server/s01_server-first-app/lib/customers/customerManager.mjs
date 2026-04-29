@@ -3,6 +3,9 @@ import bcrypt from 'bcrypt';
 import pool from '../database/connection.mjs';
 import { getSettings } from '../settings-loader.mjs';
 
+// Pending registrations — not saved to DB until email verified
+const pendingRegistrations = new Map();
+
 export class CustomerManager {
   async getConnection() {
     return await pool.getConnection();
@@ -17,103 +20,76 @@ export class CustomerManager {
   }
 
   async registerCustomer({ email, phone, city, state, postalCode, password, ipAddress }) {
+    // Check if already a verified customer in DB
     const connection = await this.getConnection();
-    
     try {
-      await connection.beginTransaction();
-      
-      // Check if customer already exists
       const [existing] = await connection.execute(
-        'SELECT id, customer_code, email_verified FROM customers WHERE email = ?',
+        'SELECT id, email_verified FROM customers WHERE email = ?',
         [email]
       );
-      
-      if (existing.length > 0) {
-        await connection.commit();
-        throw new Error('Email already registered. Please verify your email or contact support.');
+      if (existing.length > 0 && existing[0].email_verified) {
+        throw new Error('Email already registered. Please log in or reset your password.');
       }
-      
-      // Validate password
-      if (!this.validatePassword(password)) {
-        throw new Error('Password must be at least 8 characters with uppercase, lowercase, and number');
-      }
-      
-      // Generate verification code, customer code, and hash password
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const customerCode = crypto.randomBytes(16).toString('hex');
-      const passwordHash = await bcrypt.hash(password, 12);
-      
-      // Insert customer with unverified status
-      const [customerResult] = await connection.execute(
-        `INSERT INTO customers (email, phone, city, state, postal_code, customer_code, customer_ipaddr, password_hash, role, active, email_verified, verification_code, verification_expires, created_at) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'customer', 1, 0, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE), NOW())`,
-        [email, phone, city, state, postalCode, customerCode, ipAddress, passwordHash, verificationCode, getSettings().verification_expiry_minutes]
-      );
-      
-      const customerId = customerResult.insertId;
-      
-      await connection.commit();
-      
-      return { 
-        customerId, 
-        verificationCode,
-        requiresVerification: true
-      };
-    } catch (error) {
-      await connection.rollback();
-      throw error;
     } finally {
       connection.release();
     }
+
+    if (!this.validatePassword(password)) {
+      throw new Error('Password must be at least 8 characters with uppercase, lowercase, and number');
+    }
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + getSettings().verification_expiry_minutes * 60 * 1000);
+    const customerCode = crypto.randomBytes(16).toString('hex');
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    pendingRegistrations.set(email.toLowerCase(), {
+      email, phone, city, state, postalCode, customerCode, ipAddress,
+      passwordHash, verificationCode, expiresAt
+    });
+
+    return { verificationCode, requiresVerification: true };
   }
   
   async verifyEmail({ email, code }) {
+    const key = email.toLowerCase();
+    const pending = pendingRegistrations.get(key);
+
+    if (!pending) {
+      throw new Error('No pending registration found. Please register again.');
+    }
+
+    if (new Date() > pending.expiresAt) {
+      pendingRegistrations.delete(key);
+      throw new Error('Verification code expired. Please register again.');
+    }
+
+    if (pending.verificationCode !== code) {
+      throw new Error('Invalid verification code');
+    }
+
+    // Code is valid — now insert into DB
     const connection = await this.getConnection();
-    
     try {
       await connection.beginTransaction();
-      
-      // Check verification code
-      const [customers] = await connection.execute(
-        'SELECT id, customer_code, verification_code, verification_expires FROM customers WHERE email = ? AND email_verified = 0',
-        [email]
-      );
-      
-      if (customers.length === 0) {
-        throw new Error('Email not found or already verified');
-      }
-      
-      const customer = customers[0];
-      
-      if (new Date() > new Date(customer.verification_expires)) {
-        throw new Error('Verification code expired');
-      }
-      
-      if (customer.verification_code !== code) {
-        throw new Error('Invalid verification code');
-      }
-      
-      // Mark email as verified
-      await connection.execute(
-        'UPDATE customers SET email_verified = 1, verification_code = NULL, verification_expires = NULL WHERE id = ?',
-        [customer.id]
-      );
-      
-      // Update customer with 60-day trial license (tier 1 = Standard)
+
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + getSettings().trial_period_days);
-      
-      await connection.execute(
-        `UPDATE customers SET tier = 1, license_status = 'trial', trial_started_at = NOW(), expires_at = ? WHERE id = ?`,
-        [expiresAt, customer.id]
+
+      const [result] = await connection.execute(
+        `INSERT INTO customers (email, phone, city, state, postal_code, customer_code, customer_ipaddr, password_hash, role, active, email_verified, tier, license_status, trial_started_at, expires_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'customer', 1, 1, 1, 'trial', NOW(), ?, NOW())`,
+        [pending.email, pending.phone, pending.city, pending.state, pending.postalCode,
+         pending.customerCode, pending.ipAddress, pending.passwordHash, expiresAt]
       );
-      
+
       await connection.commit();
-      
+      pendingRegistrations.delete(key);
+
       return {
-        customerId: customer.id,
-        email,
-        licenseKey: customer.customer_code,
+        customerId: result.insertId,
+        email: pending.email,
+        licenseKey: pending.customerCode,
         tier: 1,
         expiresAt
       };
@@ -123,6 +99,22 @@ export class CustomerManager {
     } finally {
       connection.release();
     }
+  }
+
+  async resendVerificationCode(email) {
+    const key = email.toLowerCase();
+    const pending = pendingRegistrations.get(key);
+
+    if (!pending) {
+      throw new Error('No pending registration found. Please register again.');
+    }
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + getSettings().verification_expiry_minutes * 60 * 1000);
+    pending.verificationCode = verificationCode;
+    pending.expiresAt = expiresAt;
+
+    return { verificationCode };
   }
 
   async requestPasswordReset(email) {

@@ -67,10 +67,13 @@
             </div>
             
             <button type="submit" style="width: 100%; margin-top: 1rem;">Verify</button>
+            <p style="text-align: center; margin-top: 1rem;">
+                <a href="#" id="resendCodeLink" style="color: var(--accent-color); font-size: 0.9rem;">Resend Code</a>
+            </p>
         </form>
         
         <p style="text-align: center; margin-top: 2rem;">
-            Already have an account? <a href="/user-management.html" style="color: var(--accent-color);">Login here</a>
+            Already have an account? <a href="/login.html" style="color: var(--accent-color);">Login here</a>
         </p>
     </main>
     
@@ -152,6 +155,27 @@
             }
         });
         
+        document.getElementById('resendCodeLink').addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                const response = await fetch(`${API_BASE}/api/customers/resend-verification`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: registeredEmail })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showMessage('New code sent! Check your email.', 'success');
+                } else {
+                    showMessage(data.error || 'Failed to resend code. Please register again.');
+                    document.getElementById('verificationForm').style.display = 'none';
+                    document.getElementById('registrationForm').style.display = 'block';
+                }
+            } catch (error) {
+                showMessage('Failed to resend code: ' + error.message);
+            }
+        });
+
         document.getElementById('verificationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -185,7 +209,7 @@
                         <div style="margin-top: 20px; padding: 15px; background: rgba(135, 206, 235, 0.1); border: 1px solid var(--accent-color); border-radius: 4px;">
                             <h4 style="margin-top: 0; color: var(--accent-color);">Manage Your Account</h4>
                             <p>You can now log in to manage your subscription and account settings:</p>
-                            <a href="/user-management.html" style="display: inline-block; padding: 8px 16px; background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); text-decoration: none; border-radius: 4px; margin-top: 10px;">Login to Account</a>
+                            <a href="/login.html" style="display: inline-block; padding: 8px 16px; background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); text-decoration: none; border-radius: 4px; margin-top: 10px;">Login to Account</a>
                         </div>
                     `;
                     document.getElementById('verificationForm').parentNode.appendChild(infoDiv);
