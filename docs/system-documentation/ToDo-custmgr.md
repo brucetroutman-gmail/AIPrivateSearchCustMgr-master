@@ -8,6 +8,14 @@
 
 =====================================================
 
+## v1.61 Release (Current)
+245. Changed registration flow — customer not saved to DB until email verified --done
+246. Pending registrations stored in server memory Map, DB insert only on successful verify --done
+247. Added resendVerificationCode method to customerManager.mjs --done
+248. Added POST /api/customers/resend-verification endpoint --done
+249. Added Resend Code link to verification form in customer-registration.html --done
+250. Fixed customer-registration.html login links to point to /login.html --done
+
 ## v1.60 Release (Current)
 238. Completed Phase 1 Testing — T5, T6, T7, T8, T9 all passed --done
 239. Completed Unified Auth Testing — T15, T17 all passed --done

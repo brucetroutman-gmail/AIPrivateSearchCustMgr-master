@@ -1,0 +1,1 @@
+ cd /webs/AIPrivateSearch/repo/aiprivatesearchcustmgr && git pull && pm2 restart aipscust-s56304
