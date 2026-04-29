@@ -6,11 +6,11 @@
 ### Phase 1 Testing (v1.53) — Pending
 Test on macOS localhost before Ubuntu deployment:
 
-- [ ] T5. Trial Expiration Warnings (Manual Test)
-  - [ ] Manually set license expires_at to 7 days from now
-  - [ ] Run trial check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().checkExpiringTrials())"
-  - [ ] Verify 7-day warning email received
-  - [ ] Repeat for 3-day and 1-day warnings
+- [x] T5. Trial Expiration Warnings (Manual Test)
+  - [x] Manually set license expires_at to 7 days from now
+  - [x] Run trial check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().checkExpiringTrials())"
+  - [x] Verify 7-day warning email received
+  - [x] Repeat for 3-day and 1-day warnings
 
 - [ ] T6. Grace Period Handling (Manual Test)
   - [ ] Manually set license expires_at to yesterday
