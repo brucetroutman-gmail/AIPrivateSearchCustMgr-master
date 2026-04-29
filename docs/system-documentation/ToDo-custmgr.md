@@ -3,61 +3,21 @@
 038. Dashboard Payment Processing card — build or remove until Stripe/PayPal implemented
 043. my-account.html — Payment History button is a stub until payments implemented
 044. change-tier.html / payment-confirm.html — UI exists but no real payment processing behind it
-### Phase 1 Testing (v1.53) — Pending
-Test on macOS localhost before Ubuntu deployment:
 
-- [x] T5. Trial Expiration Warnings (Manual Test)
-  - [x] Manually set license expires_at to 7 days from now
-  - [x] Run trial check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().checkExpiringTrials())"
-  - [x] Verify 7-day warning email received
-  - [x] Repeat for 3-day and 1-day warnings
-
-- [ ] T6. Grace Period Handling (Manual Test)
-  - [ ] Manually set license expires_at to yesterday
-  - [ ] Run expired check: node -e "import('./lib/notifications/trialNotificationService.mjs').then(m => new m.TrialNotificationService().handleExpiredTrials())"
-  - [ ] Verify status changed to 'expired'
-  - [ ] Verify grace_period_ends set to 7 days from now
-  - [ ] Verify grace period email received
-
-- [x] T7. Duplicate Registration Prevention
-  - [x] Try registering same email twice
-  - [x] Verify error message returned
-  - [x] Confirm no duplicate customer created
-
-- [ ] T8. Verification Code Expiry
-  - [ ] Register customer
-  - [ ] Wait 16 minutes (code expires in 15 min)
-  - [ ] Try to verify with expired code
-  - [ ] Verify error message returned
-
-- [x] T9. Invalid Verification Code
-  - [x] Register customer
-  - [x] Try verifying with wrong code
-  - [x] Verify error message returned
-  - [x] Confirm license not created
-
-### Unified Authentication Tests — Pending
-- [x] T15. Admin Customer Management
-  - [x] Login as admin (adm-custmgr@a.com / 123)
-  - [x] Test admin can view all customers: GET /api/customers
-  - [x] Test admin can view any customer: GET /api/customers/:id
-  - [x] Test admin can update any customer: PUT /api/customers/:id
-  - [x] Test admin can deactivate customer: DELETE /api/customers/:id
-  - [x] Verify admin can change customer active status
-  - [x] Customer self-service password reset — not yet implemented (see T17)
-
-- [x] T17. Password Reset and Security
-  - [x] Test forgot password at /login.html
-  - [x] Verify reset email sent with token
-  - [x] Test reset-password.html page with token
-  - [x] Confirm password reset and login with new password
-  - [x] Test password complexity validation on reset
-  - [x] Verify old sessions invalidated after password change
 
 
 =====================================================
 
-## v1.58 Release (Current)
+## v1.60 Release (Current)
+238. Completed Phase 1 Testing — T5, T6, T7, T8, T9 all passed --done
+239. Completed Unified Auth Testing — T15, T17 all passed --done
+240. Added Forgot Password link to login.html --done
+241. Fixed reset-password.html to redirect to /login.html instead of /user-management.html --done
+242. Fixed trial expiration email upgrade URL to point to /login.html --done
+243. Fixed emailService.mjs welcome email login link to point to /login.html --done
+244. Added Google Fonts to Helmet CSP (styleSrc, styleSrcElem, fontSrc) --done
+
+## v1.58 Release
 237. Fixed settings.html number input spinner arrows — added CSS for all browsers (webkit + moz) --done
 
 ## v1.57 Release

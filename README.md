@@ -1,4 +1,4 @@
-# AI Private Search Customer Manager v1.59
+# AI Private Search Customer Manager v1.60
 
 A comprehensive customer and license management system for AI Private Search, handling user registrations, subscriptions, payments, and device-based licensing.
 
