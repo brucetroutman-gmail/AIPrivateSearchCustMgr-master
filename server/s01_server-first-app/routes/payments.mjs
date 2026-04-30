@@ -1,11 +1,10 @@
 import express from 'express';
 import { createCheckoutSession, handleWebhook, getPaymentHistory } from '../lib/payments/stripeService.mjs';
-import { requireAuth } from '../middleware/authMiddleware.mjs';
 
 const router = express.Router();
 
-// POST /api/payments/create-checkout — requires customer auth
-router.post('/create-checkout', requireAuth, async (req, res) => {
+// POST /api/payments/create-checkout
+router.post('/create-checkout', async (req, res) => {
   try {
     const { tier } = req.body;
     if (!tier || ![1, 2, 3].includes(parseInt(tier))) {
@@ -39,8 +38,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   }
 });
 
-// GET /api/payments/history/:customerId — customer can only see own, admin sees any
-router.get('/history/:customerId', requireAuth, async (req, res) => {
+// GET /api/payments/history/:customerId
+router.get('/history/:customerId', async (req, res) => {
   try {
     const { customerId } = req.params;
     const isAdmin = ['admin', 'manager'].includes(req.user.userRole);
