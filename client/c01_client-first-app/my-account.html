@@ -104,64 +104,84 @@
             return minLength && hasUpper && hasLower && hasNumber;
         }
         
+        function el(tag, styles, text) {
+            const e = document.createElement(tag);
+            if (styles) Object.assign(e.style, styles);
+            if (text) e.textContent = text;
+            return e;
+        }
+
         function displayLicenseInfo(license) {
-            const statusColor = license.status === 'trial' ? '#ffd700' : 
+            const statusColor = license.status === 'trial' ? '#ffd700' :
                                license.status === 'active' ? '#28a745' : '#dc3545';
-            const statusText = license.status === 'trial' ? 'Trial' : 
+            const statusText = license.status === 'trial' ? 'Trial' :
                               license.status === 'active' ? 'Active' : 'Expired';
-            
-            const expiryWarning = license.days_remaining <= 7 && license.days_remaining > 0 ? 
-                `<div style="background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; padding: 10px; border-radius: 4px; margin-top: 10px;">
-                    <strong>⚠️ Expiring Soon:</strong> Your license expires in ${license.days_remaining} day(s)
-                </div>` : '';
-            
-            const expiredNotice = license.is_expired ? 
-                `<div style="background: rgba(220, 53, 69, 0.1); border: 1px solid #dc3545; padding: 10px; border-radius: 4px; margin-top: 10px;">
-                    <strong>❌ License Expired:</strong> Please renew your subscription
-                </div>` : '';
-            
-            document.getElementById('licenseInfo').innerHTML = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                    <div>
-                        <strong>License Key:</strong><br>
-                        <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 2px;">${license.customer_code}</code>
-                    </div>
-                    <div>
-                        <strong>Tier:</strong><br>
-                        ${license.tier_name}
-                    </div>
-                    <div>
-                        <strong>Status:</strong><br>
-                        <span style="color: ${statusColor}; font-weight: bold;">${statusText}</span>
-                    </div>
-                    <div>
-                        <strong>Expires:</strong><br>
-                        ${new Date(license.expires_at).toLocaleDateString()}
-                    </div>
-                    <div>
-                        <strong>Devices:</strong><br>
-                        ${license.device_count} / ${license.max_devices} used
-                    </div>
-                    <div>
-                        <strong>Available Slots:</strong><br>
-                        ${license.available_devices} remaining
-                    </div>
-                </div>
-                ${expiryWarning}
-                ${expiredNotice}
-                <div style="margin-top: 15px; display: flex; gap: 10px;">
-                    <button onclick="showChangeTier()" style="flex: 1; padding: 10px; background: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                        🔄 Change Tier
-                    </button>
-                    <button onclick="showPaymentHistory()" style="flex: 1; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
-                        💳 Payment History
-                    </button>
-                </div>
-                <div style="margin-top: 15px; padding: 10px; background: rgba(135, 206, 235, 0.1); border: 1px solid var(--accent-color); border-radius: 4px;">
-                    <strong>Download AI Private Search:</strong><br>
-                    <a href="https://aiprivatesearch.com/downloads/AIPrivateSearch.dmg" target="_blank" style="color: var(--accent-color); text-decoration: none;">📥 Download Installer</a>
-                </div>
-            `;
+
+            const container = document.getElementById('licenseInfo');
+            container.textContent = '';
+
+            // Grid of license fields
+            const grid = el('div', { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' });
+            const fields = [
+                ['License Key', license.customer_code, true],
+                ['Tier', license.tier_name],
+                ['Status', statusText, false, statusColor],
+                ['Expires', new Date(license.expires_at).toLocaleDateString()],
+                ['Devices', `${license.device_count} / ${license.max_devices} used`],
+                ['Available Slots', `${license.available_devices} remaining`]
+            ];
+            fields.forEach(([label, value, isCode, color]) => {
+                const cell = el('div');
+                const strong = el('strong', null, label + ':');
+                const br = document.createElement('br');
+                cell.appendChild(strong);
+                cell.appendChild(br);
+                if (isCode) {
+                    const code = el('code', { background: 'rgba(255,255,255,0.1)', padding: '2px 4px', borderRadius: '2px' }, value);
+                    cell.appendChild(code);
+                } else if (color) {
+                    const span = el('span', { color, fontWeight: 'bold' }, value);
+                    cell.appendChild(span);
+                } else {
+                    cell.appendChild(document.createTextNode(value));
+                }
+                grid.appendChild(cell);
+            });
+            container.appendChild(grid);
+
+            // Expiry warning
+            if (license.days_remaining <= 7 && license.days_remaining > 0) {
+                const warn = el('div', { background: 'rgba(255,193,7,0.1)', border: '1px solid #ffc107', padding: '10px', borderRadius: '4px', marginTop: '10px' });
+                warn.textContent = `⚠️ Expiring Soon: Your license expires in ${license.days_remaining} day(s)`;
+                container.appendChild(warn);
+            }
+            if (license.is_expired) {
+                const exp = el('div', { background: 'rgba(220,53,69,0.1)', border: '1px solid #dc3545', padding: '10px', borderRadius: '4px', marginTop: '10px' });
+                exp.textContent = '❌ License Expired: Please renew your subscription';
+                container.appendChild(exp);
+            }
+
+            // Buttons
+            const btnRow = el('div', { marginTop: '15px', display: 'flex', gap: '10px' });
+            const changeTierBtn = el('button', { flex: '1', padding: '10px', background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '🔄 Change Tier');
+            const payHistBtn = el('button', { flex: '1', padding: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '💳 Payment History');
+            changeTierBtn.addEventListener('click', showChangeTier);
+            payHistBtn.addEventListener('click', showPaymentHistory);
+            btnRow.appendChild(changeTierBtn);
+            btnRow.appendChild(payHistBtn);
+            container.appendChild(btnRow);
+
+            // Download link
+            const dlBox = el('div', { marginTop: '15px', padding: '10px', background: 'rgba(135,206,235,0.1)', border: '1px solid var(--accent-color)', borderRadius: '4px' });
+            const dlLabel = el('strong', null, 'Download AI Private Search:');
+            const dlBr = document.createElement('br');
+            const dlLink = el('a', { color: 'var(--accent-color)', textDecoration: 'none' }, '📥 Download Installer');
+            dlLink.href = 'https://aiprivatesearch.com/downloads/AIPrivateSearch.dmg';
+            dlLink.target = '_blank';
+            dlBox.appendChild(dlLabel);
+            dlBox.appendChild(dlBr);
+            dlBox.appendChild(dlLink);
+            container.appendChild(dlBox);
         }
         
         async function loadProfile() {
@@ -399,7 +419,7 @@
             const meData = await meResponse.json();
             const customerId = meData.user.id;
 
-            // Toggle: if already showing, hide it
+            // Toggle
             const existing = document.getElementById('paymentHistorySection');
             if (existing) { existing.remove(); return; }
 
@@ -413,27 +433,33 @@
                 const TIER_NAMES = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
                 const STATUS_COLORS = { completed: '#28a745', pending: '#ffc107', failed: '#dc3545', refunded: '#6c757d' };
 
-                const rows = payments.length === 0
-                    ? '<p style="color: #999;">No payment history found.</p>'
-                    : payments.map(p => `
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9em;">
-                            <div>${new Date(p.created_at).toLocaleDateString()}</div>
-                            <div>${TIER_NAMES[p.tier_purchased] || 'Unknown'}</div>
-                            <div>${p.amount_display}</div>
-                            <div style="color: ${STATUS_COLORS[p.status] || '#999'}; font-weight: bold; text-transform: capitalize;">${p.status}</div>
-                        </div>`).join('');
-
                 const section = document.createElement('div');
                 section.id = 'paymentHistorySection';
                 section.className = 'card';
-                section.style.cssText = 'margin-top: 2rem; border-color: var(--border-color); background: var(--card-bg);';
-                section.innerHTML = `
-                    <h2>Payment History</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); font-weight: bold; font-size: 0.9em;">
-                        <div>Date</div><div>Tier</div><div>Amount</div><div>Status</div>
-                    </div>
-                    ${rows}
-                `;
+                Object.assign(section.style, { marginTop: '2rem', borderColor: 'var(--border-color)', background: 'var(--card-bg)' });
+
+                const heading = el('h2', null, 'Payment History');
+                section.appendChild(heading);
+
+                // Header row
+                const headerRow = el('div', { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem', paddingBottom: '0.5rem', borderBottom: '2px solid var(--border-color)', fontWeight: 'bold', fontSize: '0.9em' });
+                ['Date', 'Tier', 'Amount', 'Status'].forEach(h => headerRow.appendChild(el('div', null, h)));
+                section.appendChild(headerRow);
+
+                if (payments.length === 0) {
+                    section.appendChild(el('p', { color: '#999', marginTop: '1rem' }, 'No payment history found.'));
+                } else {
+                    payments.forEach(p => {
+                        const row = el('div', { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem', padding: '0.75rem 0', borderBottom: '1px solid var(--border-color)', fontSize: '0.9em' });
+                        row.appendChild(el('div', null, new Date(p.created_at).toLocaleDateString()));
+                        row.appendChild(el('div', null, TIER_NAMES[p.tier_purchased] || 'Unknown'));
+                        row.appendChild(el('div', null, p.amount_display));
+                        const statusEl = el('div', { color: STATUS_COLORS[p.status] || '#999', fontWeight: 'bold', textTransform: 'capitalize' }, p.status);
+                        row.appendChild(statusEl);
+                        section.appendChild(row);
+                    });
+                }
+
                 document.querySelector('main').appendChild(section);
             } catch (error) {
                 showMessage('Failed to load payment history');
