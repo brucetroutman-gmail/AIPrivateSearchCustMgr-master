@@ -204,6 +204,7 @@
                 const user = data.user;
                 
                 document.getElementById('userEmail').textContent = user.email;
+                currentCustomerId = user.id;
                 
                 // Load customer profile
                 const profileResponse = await fetch(`${API_BASE}/api/customers/${user.id}`, {
@@ -407,24 +408,22 @@
             `;
         }
         
+        let currentCustomerId = null;
+
         function showChangeTier() {
             window.location.href = 'change-tier.html';
         }
 
         async function showPaymentHistory() {
             const sessionId = localStorage.getItem('sessionId');
-            const meResponse = await fetch(`${API_BASE}/api/auth/me`, {
-                headers: { 'Authorization': `Bearer ${sessionId}` }
-            });
-            const meData = await meResponse.json();
-            const customerId = meData.user.id;
+            if (!currentCustomerId) { showMessage('Session error. Please reload the page.'); return; }
 
             // Toggle
             const existing = document.getElementById('paymentHistorySection');
             if (existing) { existing.remove(); return; }
 
             try {
-                const response = await fetch(`${API_BASE}/api/payments/history/${customerId}`, {
+                const response = await fetch(`${API_BASE}/api/payments/history/${currentCustomerId}`, {
                     headers: { 'Authorization': `Bearer ${sessionId}` }
                 });
                 const data = await response.json();
