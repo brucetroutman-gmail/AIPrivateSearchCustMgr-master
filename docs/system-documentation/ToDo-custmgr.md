@@ -20,38 +20,47 @@
 - [x] S8. Add to .env-custmgr: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_STANDARD, STRIPE_PRICE_PREMIUM, STRIPE_PRICE_PROFESSIONAL
 
 #### Step 1 — Backend
-- [ ] S9. Create payments table in DB (customer_id, stripe_session_id, stripe_payment_intent_id, stripe_subscription_id, amount, tier_purchased, status, created_at, updated_at)
-- [ ] S10. Create lib/payments/stripeService.mjs (createCheckoutSession, handleWebhook)
-- [ ] S11. Create routes/payments.mjs (POST /create-checkout, POST /webhook, GET /history/:customerId)
-- [ ] S12. Register payments route in server.mjs
-- [ ] S13. Exclude /api/payments/webhook from rate limiting and body parsing (raw body needed for signature verification)
+- [x] S9. Create payments table in DB --done
+- [x] S10. Create lib/payments/stripeService.mjs (createCheckoutSession, handleWebhook) --done
+- [x] S11. Create routes/payments.mjs (POST /create-checkout, POST /webhook, GET /history/:customerId) --done
+- [x] S12. Register payments route in server.mjs --done
+- [x] S13. Exclude /api/payments/webhook from rate limiting and body parsing (raw body needed for signature verification) --done
 
 #### Step 2 — change-tier.html
-- [ ] S14. Replace stub "Continue to Payment" with real Stripe checkout redirect
-- [ ] S15. Update tier prices to $49/$199/$499 per year
-- [ ] S16. Fix auth redirect to /login.html
+- [x] S14. Replace stub "Continue to Payment" with real Stripe checkout redirect --done
+- [x] S15. Update tier prices to $49/$199/$499 per year --done
+- [x] S16. Fix auth redirect to /login.html --done
 
 #### Step 3 — payment-confirm.html
-- [ ] S17. Read session_id from URL query param
-- [ ] S18. Show success/failure message based on session status
-- [ ] S19. Add "Go to My Account" button
+- [x] S17. Read session_id from URL query param --done
+- [x] S18. Show success/failure message based on session status --done
+- [x] S19. Add "Go to My Account" button --done
 
 #### Step 4 — Payment History on my-account.html
-- [ ] S20. Wire up Payment History button to fetch GET /api/payments/history/:customerId
-- [ ] S21. Display payment history inline on my-account.html (date, tier, amount, status)
+- [x] S20. Wire up Payment History button to fetch GET /api/payments/history/:customerId --done
+- [x] S21. Display payment history inline on my-account.html (date, tier, amount, status) --done
 
 #### Step 5 — Testing
-- [ ] S22. Test full checkout flow in Stripe test mode
+- [x] S22. Test full checkout flow in Stripe test mode --done
 - [ ] S23. Verify webhook updates customer tier and license_status to 'active'
 - [ ] S24. Verify expires_at set to 1 year from payment date
-- [ ] S25. Test payment history display
+- [x] S25. Test payment history display --done
 - [ ] S26. Switch to Stripe live mode and retest
 
 
 
 =====================================================
 
-## v1.62 Release (Current)
+## v1.63 Release (Current)
+261. Fixed payment history button — replaced innerHTML with DOM methods, removed inline onclick handlers --done
+262. Fixed payment history section position — now appears before Manage Devices --done
+263. Added close button to payment history section --done
+264. Matched Payment History button color to Change Tier button --done
+265. Fixed CSP frameSrc — removed invalid 'none' combined with Stripe domain --done
+266. Updated stripeService.mjs to support STRIPE_MODE (test/live) with separate credential sets --done
+267. Marked S9-S21 Stripe implementation steps complete --done
+
+## v1.62 Release
 251. Created lib/payments/stripeService.mjs (createCheckoutSession, handleWebhook, getPaymentHistory) --done
 252. Created routes/payments.mjs (POST /create-checkout, POST /webhook, GET /history/:customerId) --done
 253. Created payments table in DB --done

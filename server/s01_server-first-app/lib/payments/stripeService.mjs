@@ -1,13 +1,20 @@
 import Stripe from 'stripe';
 import pool from '../database/connection.mjs';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const mode = process.env.STRIPE_MODE || 'test';
+const isLive = mode === 'live';
+
+const stripe = new Stripe(isLive ? process.env.STRIPE_SECRET_KEY_LIVE : process.env.STRIPE_SECRET_KEY_TEST);
 
 const PRICE_IDS = {
-  1: process.env.STRIPE_PRICE_STANDARD,
-  2: process.env.STRIPE_PRICE_PREMIUM,
-  3: process.env.STRIPE_PRICE_PROFESSIONAL
+  1: isLive ? process.env.STRIPE_PRICE_STANDARD_LIVE : process.env.STRIPE_PRICE_STANDARD_TEST,
+  2: isLive ? process.env.STRIPE_PRICE_PREMIUM_LIVE : process.env.STRIPE_PRICE_PREMIUM_TEST,
+  3: isLive ? process.env.STRIPE_PRICE_PROFESSIONAL_LIVE : process.env.STRIPE_PRICE_PROFESSIONAL_TEST
 };
+
+const WEBHOOK_SECRET = isLive ? process.env.STRIPE_WEBHOOK_SECRET_LIVE : process.env.STRIPE_WEBHOOK_SECRET_TEST;
+
+console.log(`[STRIPE] Running in ${mode} mode`);
 
 const TIER_NAMES = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
 const TIER_AMOUNTS = { 1: 4900, 2: 19900, 3: 49900 };
@@ -47,7 +54,7 @@ export async function handleWebhook(rawBody, signature) {
   const event = stripe.webhooks.constructEvent(
     rawBody,
     signature,
-    process.env.STRIPE_WEBHOOK_SECRET
+    WEBHOOK_SECRET
   );
 
   if (event.type === 'checkout.session.completed') {
