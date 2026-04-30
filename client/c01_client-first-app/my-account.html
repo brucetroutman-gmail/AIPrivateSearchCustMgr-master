@@ -30,6 +30,8 @@
             </div>
         </div>
         
+        <div id="paymentHistorySection" style="display:none;"></div>
+
         <div class="card" style="margin-bottom: 2rem; border-color: var(--border-color); background: var(--card-bg);">
             <h2>Manage Devices</h2>
             <div id="devicesInfo">
@@ -164,7 +166,7 @@
             // Buttons
             const btnRow = el('div', { marginTop: '15px', display: 'flex', gap: '10px' });
             const changeTierBtn = el('button', { flex: '1', padding: '10px', background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '🔄 Change Tier');
-            const payHistBtn = el('button', { flex: '1', padding: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '💳 Payment History');
+            const payHistBtn = el('button', { flex: '1', padding: '10px', background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '💳 Payment History');
             changeTierBtn.addEventListener('click', showChangeTier);
             payHistBtn.addEventListener('click', showPaymentHistory);
             btnRow.appendChild(changeTierBtn);
@@ -420,7 +422,11 @@
 
             // Toggle
             const existing = document.getElementById('paymentHistorySection');
-            if (existing) { existing.remove(); return; }
+            if (existing.style.display !== 'none' && existing.children.length > 0) {
+                existing.style.display = 'none';
+                existing.textContent = '';
+                return;
+            }
 
             try {
                 const response = await fetch(`${API_BASE}/api/payments/history/${currentCustomerId}`, {
@@ -432,13 +438,18 @@
                 const TIER_NAMES = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
                 const STATUS_COLORS = { completed: '#28a745', pending: '#ffc107', failed: '#dc3545', refunded: '#6c757d' };
 
-                const section = document.createElement('div');
-                section.id = 'paymentHistorySection';
+                const section = document.getElementById('paymentHistorySection');
+                section.textContent = '';
+                Object.assign(section.style, { display: 'block', marginBottom: '2rem', borderColor: 'var(--border-color)', background: 'var(--card-bg)' });
                 section.className = 'card';
-                Object.assign(section.style, { marginTop: '2rem', borderColor: 'var(--border-color)', background: 'var(--card-bg)' });
 
-                const heading = el('h2', null, 'Payment History');
-                section.appendChild(heading);
+                // Header row with close button
+                const titleRow = el('div', { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' });
+                titleRow.appendChild(el('h2', null, 'Payment History'));
+                const closeBtn = el('button', { background: 'transparent', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', fontSize: '1.2rem' }, '✕ Close');
+                closeBtn.addEventListener('click', () => { section.style.display = 'none'; section.textContent = ''; });
+                titleRow.appendChild(closeBtn);
+                section.appendChild(titleRow);
 
                 // Header row
                 const headerRow = el('div', { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem', paddingBottom: '0.5rem', borderBottom: '2px solid var(--border-color)', fontWeight: 'bold', fontSize: '0.9em' });
@@ -459,7 +470,7 @@
                     });
                 }
 
-                document.querySelector('main').appendChild(section);
+                section.scrollIntoView({ behavior: 'smooth' });
             } catch (error) {
                 showMessage('Failed to load payment history');
             }
