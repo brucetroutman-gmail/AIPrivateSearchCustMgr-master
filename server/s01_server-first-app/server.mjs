@@ -42,16 +42,16 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
       scriptSrcAttr: ["'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       styleSrcElem: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.stripe.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
+      frameSrc: ["'none'", "https://js.stripe.com"],
     },
   },
 }));
@@ -83,6 +83,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token']
 }));
 
+// Stripe webhook — must be registered BEFORE express.json() body parser
+import paymentsRouter from './routes/payments.mjs';
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -101,6 +105,7 @@ app.use(async (req, res, next) => {
 
   // Public API endpoints
   if (req.path.startsWith('/api/auth/') ||
+      req.path.startsWith('/api/payments/webhook') ||
       req.path.startsWith('/api/licensing/') ||
       req.path.startsWith('/api/customers/register') ||
       req.path.startsWith('/api/customers/verify-email') ||
@@ -236,6 +241,7 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/settings', settingsRouter);
 
 // app.use('/api/payments', validateOrigin, validateCSRFToken, paymentRouter);
+app.use('/api/payments', paymentsRouter);
 
 // Catch-all for unmatched API routes
 app.use('/api/*', (req, res) => {

@@ -3,120 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Confirm Payment - AI Private Search</title>
+    <title>Payment Confirmation - AI Private Search</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="header">
-        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div class="container" style="max-width: 1200px; margin: 0 auto; padding: 1rem 2rem;">
             <h1 style="margin: 0; color: var(--accent-color);">AI Private Search</h1>
-            <a href="change-tier.html" style="color: var(--accent-color);">← Back</a>
         </div>
     </div>
-    
-    <main class="container" style="max-width: 600px; margin: 2rem auto; padding: 2rem;">
-        <h1>Confirm Payment</h1>
-        
-        <div class="card" style="border-color: var(--border-color); background: var(--card-bg);">
-            <div id="paymentInfo" style="margin-bottom: 2rem;">
-                <p>Loading payment details...</p>
-            </div>
-            
-            <div style="padding: 1rem; background: rgba(255, 193, 7, 0.1); border: 1px solid #ffc107; border-radius: 4px; margin-bottom: 2rem;">
-                <strong>⚠️ Note:</strong> Payment processing will be implemented later. Clicking OK will change your tier immediately.
-            </div>
-            
-            <button id="confirmBtn" style="width: 100%; background: var(--accent-color);">OK - Confirm Tier Change</button>
+
+    <main class="container" style="max-width: 600px; margin: 4rem auto; padding: 2rem; text-align: center;">
+
+        <div id="loading">
+            <p style="color: #999;">Confirming your payment...</p>
         </div>
+
+        <div id="success" style="display: none;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">✅</div>
+            <h2 style="color: var(--accent-color);">Payment Successful!</h2>
+            <p id="successMsg" style="margin: 1rem 0 2rem;"></p>
+            <a href="/my-account.html" style="display: inline-block; padding: 0.75rem 2rem; background: var(--accent-color); color: #000; text-decoration: none; border-radius: 4px; font-weight: bold;">Go to My Account</a>
+        </div>
+
+        <div id="pending" style="display: none;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">⏳</div>
+            <h2>Payment Processing</h2>
+            <p style="margin: 1rem 0 2rem; color: #999;">Your payment is being processed. Your account will be updated shortly — please check My Account in a few minutes.</p>
+            <a href="/my-account.html" style="display: inline-block; padding: 0.75rem 2rem; background: var(--accent-color); color: #000; text-decoration: none; border-radius: 4px; font-weight: bold;">Go to My Account</a>
+        </div>
+
+        <div id="failure" style="display: none;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">❌</div>
+            <h2>Payment Failed</h2>
+            <p style="margin: 1rem 0 2rem; color: #999;">Something went wrong with your payment. Please try again.</p>
+            <a href="/change-tier.html" style="display: inline-block; padding: 0.75rem 2rem; background: var(--accent-color); color: #000; text-decoration: none; border-radius: 4px; font-weight: bold;">Try Again</a>
+        </div>
+
     </main>
-    
+
+    <div id="footer-placeholder"></div>
+
     <script>
         const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
-        
-        const tierNames = {
-            '1': 'Standard',
-            '2': 'Premium',
-            '3': 'Professional'
-        };
-        
-        const tierPrices = {
-            '1': '$9.99',
-            '2': '$19.99',
-            '3': '$29.99'
-        };
-        
-        function showMessage(message, type = 'error') {
-            const messageEl = document.createElement('div');
-            messageEl.className = 'toast-message toast-' + type;
-            messageEl.textContent = message;
-            document.body.appendChild(messageEl);
-            setTimeout(() => {
-                if (messageEl.parentNode) {
-                    messageEl.parentNode.removeChild(messageEl);
-                }
-            }, 3000);
+
+        const TIER_NAMES = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
+
+        function show(id) {
+            ['loading', 'success', 'pending', 'failure'].forEach(s => {
+                document.getElementById(s).style.display = s === id ? 'block' : 'none';
+            });
         }
-        
-        function loadPaymentInfo() {
-            const selectedTier = sessionStorage.getItem('selectedTier');
-            if (!selectedTier) {
-                window.location.href = 'change-tier.html';
+
+        async function confirmPayment() {
+            const params = new URLSearchParams(window.location.search);
+            const sessionId = params.get('session_id');
+
+            if (!sessionId) {
+                show('failure');
                 return;
             }
-            
-            document.getElementById('paymentInfo').innerHTML = `
-                <h3>Subscription Details</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                    <div>
-                        <strong>New Tier:</strong><br>
-                        ${tierNames[selectedTier]}
-                    </div>
-                    <div>
-                        <strong>Price:</strong><br>
-                        ${tierPrices[selectedTier]}/month
-                    </div>
-                </div>
-            `;
-        }
-        
-        document.getElementById('confirmBtn').addEventListener('click', async () => {
-            const sessionId = localStorage.getItem('sessionId');
-            const customerId = sessionStorage.getItem('customerId');
-            const selectedTier = sessionStorage.getItem('selectedTier');
-            
-            if (!sessionId || !customerId || !selectedTier) {
-                showMessage('Session expired. Please try again.');
-                window.location.href = 'my-account.html';
+
+            // Webhook handles the actual DB update — we just check payment history
+            // to confirm the session completed. Give webhook a moment to process.
+            await new Promise(r => setTimeout(r, 2000));
+
+            const authToken = localStorage.getItem('sessionId');
+            if (!authToken) {
+                window.location.href = '/login.html';
                 return;
             }
-            
+
             try {
-                const response = await fetch(`${API_BASE}/api/customers/${customerId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionId}`
-                    },
-                    body: JSON.stringify({ tier: parseInt(selectedTier) })
+                // Get current user to find customerId
+                const meResponse = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
                 });
-                
-                if (response.ok) {
-                    sessionStorage.removeItem('selectedTier');
-                    sessionStorage.removeItem('customerId');
-                    showMessage('Tier changed successfully!', 'success');
-                    setTimeout(() => {
-                        window.location.href = 'my-account.html';
-                    }, 1500);
+                if (!meResponse.ok) {
+                    window.location.href = '/login.html';
+                    return;
+                }
+                const meData = await meResponse.json();
+                const customerId = meData.user.id;
+
+                // Check payment history for this session
+                const historyResponse = await fetch(`${API_BASE}/api/payments/history/${customerId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const historyData = await historyResponse.json();
+
+                const payment = historyData.payments?.find(p => p.stripe_session_id === sessionId);
+
+                if (payment?.status === 'completed') {
+                    document.getElementById('successMsg').textContent =
+                        `Your ${TIER_NAMES[payment.tier_purchased] || ''} plan is now active. Thank you!`;
+                    show('success');
+                } else if (payment?.status === 'failed') {
+                    show('failure');
                 } else {
-                    const error = await response.json();
-                    showMessage(error.error || 'Failed to change tier');
+                    // Payment pending — webhook may still be processing
+                    show('pending');
                 }
             } catch (error) {
-                showMessage('Failed to change tier: ' + error.message);
+                show('pending');
             }
-        });
-        
-        loadPaymentInfo();
+        }
+
+        confirmPayment();
     </script>
 </body>
 </html>

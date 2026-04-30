@@ -1,14 +1,69 @@
 ## Pending Tasks
-022. Create payment process using paypal
-038. Dashboard Payment Processing card — build or remove until Stripe/PayPal implemented
+022. Create payment process using stripe
+038. Dashboard Payment Processing card — build or remove until Stripe implemented
 043. my-account.html — Payment History button is a stub until payments implemented
 044. change-tier.html / payment-confirm.html — UI exists but no real payment processing behind it
+
+### Stripe Payment Processing Setup
+
+#### Stripe Account Setup (Do First)
+- [x] S1. Create Stripe account at https://stripe.com
+- [x] S2. Create Standard product — $49.00/year recurring, price_1TRv0o3EkqjqtHVakbGpaQc2
+- [x] S3. Create Premium product — $199.00/year recurring, price_1TRv1g3EkqjqtHVaCuVC7vfi
+- [x] S4. Create Professional product — $499.00/year recurring, price_1TRv2P3EkqjqtHVatseLLSqz
+- [x] S5. Get API keys — Publishable key and Secret key (test mode)
+- [x] S6. Add webhook endpoint: https://custmgr.aiprivatesearch.com/api/payments/webhook
+  - [x] Event: checkout.session.completed
+  - [x] Event: invoice.paid
+  - [x] Event: invoice.payment_failed
+- [x] S7. Note Webhook signing secret
+- [x] S8. Add to .env-custmgr: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_STANDARD, STRIPE_PRICE_PREMIUM, STRIPE_PRICE_PROFESSIONAL
+
+#### Step 1 — Backend
+- [ ] S9. Create payments table in DB (customer_id, stripe_session_id, stripe_payment_intent_id, stripe_subscription_id, amount, tier_purchased, status, created_at, updated_at)
+- [ ] S10. Create lib/payments/stripeService.mjs (createCheckoutSession, handleWebhook)
+- [ ] S11. Create routes/payments.mjs (POST /create-checkout, POST /webhook, GET /history/:customerId)
+- [ ] S12. Register payments route in server.mjs
+- [ ] S13. Exclude /api/payments/webhook from rate limiting and body parsing (raw body needed for signature verification)
+
+#### Step 2 — change-tier.html
+- [ ] S14. Replace stub "Continue to Payment" with real Stripe checkout redirect
+- [ ] S15. Update tier prices to $49/$199/$499 per year
+- [ ] S16. Fix auth redirect to /login.html
+
+#### Step 3 — payment-confirm.html
+- [ ] S17. Read session_id from URL query param
+- [ ] S18. Show success/failure message based on session status
+- [ ] S19. Add "Go to My Account" button
+
+#### Step 4 — Payment History on my-account.html
+- [ ] S20. Wire up Payment History button to fetch GET /api/payments/history/:customerId
+- [ ] S21. Display payment history inline on my-account.html (date, tier, amount, status)
+
+#### Step 5 — Testing
+- [ ] S22. Test full checkout flow in Stripe test mode
+- [ ] S23. Verify webhook updates customer tier and license_status to 'active'
+- [ ] S24. Verify expires_at set to 1 year from payment date
+- [ ] S25. Test payment history display
+- [ ] S26. Switch to Stripe live mode and retest
 
 
 
 =====================================================
 
-## v1.61 Release (Current)
+## v1.62 Release (Current)
+251. Created lib/payments/stripeService.mjs (createCheckoutSession, handleWebhook, getPaymentHistory) --done
+252. Created routes/payments.mjs (POST /create-checkout, POST /webhook, GET /history/:customerId) --done
+253. Created payments table in DB --done
+254. Registered payments route in server.mjs --done
+255. Registered Stripe webhook raw body parser before JSON parser in server.mjs --done
+256. Added webhook to public routes (no auth required) in server.mjs --done
+257. Added Stripe domains to Helmet CSP (js.stripe.com, api.stripe.com) --done
+258. Rewrote change-tier.html with real Stripe checkout, $49/$199/$499/year prices, fixed auth redirect --done
+259. Rewrote payment-confirm.html with success/pending/failure states based on webhook result --done
+260. Replaced showPaymentHistory stub on my-account.html with real inline payment history table --done
+
+## v1.61 Release
 245. Changed registration flow — customer not saved to DB until email verified --done
 246. Pending registrations stored in server memory Map, DB insert only on successful verify --done
 247. Added resendVerificationCode method to customerManager.mjs --done

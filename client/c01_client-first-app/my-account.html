@@ -390,9 +390,54 @@
         function showChangeTier() {
             window.location.href = 'change-tier.html';
         }
-        
-        function showPaymentHistory() {
-            showMessage('Payment history coming soon!', 'info');
+
+        async function showPaymentHistory() {
+            const sessionId = localStorage.getItem('sessionId');
+            const meResponse = await fetch(`${API_BASE}/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${sessionId}` }
+            });
+            const meData = await meResponse.json();
+            const customerId = meData.user.id;
+
+            // Toggle: if already showing, hide it
+            const existing = document.getElementById('paymentHistorySection');
+            if (existing) { existing.remove(); return; }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/payments/history/${customerId}`, {
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                const data = await response.json();
+                const payments = data.payments || [];
+
+                const TIER_NAMES = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
+                const STATUS_COLORS = { completed: '#28a745', pending: '#ffc107', failed: '#dc3545', refunded: '#6c757d' };
+
+                const rows = payments.length === 0
+                    ? '<p style="color: #999;">No payment history found.</p>'
+                    : payments.map(p => `
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem; padding: 0.75rem 0; border-bottom: 1px solid var(--border-color); font-size: 0.9em;">
+                            <div>${new Date(p.created_at).toLocaleDateString()}</div>
+                            <div>${TIER_NAMES[p.tier_purchased] || 'Unknown'}</div>
+                            <div>${p.amount_display}</div>
+                            <div style="color: ${STATUS_COLORS[p.status] || '#999'}; font-weight: bold; text-transform: capitalize;">${p.status}</div>
+                        </div>`).join('');
+
+                const section = document.createElement('div');
+                section.id = 'paymentHistorySection';
+                section.className = 'card';
+                section.style.cssText = 'margin-top: 2rem; border-color: var(--border-color); background: var(--card-bg);';
+                section.innerHTML = `
+                    <h2>Payment History</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color); font-weight: bold; font-size: 0.9em;">
+                        <div>Date</div><div>Tier</div><div>Amount</div><div>Status</div>
+                    </div>
+                    ${rows}
+                `;
+                document.querySelector('main').appendChild(section);
+            } catch (error) {
+                showMessage('Failed to load payment history');
+            }
         }
         
         async function deleteDevice(deviceId, customerId, sessionId) {

@@ -1,0 +1,109 @@
+import Stripe from 'stripe';
+import pool from '../database/connection.mjs';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+const PRICE_IDS = {
+  1: process.env.STRIPE_PRICE_STANDARD,
+  2: process.env.STRIPE_PRICE_PREMIUM,
+  3: process.env.STRIPE_PRICE_PROFESSIONAL
+};
+
+const TIER_NAMES = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
+const TIER_AMOUNTS = { 1: 4900, 2: 19900, 3: 49900 };
+
+export async function createCheckoutSession(customerId, email, tier) {
+  const priceId = PRICE_IDS[tier];
+  if (!priceId) throw new Error('Invalid tier');
+
+  const baseUrl = process.env.APP_URL || 'https://custmgr.aiprivatesearch.com';
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    customer_email: email,
+    line_items: [{ price: priceId, quantity: 1 }],
+    metadata: { customerId: String(customerId), tier: String(tier) },
+    success_url: `${baseUrl}/payment-confirm.html?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${baseUrl}/change-tier.html`
+  });
+
+  // Record pending payment
+  const connection = await pool.getConnection();
+  try {
+    await connection.execute(
+      `INSERT INTO payments (customer_id, stripe_session_id, amount, tier_purchased, status)
+       VALUES (?, ?, ?, ?, 'pending')`,
+      [customerId, session.id, TIER_AMOUNTS[tier], tier]
+    );
+  } finally {
+    connection.release();
+  }
+
+  return { url: session.url, sessionId: session.id };
+}
+
+export async function handleWebhook(rawBody, signature) {
+  const event = stripe.webhooks.constructEvent(
+    rawBody,
+    signature,
+    process.env.STRIPE_WEBHOOK_SECRET
+  );
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const customerId = parseInt(session.metadata.customerId);
+    const tier = parseInt(session.metadata.tier);
+
+    const expiresAt = new Date();
+    expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+    const connection = await pool.getConnection();
+    try {
+      await connection.execute(
+        `UPDATE customers SET tier = ?, license_status = 'active', expires_at = ? WHERE id = ?`,
+        [tier, expiresAt, customerId]
+      );
+      await connection.execute(
+        `UPDATE payments SET stripe_subscription_id = ?, stripe_payment_intent_id = ?, status = 'completed'
+         WHERE stripe_session_id = ?`,
+        [session.subscription || null, session.payment_intent || null, session.id]
+      );
+    } finally {
+      connection.release();
+    }
+  }
+
+  if (event.type === 'invoice.payment_failed') {
+    const invoice = event.data.object;
+    const connection = await pool.getConnection();
+    try {
+      await connection.execute(
+        `UPDATE payments SET status = 'failed' WHERE stripe_subscription_id = ?`,
+        [invoice.subscription]
+      );
+    } finally {
+      connection.release();
+    }
+  }
+
+  return { received: true };
+}
+
+export async function getPaymentHistory(customerId) {
+  const connection = await pool.getConnection();
+  try {
+    const [rows] = await connection.execute(
+      `SELECT id, amount, tier_purchased, status, stripe_session_id, created_at, updated_at
+       FROM payments WHERE customer_id = ? ORDER BY created_at DESC`,
+      [customerId]
+    );
+    return rows.map(r => ({
+      ...r,
+      tier_name: TIER_NAMES[r.tier_purchased] || 'Unknown',
+      amount_display: `$${(r.amount / 100).toFixed(2)}`
+    }));
+  } finally {
+    connection.release();
+  }
+}
