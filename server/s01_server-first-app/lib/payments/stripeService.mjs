@@ -81,6 +81,27 @@ export async function handleWebhook(rawBody, signature) {
     }
   }
 
+  if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object;
+    const priceId = subscription.items.data[0].price.id;
+    const newTierEntry = Object.entries(PRICE_IDS).find(([, v]) => v === priceId);
+    if (newTierEntry) {
+      const newTier = parseInt(newTierEntry[0]);
+      const customerId = subscription.metadata?.customerId;
+      if (customerId) {
+        const connection = await pool.getConnection();
+        try {
+          await connection.execute(
+            `UPDATE customers SET tier = ? WHERE id = ?`,
+            [newTier, customerId]
+          );
+        } finally {
+          connection.release();
+        }
+      }
+    }
+  }
+
   if (event.type === 'invoice.payment_failed') {
     const invoice = event.data.object;
     const connection = await pool.getConnection();
@@ -95,6 +116,55 @@ export async function handleWebhook(rawBody, signature) {
   }
 
   return { received: true };
+}
+
+export async function updateSubscription(customerId, newTier) {
+  const priceId = PRICE_IDS[newTier];
+  if (!priceId) throw new Error('Invalid tier');
+
+  // Get stripe_subscription_id from payments table
+  const connection = await pool.getConnection();
+  let subscriptionId;
+  try {
+    const [rows] = await connection.execute(
+      `SELECT stripe_subscription_id FROM payments WHERE customer_id = ? AND status = 'completed' AND stripe_subscription_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+      [customerId]
+    );
+    if (rows.length === 0) throw new Error('No active subscription found');
+    subscriptionId = rows[0].stripe_subscription_id;
+  } finally {
+    connection.release();
+  }
+
+  // Get current subscription to find subscription item ID
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const itemId = subscription.items.data[0].id;
+
+  // Determine if upgrade or downgrade
+  const currentTier = subscription.items.data[0].price.id;
+  const currentTierNum = Object.entries(PRICE_IDS).find(([, v]) => v === currentTier)?.[0];
+  const isUpgrade = parseInt(newTier) > parseInt(currentTierNum);
+
+  const updated = await stripe.subscriptions.update(subscriptionId, {
+    items: [{ id: itemId, price: priceId }],
+    proration_behavior: isUpgrade ? 'create_prorations' : 'none',
+    ...(isUpgrade ? {} : { billing_cycle_anchor: 'unchanged' })
+  });
+
+  return { subscriptionId, isUpgrade, currentPeriodEnd: new Date(updated.current_period_end * 1000) };
+}
+
+export async function getSubscriptionId(customerId) {
+  const connection = await pool.getConnection();
+  try {
+    const [rows] = await connection.execute(
+      `SELECT stripe_subscription_id FROM payments WHERE customer_id = ? AND status = 'completed' AND stripe_subscription_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+      [customerId]
+    );
+    return rows[0]?.stripe_subscription_id || null;
+  } finally {
+    connection.release();
+  }
 }
 
 export async function getPaymentHistory(customerId) {

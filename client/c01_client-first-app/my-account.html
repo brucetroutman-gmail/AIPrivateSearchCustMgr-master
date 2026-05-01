@@ -500,6 +500,13 @@
             }
         }
         
+        // Show tier change message if redirected from change-tier
+        const tierChangeMsg = sessionStorage.getItem('tierChangeMsg');
+        if (tierChangeMsg) {
+            showMessage(tierChangeMsg, 'success');
+            sessionStorage.removeItem('tierChangeMsg');
+        }
+
         loadProfile();
     </script>
 </body>

@@ -51,7 +51,18 @@
 
 =====================================================
 
-## v1.63 Release (Current)
+## v1.64 Release (Current)
+268. Added updateSubscription and getSubscriptionId to stripeService.mjs --done
+269. Added customer.subscription.updated webhook handler to sync tier changes --done
+270. Added POST /api/payments/update-subscription endpoint --done
+271. Added GET /api/payments/subscription-status endpoint --done
+272. Rewrote change-tier.html — current tier greyed out, upgrade/downgrade messaging, pricing policy section --done
+273. Smart routing — existing subscribers use update-subscription, new subscribers use Stripe checkout --done
+274. Added tier change success toast on my-account.html when redirected back --done
+275. Added customer.subscription.updated event to Stripe webhook --done
+276. Removed Coming Soon from index.html, changed header to AI Private Search --done
+
+## v1.63 Release
 261. Fixed payment history button — replaced innerHTML with DOM methods, removed inline onclick handlers --done
 262. Fixed payment history section position — now appears before Manage Devices --done
 263. Added close button to payment history section --done

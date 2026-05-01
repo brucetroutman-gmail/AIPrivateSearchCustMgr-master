@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCheckoutSession, handleWebhook, getPaymentHistory } from '../lib/payments/stripeService.mjs';
+import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId } from '../lib/payments/stripeService.mjs';
 
 const router = express.Router();
 
@@ -35,6 +35,31 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   } catch (error) {
     console.error('[PAYMENTS] webhook error:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+// POST /api/payments/update-subscription — upgrade or downgrade existing subscription
+router.post('/update-subscription', async (req, res) => {
+  try {
+    const { tier } = req.body;
+    if (!tier || ![1, 2, 3].includes(parseInt(tier))) {
+      return res.status(400).json({ error: 'Valid tier (1, 2, or 3) is required' });
+    }
+    const result = await updateSubscription(req.user.id, parseInt(tier));
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('[PAYMENTS] update-subscription error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/payments/subscription-status — check if customer has active subscription
+router.get('/subscription-status', async (req, res) => {
+  try {
+    const subscriptionId = await getSubscriptionId(req.user.id);
+    res.json({ hasSubscription: !!subscriptionId, subscriptionId });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

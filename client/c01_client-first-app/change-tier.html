@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Change Tier - AI Private Search</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        .tier-label { display: block; padding: 1rem; border: 2px solid var(--border-color); border-radius: 4px; margin-bottom: 1rem; cursor: pointer; transition: border-color 0.2s; }
+        .tier-label:hover { border-color: var(--accent-color); }
+        .tier-label.current { opacity: 0.5; cursor: not-allowed; background: rgba(255,255,255,0.03); }
+        .tier-label.current input { pointer-events: none; }
+        .tier-badge { display: inline-block; font-size: 0.75em; padding: 2px 8px; border-radius: 10px; margin-left: 8px; background: var(--accent-color); color: #000; font-weight: bold; }
+        .policy-box { margin-top: 2rem; padding: 1.25rem; background: rgba(135,206,235,0.07); border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9em; color: #bbb; }
+        .policy-box h3 { color: var(--accent-color); margin-bottom: 0.75rem; font-size: 1em; }
+        .policy-box ul { padding-left: 1.25rem; }
+        .policy-box li { margin-bottom: 0.4rem; }
+        #actionMsg { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 4px; display: none; font-size: 0.9em; }
+        #actionMsg.upgrade { background: rgba(40,167,69,0.15); border: 1px solid #28a745; color: #28a745; }
+        #actionMsg.downgrade { background: rgba(255,193,7,0.15); border: 1px solid #ffc107; color: #ffc107; }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -14,35 +28,55 @@
         </div>
     </div>
 
-    <main class="container" style="max-width: 600px; margin: 2rem auto; padding: 2rem;">
+    <main class="container" style="max-width: 620px; margin: 2rem auto; padding: 2rem;">
         <h1>Change Subscription Tier</h1>
-        <p style="color: #999; margin-bottom: 2rem;">All plans billed annually. You will be redirected to Stripe to complete payment.</p>
+        <p style="color: #999; margin-bottom: 2rem;">All plans billed annually.</p>
 
         <div class="card" style="border-color: var(--border-color); background: var(--card-bg);">
             <form id="tierForm">
-                <div style="margin-bottom: 2rem;">
-                    <label style="display: block; padding: 1rem; border: 2px solid var(--border-color); border-radius: 4px; margin-bottom: 1rem; cursor: pointer;">
+                <div style="margin-bottom: 1rem;">
+
+                    <label id="label-1" class="tier-label">
                         <input type="radio" name="tier" value="1" style="margin-right: 10px;">
-                        <strong>Standard</strong> — 2 devices, Basic features
-                        <div style="margin-left: 24px; color: #999; font-size: 0.9em;">$49.00 / year</div>
+                        <strong>Standard</strong>
+                        <span id="badge-1"></span>
+                        <span style="color: #999; font-size: 0.85em; margin-left: 6px;">— 2 devices, Basic features</span>
+                        <div style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$49.00 / year</div>
                     </label>
 
-                    <label style="display: block; padding: 1rem; border: 2px solid var(--border-color); border-radius: 4px; margin-bottom: 1rem; cursor: pointer;">
+                    <label id="label-2" class="tier-label">
                         <input type="radio" name="tier" value="2" style="margin-right: 10px;">
-                        <strong>Premium</strong> — 5 devices, Advanced features
-                        <div style="margin-left: 24px; color: #999; font-size: 0.9em;">$199.00 / year</div>
+                        <strong>Premium</strong>
+                        <span id="badge-2"></span>
+                        <span style="color: #999; font-size: 0.85em; margin-left: 6px;">— 5 devices, Advanced features</span>
+                        <div style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$199.00 / year</div>
                     </label>
 
-                    <label style="display: block; padding: 1rem; border: 2px solid var(--border-color); border-radius: 4px; margin-bottom: 1rem; cursor: pointer;">
+                    <label id="label-3" class="tier-label">
                         <input type="radio" name="tier" value="3" style="margin-right: 10px;">
-                        <strong>Professional</strong> — 10 devices, All features
-                        <div style="margin-left: 24px; color: #999; font-size: 0.9em;">$499.00 / year</div>
+                        <strong>Professional</strong>
+                        <span id="badge-3"></span>
+                        <span style="color: #999; font-size: 0.85em; margin-left: 6px;">— 10 devices, All features</span>
+                        <div style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$499.00 / year</div>
                     </label>
+
                 </div>
 
-                <button type="submit" style="width: 100%;">Continue to Payment</button>
+                <div id="actionMsg"></div>
+
+                <button type="submit" id="submitBtn" style="width: 100%; margin-top: 1rem;">Continue to Payment</button>
                 <div id="errorMsg" style="color: #ff6b6b; text-align: center; margin-top: 1rem; display: none;"></div>
             </form>
+
+            <!-- Pricing Policy -->
+            <div class="policy-box">
+                <h3>📋 Upgrade &amp; Downgrade Policy</h3>
+                <ul>
+                    <li><strong>Upgrades</strong> are prorated to the day — you only pay the difference for the remaining time in your billing period.</li>
+                    <li><strong>Downgrades</strong> take effect at your next renewal date. Your current tier access continues until then with no partial refunds.</li>
+                    <li>All plans renew automatically each year. You can change or cancel at any time.</li>
+                </ul>
+            </div>
         </div>
     </main>
 
@@ -50,6 +84,11 @@
 
     <script>
         const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:56304' : '';
+        const TIER_NAMES = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
+
+        let currentTier = null;
+        let hasSubscription = false;
+        let currentPeriodEnd = null;
 
         function showError(msg) {
             const el = document.getElementById('errorMsg');
@@ -57,75 +96,128 @@
             el.style.display = 'block';
         }
 
-        async function loadCurrentTier() {
-            const sessionId = localStorage.getItem('sessionId');
-            if (!sessionId) {
-                window.location.href = '/login.html';
+        function updateActionMsg(selectedTier) {
+            const msg = document.getElementById('actionMsg');
+            if (!selectedTier || selectedTier == currentTier) {
+                msg.style.display = 'none';
                 return;
             }
+            const isUpgrade = selectedTier > currentTier;
+            msg.className = isUpgrade ? 'upgrade' : 'downgrade';
+            msg.style.display = 'block';
+
+            if (isUpgrade) {
+                msg.textContent = `⬆️ Upgrading to ${TIER_NAMES[selectedTier]} — you will be charged the prorated difference for the remaining time in your billing period.`;
+            } else {
+                const renewDate = currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'your next renewal date';
+                msg.textContent = `⬇️ Downgrading to ${TIER_NAMES[selectedTier]} — your ${TIER_NAMES[currentTier]} access continues until ${renewDate}, then switches to ${TIER_NAMES[selectedTier]}.`;
+            }
+        }
+
+        async function loadCurrentTier() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!sessionId) { window.location.href = '/login.html'; return; }
 
             try {
-                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                const meRes = await fetch(`${API_BASE}/api/auth/me`, {
                     headers: { 'Authorization': `Bearer ${sessionId}` }
                 });
-                if (!response.ok) {
-                    window.location.href = '/login.html';
-                    return;
-                }
-                const data = await response.json();
+                if (!meRes.ok) { window.location.href = '/login.html'; return; }
+                const meData = await meRes.json();
 
-                const licenseResponse = await fetch(`${API_BASE}/api/customers/${data.user.id}/license`, {
-                    headers: { 'Authorization': `Bearer ${sessionId}` }
-                });
-                const licenseData = await licenseResponse.json();
+                const [licenseRes, subRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/customers/${meData.user.id}/license`, {
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    }),
+                    fetch(`${API_BASE}/api/payments/subscription-status`, {
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    })
+                ]);
 
-                const currentTier = licenseData.license?.tier;
+                const licenseData = await licenseRes.json();
+                const subData = await subRes.json();
+
+                currentTier = licenseData.license?.tier;
+                hasSubscription = subData.hasSubscription;
+                currentPeriodEnd = licenseData.license?.expires_at;
+
+                // Grey out current tier, add badge
                 if (currentTier) {
-                    const radio = document.querySelector(`input[value="${currentTier}"]`);
-                    if (radio) radio.checked = true;
+                    const label = document.getElementById(`label-${currentTier}`);
+                    const badge = document.getElementById(`badge-${currentTier}`);
+                    if (label) label.classList.add('current');
+                    if (badge) badge.textContent = 'Current Plan';
+                    if (badge) badge.className = 'tier-badge';
                 }
+
             } catch (error) {
                 window.location.href = '/login.html';
             }
         }
 
+        // Show action message when tier selection changes
+        document.querySelectorAll('input[name="tier"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (parseInt(e.target.value) === currentTier) {
+                    document.getElementById('actionMsg').style.display = 'none';
+                    return;
+                }
+                updateActionMsg(parseInt(e.target.value));
+            });
+        });
+
         document.getElementById('tierForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const selected = document.querySelector('input[name="tier"]:checked');
-            if (!selected) {
-                showError('Please select a tier.');
-                return;
-            }
+            if (!selected) { showError('Please select a tier.'); return; }
+
+            const newTier = parseInt(selected.value);
+            if (newTier === currentTier) { showError('You are already on this tier.'); return; }
 
             const sessionId = localStorage.getItem('sessionId');
-            if (!sessionId) {
-                window.location.href = '/login.html';
-                return;
-            }
+            if (!sessionId) { window.location.href = '/login.html'; return; }
 
-            const btn = e.target.querySelector('button[type="submit"]');
+            const btn = document.getElementById('submitBtn');
             btn.disabled = true;
-            btn.textContent = 'Redirecting to payment...';
+            btn.textContent = 'Processing...';
 
             try {
-                const response = await fetch(`${API_BASE}/api/payments/create-checkout`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionId}`
-                    },
-                    body: JSON.stringify({ tier: parseInt(selected.value) })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.url) {
-                    window.location.href = data.url;
+                if (hasSubscription) {
+                    // Existing subscriber — update subscription
+                    const response = await fetch(`${API_BASE}/api/payments/update-subscription`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionId}` },
+                        body: JSON.stringify({ tier: newTier })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        const isUpgrade = newTier > currentTier;
+                        const msg = isUpgrade
+                            ? `Upgraded to ${TIER_NAMES[newTier]} successfully! Your account has been updated.`
+                            : `Downgrade to ${TIER_NAMES[newTier]} scheduled. Your ${TIER_NAMES[currentTier]} access continues until ${new Date(data.currentPeriodEnd).toLocaleDateString()}.`;
+                        sessionStorage.setItem('tierChangeMsg', msg);
+                        window.location.href = '/my-account.html';
+                    } else {
+                        showError(data.error || 'Failed to update subscription. Please try again.');
+                        btn.disabled = false;
+                        btn.textContent = 'Continue to Payment';
+                    }
                 } else {
-                    showError(data.error || 'Failed to start checkout. Please try again.');
-                    btn.disabled = false;
-                    btn.textContent = 'Continue to Payment';
+                    // New subscriber — Stripe checkout
+                    const response = await fetch(`${API_BASE}/api/payments/create-checkout`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionId}` },
+                        body: JSON.stringify({ tier: newTier })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.url) {
+                        window.location.href = data.url;
+                    } else {
+                        showError(data.error || 'Failed to start checkout. Please try again.');
+                        btn.disabled = false;
+                        btn.textContent = 'Continue to Payment';
+                    }
                 }
             } catch (error) {
                 showError('Network error. Please try again.');
