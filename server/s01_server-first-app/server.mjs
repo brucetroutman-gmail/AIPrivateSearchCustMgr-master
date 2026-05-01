@@ -106,6 +106,7 @@ app.use(async (req, res, next) => {
   // Public API endpoints
   if (req.path.startsWith('/api/auth/') ||
       req.path.startsWith('/api/payments/webhook') ||
+      req.path.startsWith('/api/payments/prices') ||
       req.path.startsWith('/api/licensing/') ||
       req.path.startsWith('/api/customers/register') ||
       req.path.startsWith('/api/customers/verify-email') ||

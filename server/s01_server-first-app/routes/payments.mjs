@@ -1,7 +1,18 @@
 import express from 'express';
-import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade } from '../lib/payments/stripeService.mjs';
+import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices } from '../lib/payments/stripeService.mjs';
 
 const router = express.Router();
+
+// GET /api/payments/prices — fetch live prices from Stripe (public)
+router.get('/prices', async (req, res) => {
+  try {
+    const prices = await getPrices();
+    res.json({ success: true, prices });
+  } catch (error) {
+    console.error('[PAYMENTS] prices error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // POST /api/payments/create-checkout
 router.post('/create-checkout', async (req, res) => {

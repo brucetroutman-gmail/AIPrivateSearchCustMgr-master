@@ -156,13 +156,35 @@
                 if (!res.ok) throw new Error('Failed to load settings');
                 const s = await res.json();
                 currentSettings = s;
-                renderSettings(s);
+                await renderSettings(s);
             } catch (error) {
                 document.getElementById('settingsGrid').innerHTML = `<div class="settings-card"><h3>Error loading settings: ${error.message}</h3></div>`;
             }
         }
 
-        function renderSettings(s) {
+        async function renderSettings(s) {
+            // Fetch live Stripe prices
+            let stripePrices = null;
+            try {
+                const pricesRes = await fetch(`${API_BASE}/api/payments/prices`);
+                const pricesData = await pricesRes.json();
+                if (pricesData.success) stripePrices = pricesData.prices;
+            } catch (_e) { /* prices unavailable */ }
+
+            const stripePricingCard = stripePrices ? `
+                <div class="settings-card">
+                    <h3>💳 Subscription Pricing</h3>
+                    ${readonlyRow('Standard', stripePrices.standard.display + ' / year')}
+                    ${readonlyRow('Premium', stripePrices.premium.display + ' / year')}
+                    ${readonlyRow('Professional', stripePrices.professional.display + ' / year')}
+                    <p class="note">Prices are configured in Stripe. To change, update the price in the Stripe Dashboard and update STRIPE_PRICE_* in .env-custmgr.</p>
+                </div>` : `
+                <div class="settings-card">
+                    <h3>💳 Subscription Pricing</h3>
+                    <p style="color:#999; font-size:0.9em;">Unable to load prices from Stripe.</p>
+                    <p class="note">Prices are configured in Stripe via STRIPE_PRICE_* in .env-custmgr.</p>
+                </div>`;
+
             document.getElementById('settingsGrid').innerHTML = `
                 <div class="settings-card">
                     <h3>📋 License Settings</h3>
@@ -211,6 +233,8 @@
                     ${readonlyRow('Device Activation', `${s.rate_limiting.device_activation.attempts} attempts / ${s.rate_limiting.device_activation.window_minutes} min`)}
                     <p class="note">Rate limits require a code deployment to change.</p>
                 </div>
+
+                ${stripePricingCard}
             `;
         }
 

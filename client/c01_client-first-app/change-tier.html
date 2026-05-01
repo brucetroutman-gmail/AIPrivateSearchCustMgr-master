@@ -44,7 +44,7 @@
                         <strong>Standard</strong>
                         <span id="badge-1"></span>
                         <span style="color: #999; font-size: 0.85em; margin-left: 6px;">— 2 devices, Basic features</span>
-                        <div style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$49.00 / year</div>
+                        <div id="price-1" style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$49.00 / year</div>
                     </label>
 
                     <label id="label-2" class="tier-label">
@@ -52,7 +52,7 @@
                         <strong>Premium</strong>
                         <span id="badge-2"></span>
                         <span style="color: #999; font-size: 0.85em; margin-left: 6px;">— 5 devices, Advanced features</span>
-                        <div style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$199.00 / year</div>
+                        <div id="price-2" style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$199.00 / year</div>
                     </label>
 
                     <label id="label-3" class="tier-label">
@@ -60,7 +60,7 @@
                         <strong>Professional</strong>
                         <span id="badge-3"></span>
                         <span style="color: #999; font-size: 0.85em; margin-left: 6px;">— 10 devices, All features</span>
-                        <div style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$499.00 / year</div>
+                        <div id="price-3" style="margin-left: 24px; color: #999; font-size: 0.9em; margin-top: 4px;">$499.00 / year</div>
                     </label>
 
                 </div>
@@ -271,17 +271,27 @@
                 if (!meRes.ok) { window.location.href = '/login.html'; return; }
                 const meData = await meRes.json();
 
-                const [licenseRes, subRes] = await Promise.all([
+                const [licenseRes, subRes, pricesRes] = await Promise.all([
                     fetch(`${API_BASE}/api/customers/${meData.user.id}/license`, {
                         headers: { 'Authorization': `Bearer ${sessionId}` }
                     }),
                     fetch(`${API_BASE}/api/payments/subscription-status`, {
                         headers: { 'Authorization': `Bearer ${sessionId}` }
-                    })
+                    }),
+                    fetch(`${API_BASE}/api/payments/prices`)
                 ]);
 
                 const licenseData = await licenseRes.json();
                 const subData = await subRes.json();
+                const pricesData = await pricesRes.json();
+
+                // Update prices from Stripe
+                if (pricesData.prices) {
+                    const p = pricesData.prices;
+                    document.getElementById('price-1').textContent = `${p.standard.display} / year`;
+                    document.getElementById('price-2').textContent = `${p.premium.display} / year`;
+                    document.getElementById('price-3').textContent = `${p.professional.display} / year`;
+                }
 
                 currentTier = licenseData.license?.tier;
                 const licenseStatus = licenseData.license?.status;

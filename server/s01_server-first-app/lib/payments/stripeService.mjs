@@ -17,7 +17,29 @@ const WEBHOOK_SECRET = isLive ? process.env.STRIPE_WEBHOOK_SECRET_LIVE : process
 console.log(`[STRIPE] Running in ${mode} mode`);
 
 const TIER_NAMES = { 1: 'Standard', 2: 'Premium', 3: 'Professional' };
-const TIER_AMOUNTS = { 1: 4900, 2: 19900, 3: 49900 };
+
+// Cache prices fetched from Stripe
+let priceCache = null;
+
+async function getTierAmounts() {
+  if (priceCache) return priceCache;
+  const [p1, p2, p3] = await Promise.all([
+    stripe.prices.retrieve(PRICE_IDS[1]),
+    stripe.prices.retrieve(PRICE_IDS[2]),
+    stripe.prices.retrieve(PRICE_IDS[3])
+  ]);
+  priceCache = { 1: p1.unit_amount, 2: p2.unit_amount, 3: p3.unit_amount };
+  return priceCache;
+}
+
+export async function getPrices() {
+  const amounts = await getTierAmounts();
+  return {
+    standard:     { amount: amounts[1], display: `$${(amounts[1] / 100).toFixed(2)}` },
+    premium:      { amount: amounts[2], display: `$${(amounts[2] / 100).toFixed(2)}` },
+    professional: { amount: amounts[3], display: `$${(amounts[3] / 100).toFixed(2)}` }
+  };
+}
 
 export async function createCheckoutSession(customerId, email, tier) {
   const priceId = PRICE_IDS[tier];
@@ -41,7 +63,7 @@ export async function createCheckoutSession(customerId, email, tier) {
     await connection.execute(
       `INSERT INTO payments (customer_id, stripe_session_id, amount, tier_purchased, status)
        VALUES (?, ?, ?, ?, 'pending')`,
-      [customerId, session.id, TIER_AMOUNTS[tier], tier]
+      [customerId, session.id, (await getTierAmounts())[tier], tier]
     );
   } finally {
     connection.release();
@@ -186,7 +208,7 @@ export async function previewUpgrade(customerId, newTier) {
   const totalDue = Math.max(0, upcoming.amount_due);
   const usedAmount = currentAnnualPrice + credit;
 
-  const newTierAnnualPrice = TIER_AMOUNTS[newTier];
+  const newTierAnnualPrice = (await getTierAmounts())[newTier];
   const unusedCreditAbs = Math.abs(credit);
   const extensionMonths = newTierAnnualPrice > 0
     ? Math.floor((unusedCreditAbs / newTierAnnualPrice) * 12)
