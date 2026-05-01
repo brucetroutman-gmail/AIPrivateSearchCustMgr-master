@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId } from '../lib/payments/stripeService.mjs';
+import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade } from '../lib/payments/stripeService.mjs';
 
 const router = express.Router();
 
@@ -35,6 +35,21 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   } catch (error) {
     console.error('[PAYMENTS] webhook error:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+// POST /api/payments/preview-upgrade — returns prorated charge preview without charging
+router.post('/preview-upgrade', async (req, res) => {
+  try {
+    const { tier } = req.body;
+    if (!tier || ![1, 2, 3].includes(parseInt(tier))) {
+      return res.status(400).json({ error: 'Valid tier required' });
+    }
+    const preview = await previewUpgrade(req.user.id, parseInt(tier));
+    res.json({ success: true, ...preview });
+  } catch (error) {
+    console.error('[PAYMENTS] preview-upgrade error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

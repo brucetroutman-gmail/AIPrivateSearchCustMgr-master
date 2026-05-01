@@ -51,7 +51,15 @@
 
 =====================================================
 
-## v1.64 Release (Current)
+## v1.65 Release (Current)
+277. Added previewUpgrade to stripeService.mjs — calls Stripe retrieveUpcoming for exact proration --done
+278. Added POST /api/payments/preview-upgrade endpoint --done
+279. Updated change-tier.html — shows full proration breakdown before confirming upgrade --done
+280. Upgrade preview shows: unused credit, new plan cost, total due today, renewal date --done
+281. Downgrade shows renewal date message, no charge preview --done
+282. Trial customers routed to Stripe checkout, existing subscribers use update-subscription --done
+
+## v1.64 Release
 268. Added updateSubscription and getSubscriptionId to stripeService.mjs --done
 269. Added customer.subscription.updated webhook handler to sync tier changes --done
 270. Added POST /api/payments/update-subscription endpoint --done

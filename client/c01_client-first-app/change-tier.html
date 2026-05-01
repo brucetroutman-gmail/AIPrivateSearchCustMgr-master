@@ -18,6 +18,9 @@
         #actionMsg { margin-top: 1rem; padding: 0.75rem 1rem; border-radius: 4px; display: none; font-size: 0.9em; }
         #actionMsg.upgrade { background: rgba(40,167,69,0.15); border: 1px solid #28a745; color: #28a745; }
         #actionMsg.downgrade { background: rgba(255,193,7,0.15); border: 1px solid #ffc107; color: #ffc107; }
+        #previewBox { margin-top: 1rem; padding: 1rem; border-radius: 4px; display: none; background: rgba(40,167,69,0.1); border: 1px solid #28a745; }
+        #previewBox .amount { font-size: 1.5rem; font-weight: bold; color: #28a745; margin: 0.5rem 0; }
+        #previewBox .detail { font-size: 0.9em; color: #bbb; }
     </style>
 </head>
 <body>
@@ -63,6 +66,11 @@
                 </div>
 
                 <div id="actionMsg"></div>
+                <div id="previewBox">
+                    <div id="previewTitle" style="font-weight: bold; margin-bottom: 0.5rem;"></div>
+                    <div id="previewAmount" class="amount"></div>
+                    <div id="previewDetail" class="detail"></div>
+                </div>
 
                 <button type="submit" id="submitBtn" style="width: 100%; margin-top: 1rem;">Continue to Payment</button>
                 <div id="errorMsg" style="color: #ff6b6b; text-align: center; margin-top: 1rem; display: none;"></div>
@@ -96,21 +104,73 @@
             el.style.display = 'block';
         }
 
-        function updateActionMsg(selectedTier) {
+        function hidePreview() {
+            document.getElementById('previewBox').style.display = 'none';
+            document.getElementById('actionMsg').style.display = 'none';
+            document.getElementById('submitBtn').textContent = 'Continue to Payment';
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        async function showTierPreview(newTier) {
             const msg = document.getElementById('actionMsg');
-            if (!selectedTier || selectedTier == currentTier) {
-                msg.style.display = 'none';
+            const previewBox = document.getElementById('previewBox');
+            const btn = document.getElementById('submitBtn');
+
+            if (newTier === currentTier) { hidePreview(); return; }
+
+            const isUpgrade = newTier > currentTier;
+
+            if (!isUpgrade) {
+                previewBox.style.display = 'none';
+                const renewDate = currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'your next renewal date';
+                msg.className = 'downgrade';
+                msg.style.display = 'block';
+                msg.textContent = `⬇️ Downgrading to ${TIER_NAMES[newTier]} — your ${TIER_NAMES[currentTier]} access continues until ${renewDate}, then switches to ${TIER_NAMES[newTier]}.`;
+                btn.textContent = 'Confirm Downgrade';
+                btn.disabled = false;
                 return;
             }
-            const isUpgrade = selectedTier > currentTier;
-            msg.className = isUpgrade ? 'upgrade' : 'downgrade';
-            msg.style.display = 'block';
 
-            if (isUpgrade) {
-                msg.textContent = `⬆️ Upgrading to ${TIER_NAMES[selectedTier]} — you will be charged the prorated difference for the remaining time in your billing period.`;
-            } else {
-                const renewDate = currentPeriodEnd ? new Date(currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'your next renewal date';
-                msg.textContent = `⬇️ Downgrading to ${TIER_NAMES[selectedTier]} — your ${TIER_NAMES[currentTier]} access continues until ${renewDate}, then switches to ${TIER_NAMES[selectedTier]}.`;
+            if (!hasSubscription) {
+                msg.className = 'upgrade';
+                msg.style.display = 'block';
+                msg.textContent = `⬆️ Upgrading to ${TIER_NAMES[newTier]} — you will be redirected to Stripe to complete payment.`;
+                previewBox.style.display = 'none';
+                btn.textContent = 'Continue to Payment';
+                btn.disabled = false;
+                return;
+            }
+
+            // Existing subscriber upgrade — fetch proration preview
+            msg.style.display = 'none';
+            previewBox.style.display = 'block';
+            document.getElementById('previewTitle').textContent = `⬆️ Upgrading to ${TIER_NAMES[newTier]}`;
+            document.getElementById('previewAmount').textContent = 'Calculating...';
+            document.getElementById('previewDetail').textContent = '';
+            btn.textContent = 'Confirm & Pay';
+            btn.disabled = true;
+
+            try {
+                const sessionId = localStorage.getItem('sessionId');
+                const response = await fetch(`${API_BASE}/api/payments/preview-upgrade`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionId}` },
+                    body: JSON.stringify({ tier: newTier })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    document.getElementById('previewAmount').textContent = data.amountDisplay === '$0.00' ? 'No charge today' : `${data.amountDisplay} due today`;
+                    const periodEnd = new Date(data.newPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    document.getElementById('previewDetail').textContent = `Prorated charge for remaining time in your billing period. Your subscription renews on ${periodEnd}.`;
+                    btn.disabled = false;
+                } else {
+                    document.getElementById('previewAmount').textContent = 'Unable to calculate preview';
+                    document.getElementById('previewDetail').textContent = data.error || 'Please try again.';
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                document.getElementById('previewAmount').textContent = 'Unable to calculate preview';
+                btn.disabled = false;
             }
         }
 
@@ -155,15 +215,9 @@
             }
         }
 
-        // Show action message when tier selection changes
+        // Show preview when tier selection changes
         document.querySelectorAll('input[name="tier"]').forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                if (parseInt(e.target.value) === currentTier) {
-                    document.getElementById('actionMsg').style.display = 'none';
-                    return;
-                }
-                updateActionMsg(parseInt(e.target.value));
-            });
+            radio.addEventListener('change', (e) => showTierPreview(parseInt(e.target.value)));
         });
 
         document.getElementById('tierForm').addEventListener('submit', async (e) => {

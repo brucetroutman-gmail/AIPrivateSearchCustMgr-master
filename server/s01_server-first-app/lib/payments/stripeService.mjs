@@ -102,6 +102,40 @@ export async function handleWebhook(rawBody, signature) {
     }
   }
 
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object;
+    const subscriptionId = invoice.subscription;
+    const amountPaid = invoice.amount_paid;
+
+    if (subscriptionId && amountPaid > 0) {
+      const connection = await pool.getConnection();
+      try {
+        // Find customer_id from existing payment with this subscription
+        const [rows] = await connection.execute(
+          `SELECT customer_id, tier_purchased FROM payments WHERE stripe_subscription_id = ? ORDER BY created_at DESC LIMIT 1`,
+          [subscriptionId]
+        );
+        if (rows.length > 0) {
+          const { customer_id, tier_purchased } = rows[0];
+          // Only insert if not already recorded (avoid duplicate for initial checkout)
+          const [existing] = await connection.execute(
+            `SELECT id FROM payments WHERE stripe_subscription_id = ? AND stripe_payment_intent_id = ?`,
+            [subscriptionId, invoice.payment_intent]
+          );
+          if (existing.length === 0) {
+            await connection.execute(
+              `INSERT INTO payments (customer_id, stripe_session_id, stripe_payment_intent_id, stripe_subscription_id, amount, tier_purchased, status)
+               VALUES (?, NULL, ?, ?, ?, ?, 'completed')`,
+              [customer_id, invoice.payment_intent, subscriptionId, amountPaid, tier_purchased]
+            );
+          }
+        }
+      } finally {
+        connection.release();
+      }
+    }
+  }
+
   if (event.type === 'invoice.payment_failed') {
     const invoice = event.data.object;
     const connection = await pool.getConnection();
@@ -116,6 +150,49 @@ export async function handleWebhook(rawBody, signature) {
   }
 
   return { received: true };
+}
+
+export async function previewUpgrade(customerId, newTier) {
+  const priceId = PRICE_IDS[newTier];
+  if (!priceId) throw new Error('Invalid tier');
+
+  const connection = await pool.getConnection();
+  let subscriptionId;
+  try {
+    const [rows] = await connection.execute(
+      `SELECT stripe_subscription_id FROM payments WHERE customer_id = ? AND status = 'completed' AND stripe_subscription_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+      [customerId]
+    );
+    if (rows.length === 0) throw new Error('No active subscription found');
+    subscriptionId = rows[0].stripe_subscription_id;
+  } finally {
+    connection.release();
+  }
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const itemId = subscription.items.data[0].id;
+
+  const upcoming = await stripe.invoices.retrieveUpcoming({
+    subscription: subscriptionId,
+    subscription_items: [{ id: itemId, price: priceId }],
+    subscription_proration_behavior: 'create_prorations'
+  });
+
+  const prorationLines = upcoming.lines.data.filter(l => l.proration);
+  const credit = prorationLines.filter(l => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
+  const charge = prorationLines.filter(l => l.amount > 0).reduce((sum, l) => sum + l.amount, 0);
+  const totalDue = Math.max(0, upcoming.amount_due);
+
+  const fmt = (cents) => `$${(Math.abs(cents) / 100).toFixed(2)}`;
+
+  return {
+    amountDue: totalDue,
+    amountDisplay: fmt(totalDue),
+    credit: fmt(credit),
+    charge: fmt(charge),
+    newPeriodEnd: new Date(subscription.current_period_end * 1000),
+    nextBillingDate: new Date(upcoming.period_end * 1000)
+  };
 }
 
 export async function updateSubscription(customerId, newTier) {
