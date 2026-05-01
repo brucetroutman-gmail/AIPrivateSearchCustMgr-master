@@ -198,11 +198,21 @@
                 const subData = await subRes.json();
 
                 currentTier = licenseData.license?.tier;
+                const licenseStatus = licenseData.license?.status;
                 hasSubscription = subData.hasSubscription;
                 currentPeriodEnd = licenseData.license?.expires_at;
 
-                // Grey out current tier, add badge
-                if (currentTier) {
+                // Grey out current tier and add badge — but not for trial customers
+                if (licenseStatus === 'trial') {
+                    // Show Trial badge without greying out any tier
+                    const trialBadge = document.createElement('span');
+                    trialBadge.textContent = 'Current: Trial';
+                    trialBadge.className = 'tier-badge';
+                    trialBadge.style.background = '#ffc107';
+                    trialBadge.style.color = '#000';
+                    const label = document.getElementById(`label-${currentTier}`);
+                    if (label) label.querySelector('strong').after(trialBadge);
+                } else if (currentTier) {
                     const label = document.getElementById(`label-${currentTier}`);
                     const badge = document.getElementById(`badge-${currentTier}`);
                     if (label) label.classList.add('current');
@@ -227,7 +237,7 @@
             if (!selected) { showError('Please select a tier.'); return; }
 
             const newTier = parseInt(selected.value);
-            if (newTier === currentTier) { showError('You are already on this tier.'); return; }
+            if (newTier === currentTier && hasSubscription) { showError('You are already on this tier.'); return; }
 
             const sessionId = localStorage.getItem('sessionId');
             if (!sessionId) { window.location.href = '/login.html'; return; }
