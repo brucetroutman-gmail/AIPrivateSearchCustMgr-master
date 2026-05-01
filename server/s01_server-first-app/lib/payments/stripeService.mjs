@@ -203,6 +203,7 @@ export async function previewUpgrade(customerId, newTier) {
   });
 
   const prorationLines = upcoming.lines.data.filter(l => l.proration);
+  console.log('[STRIPE PREVIEW] proration lines:', JSON.stringify(prorationLines.map(l => ({ amount: l.amount, description: l.description }))));
   const credit = prorationLines.filter(l => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
   const charge = prorationLines.filter(l => l.amount > 0).reduce((sum, l) => sum + l.amount, 0);
   const totalDue = Math.max(0, upcoming.amount_due);
