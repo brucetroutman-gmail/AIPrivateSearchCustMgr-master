@@ -1,7 +1,5 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
 import pool from '../database/connection.mjs';
 import { EmailService } from '../email/emailService.mjs';
 import { getSettings } from '../settings-loader.mjs';

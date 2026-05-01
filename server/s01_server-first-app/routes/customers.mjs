@@ -126,7 +126,7 @@ router.post('/forgot-password', async (req, res) => {
       success: true, 
       message: 'If the email exists, a reset code has been sent.'
     });
-  } catch (error) {
+  } catch (_error) {
     // Don't reveal if email exists or not
     res.json({ 
       success: true, 

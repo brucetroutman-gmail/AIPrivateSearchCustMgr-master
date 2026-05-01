@@ -28,7 +28,7 @@ for (const envPath of envPaths) {
   try {
     dotenv.config({ path: envPath });
     if (process.env.DB_HOST) break;
-  } catch (e) {}
+  } catch (_e) { /* dotenv load failure is expected when file doesn't exist */ }
 }
 
 const app = express();
@@ -131,7 +131,7 @@ app.use(async (req, res, next) => {
     }
     req.user = user;
     next();
-  } catch (error) {
+  } catch (_error) {
     return res.status(401).json({ error: 'Invalid session' });
   }
 });
@@ -156,7 +156,7 @@ app.get('/api/health', (req, res) => {
 // Import routes and middleware
 import authRouter from './routes/auth.mjs';
 import licensingRouter from './routes/licensing.mjs';
-import { generateCSRFToken, validateCSRFToken } from './middleware/csrf.mjs';
+import { generateCSRFToken } from './middleware/csrf.mjs';
 import { validateOrigin } from './middleware/auth.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
 import { initializeLicensingDB } from './lib/licensing-db.mjs';
@@ -254,8 +254,6 @@ app.use(errorHandler);
 // Cleanup expired sessions every minute
 setInterval(async () => {
   try {
-    const { UnifiedUserManager } = await import('./lib/auth/unifiedUserManager.mjs');
-    const userManager = new UnifiedUserManager();
     const pool = (await import('./lib/database/connection.mjs')).default;
     const connection = await pool.getConnection();
     await connection.execute('DELETE FROM sessions WHERE expires_at < NOW()');

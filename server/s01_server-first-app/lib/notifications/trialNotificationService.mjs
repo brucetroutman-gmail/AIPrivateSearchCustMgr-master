@@ -13,7 +13,7 @@ for (const envPath of envPaths) {
   try {
     dotenv.config({ path: envPath });
     if (process.env.DB_HOST) break;
-  } catch (e) {}
+  } catch (_e) { /* dotenv load failure is expected when file doesn't exist */ }
 }
 
 export class TrialNotificationService {

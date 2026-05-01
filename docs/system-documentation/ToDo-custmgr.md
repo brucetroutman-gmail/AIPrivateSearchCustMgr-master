@@ -1,63 +1,31 @@
 ## Pending Tasks
-022. Create payment process using stripe
-038. Dashboard Payment Processing card — build or remove until Stripe implemented
-043. my-account.html — Payment History button is a stub until payments implemented
-044. change-tier.html / payment-confirm.html — UI exists but no real payment processing behind it
 
-### Stripe Payment Processing Setup
-
-#### Stripe Account Setup (Do First)
-- [x] S1. Create Stripe account at https://stripe.com
-- [x] S2. Create Standard product — $49.00/year recurring, price_1TRv0o3EkqjqtHVakbGpaQc2
-- [x] S3. Create Premium product — $199.00/year recurring, price_1TRv1g3EkqjqtHVaCuVC7vfi
-- [x] S4. Create Professional product — $499.00/year recurring, price_1TRv2P3EkqjqtHVatseLLSqz
-- [x] S5. Get API keys — Publishable key and Secret key (test mode)
-- [x] S6. Add webhook endpoint: https://custmgr.aiprivatesearch.com/api/payments/webhook
-  - [x] Event: checkout.session.completed
-  - [x] Event: invoice.paid
-  - [x] Event: invoice.payment_failed
-- [x] S7. Note Webhook signing secret
-- [x] S8. Add to .env-custmgr: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_STANDARD, STRIPE_PRICE_PREMIUM, STRIPE_PRICE_PROFESSIONAL
-
-#### Step 1 — Backend
-- [x] S9. Create payments table in DB --done
-- [x] S10. Create lib/payments/stripeService.mjs (createCheckoutSession, handleWebhook) --done
-- [x] S11. Create routes/payments.mjs (POST /create-checkout, POST /webhook, GET /history/:customerId) --done
-- [x] S12. Register payments route in server.mjs --done
-- [x] S13. Exclude /api/payments/webhook from rate limiting and body parsing (raw body needed for signature verification) --done
-
-#### Step 2 — change-tier.html
-- [x] S14. Replace stub "Continue to Payment" with real Stripe checkout redirect --done
-- [x] S15. Update tier prices to $49/$199/$499 per year --done
-- [x] S16. Fix auth redirect to /login.html --done
-
-#### Step 3 — payment-confirm.html
-- [x] S17. Read session_id from URL query param --done
-- [x] S18. Show success/failure message based on session status --done
-- [x] S19. Add "Go to My Account" button --done
-
-#### Step 4 — Payment History on my-account.html
-- [x] S20. Wire up Payment History button to fetch GET /api/payments/history/:customerId --done
-- [x] S21. Display payment history inline on my-account.html (date, tier, amount, status) --done
-
-#### Step 5 — Testing
-- [x] S22. Test full checkout flow in Stripe test mode --done
-- [ ] S23. Verify webhook updates customer tier and license_status to 'active'
-- [ ] S24. Verify expires_at set to 1 year from payment date
-- [x] S25. Test payment history display --done
+### Stripe Live Mode
 - [ ] S26. Switch to Stripe live mode and retest
-
-
 
 =====================================================
 
-## v1.65 Release (Current)
+## v1.66 Release (Current)
+288. Fixed ESLint errors — 2 empty catch blocks resolved --done
+289. Removed unused imports: fs, path from unifiedUserManager.mjs; crypto, adminUsers, defaultPassword from init.mjs --done
+290. Removed unused validateCSRFToken import from server.mjs --done
+291. Simplified session cleanup interval — removed unnecessary UnifiedUserManager import --done
+292. Prefixed intentional unused catch vars with underscore (_e, _error) --done
+293. Deleted legacy unused files: userManager.mjs, subscriptionManager.mjs --done
+294. ESLint result: 0 errors, 4 warnings (all intentional _prefixed catch vars) --done
+
+## v1.65 Release
 277. Added previewUpgrade to stripeService.mjs — calls Stripe retrieveUpcoming for exact proration --done
 278. Added POST /api/payments/preview-upgrade endpoint --done
 279. Updated change-tier.html — shows full proration breakdown before confirming upgrade --done
 280. Upgrade preview shows: unused credit, new plan cost, total due today, renewal date --done
 281. Downgrade shows renewal date message, no charge preview --done
 282. Trial customers routed to Stripe checkout, existing subscribers use update-subscription --done
+283. Completed Stripe payment processing setup S1-S25 --done
+284. Created aips-stripe-setup.md documentation --done
+285. Removed Coming Soon from index.html, changed header to AI Private Search --done
+286. Added invoice.paid webhook handler to record upgrade/renewal payments in DB --done
+287. Added customer.subscription.updated webhook handler --done
 
 ## v1.64 Release
 268. Added updateSubscription and getSubscriptionId to stripeService.mjs --done
