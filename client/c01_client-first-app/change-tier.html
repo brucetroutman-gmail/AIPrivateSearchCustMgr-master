@@ -73,6 +73,13 @@
                 </div>
 
                 <button type="submit" id="submitBtn" style="width: 100%; margin-top: 1rem;">Continue to Payment</button>
+                <div id="confirmBox" style="display:none; margin-top:1rem; padding:1rem; background:rgba(255,193,7,0.1); border:1px solid #ffc107; border-radius:4px;">
+                    <p id="confirmText" style="margin-bottom:0.75rem; font-weight:bold;"></p>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button type="button" id="confirmYesBtn" style="flex:1; background:#28a745;">Yes, proceed</button>
+                        <button type="button" id="confirmNoBtn" style="flex:1; background:#6c757d;">Cancel</button>
+                    </div>
+                </div>
                 <div id="errorMsg" style="color: #ff6b6b; text-align: center; margin-top: 1rem; display: none;"></div>
             </form>
 
@@ -128,6 +135,54 @@
                 msg.textContent = `⬇️ Downgrading to ${TIER_NAMES[newTier]} — your ${TIER_NAMES[currentTier]} access continues until ${renewDate}, then switches to ${TIER_NAMES[newTier]}.`;
                 btn.textContent = 'Confirm Downgrade';
                 btn.disabled = false;
+
+                // Fetch downgrade preview if existing subscriber
+                if (hasSubscription) {
+                    const sessionId = localStorage.getItem('sessionId');
+                    try {
+                        const response = await fetch(`${API_BASE}/api/payments/preview-downgrade`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionId}` },
+                            body: JSON.stringify({ tier: newTier })
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.success && data.extensionMonths > 0) {
+                            const newExpiry = new Date(data.newExpiryDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                            previewBox.style.display = 'block';
+                            document.getElementById('previewTitle').textContent = `⬇️ Downgrading to ${TIER_NAMES[newTier]}`;
+                            document.getElementById('previewAmount').textContent = 'No charge today';
+                            const detail = document.getElementById('previewDetail');
+                            detail.textContent = '';
+                            const rows = [
+                                ['Current plan annual price', data.currentAnnualPrice, ''],
+                                ['Less: time already used', `-${data.usedAmount}`, '#dc3545'],
+                                ['Unused credit', data.unusedCredit, '#28a745'],
+                                [`÷ ${TIER_NAMES[newTier]} monthly rate`, data.newTierMonthlyRate, ''],
+                                ['Extension on new tier', `${data.extensionMonths} month(s)`, '#28a745'],
+                                [`New expiry date`, newExpiry, '#28a745']
+                            ];
+                            const table = document.createElement('table');
+                            table.style.cssText = 'width:100%; font-size:0.9em; margin-top:0.5rem; border-collapse:collapse;';
+                            rows.forEach(([label, value, color], i) => {
+                                const tr = document.createElement('tr');
+                                if (i === 4) tr.style.borderTop = '1px solid var(--border-color)';
+                                const td1 = document.createElement('td');
+                                td1.style.padding = i >= 4 ? '6px 0 3px' : '3px 0';
+                                if (i >= 4) td1.style.fontWeight = 'bold';
+                                td1.textContent = label;
+                                tr.appendChild(td1);
+                                const td2 = document.createElement('td');
+                                td2.style.textAlign = 'right';
+                                if (color) td2.style.color = color;
+                                if (i >= 4) td2.style.fontWeight = 'bold';
+                                td2.textContent = value;
+                                tr.appendChild(td2);
+                                table.appendChild(tr);
+                            });
+                            detail.appendChild(table);
+                        }
+                    } catch (_e) { /* preview failed, downgrade message already shown */ }
+                }
                 return;
             }
 
@@ -161,7 +216,38 @@
                 if (response.ok && data.success) {
                     document.getElementById('previewAmount').textContent = data.amountDisplay === '$0.00' ? 'No charge today' : `${data.amountDisplay} due today`;
                     const periodEnd = new Date(data.newPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                    document.getElementById('previewDetail').textContent = `Prorated charge for remaining time in your billing period. Your subscription renews on ${periodEnd}.`;
+                    const detail = document.getElementById('previewDetail');
+                    detail.textContent = '';
+                    const rows = [
+                        ['Current plan annual price', data.currentAnnualPrice, ''],
+                        ['Less: time already used', `-${data.usedAmount}`, '#dc3545'],
+                        ['Unused credit', data.credit.replace('-',''), '#28a745'],
+                        ['New plan prorated cost', `+${data.charge}`, ''],
+                        ['Total due today', data.amountDisplay, '#28a745'],
+                        [`Renews on ${periodEnd}`, '', '#888']
+                    ];
+                    const table = document.createElement('table');
+                    table.style.cssText = 'width:100%; font-size:0.9em; margin-top:0.5rem; border-collapse:collapse;';
+                    rows.forEach(([label, value, color], i) => {
+                        const tr = document.createElement('tr');
+                        if (i === 4) tr.style.borderTop = '1px solid var(--border-color)';
+                        const td1 = document.createElement('td');
+                        td1.style.padding = i === 4 ? '6px 0 3px' : '3px 0';
+                        if (i === 4) td1.style.fontWeight = 'bold';
+                        if (i === 5) { td1.style.color = '#888'; td1.style.fontSize = '0.85em'; td1.colSpan = 2; }
+                        td1.textContent = label;
+                        tr.appendChild(td1);
+                        if (i < 5) {
+                            const td2 = document.createElement('td');
+                            td2.style.textAlign = 'right';
+                            if (color) td2.style.color = color;
+                            if (i === 4) td2.style.fontWeight = 'bold';
+                            td2.textContent = value;
+                            tr.appendChild(td2);
+                        }
+                        table.appendChild(tr);
+                    });
+                    detail.appendChild(table);
                     btn.disabled = false;
                 } else {
                     document.getElementById('previewAmount').textContent = 'Unable to calculate preview';
@@ -230,25 +316,19 @@
             radio.addEventListener('change', (e) => showTierPreview(parseInt(e.target.value)));
         });
 
-        document.getElementById('tierForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        let confirmedTier = null;
 
-            const selected = document.querySelector('input[name="tier"]:checked');
-            if (!selected) { showError('Please select a tier.'); return; }
-
-            const newTier = parseInt(selected.value);
-            if (newTier === currentTier && hasSubscription) { showError('You are already on this tier.'); return; }
-
+        async function processPayment(newTier) {
             const sessionId = localStorage.getItem('sessionId');
             if (!sessionId) { window.location.href = '/login.html'; return; }
 
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
             btn.textContent = 'Processing...';
+            document.getElementById('confirmBox').style.display = 'none';
 
             try {
                 if (hasSubscription) {
-                    // Existing subscriber — update subscription
                     const response = await fetch(`${API_BASE}/api/payments/update-subscription`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionId}` },
@@ -268,7 +348,6 @@
                         btn.textContent = 'Continue to Payment';
                     }
                 } else {
-                    // New subscriber — Stripe checkout
                     const response = await fetch(`${API_BASE}/api/payments/create-checkout`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionId}` },
@@ -283,11 +362,50 @@
                         btn.textContent = 'Continue to Payment';
                     }
                 }
-            } catch (error) {
+            } catch (_error) {
                 showError('Network error. Please try again.');
                 btn.disabled = false;
                 btn.textContent = 'Continue to Payment';
             }
+        }
+
+        document.getElementById('confirmYesBtn').addEventListener('click', () => {
+            if (confirmedTier) processPayment(confirmedTier);
+        });
+
+        document.getElementById('confirmNoBtn').addEventListener('click', () => {
+            document.getElementById('confirmBox').style.display = 'none';
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = false;
+        });
+
+        document.getElementById('tierForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const selected = document.querySelector('input[name="tier"]:checked');
+            if (!selected) { showError('Please select a tier.'); return; }
+
+            const newTier = parseInt(selected.value);
+            if (newTier === currentTier && hasSubscription) { showError('You are already on this tier.'); return; }
+
+            // Show confirmation box
+            confirmedTier = newTier;
+            const isUpgrade = !hasSubscription || newTier > currentTier;
+            const amountEl = document.getElementById('previewAmount');
+            const amountText = amountEl && document.getElementById('previewBox').style.display !== 'none'
+                ? amountEl.textContent : '';
+
+            const confirmText = document.getElementById('confirmText');
+            if (isUpgrade && amountText) {
+                confirmText.textContent = `Confirm upgrade to ${TIER_NAMES[newTier]}? ${amountText}`;
+            } else if (!isUpgrade) {
+                confirmText.textContent = `Confirm downgrade to ${TIER_NAMES[newTier]}? This takes effect at your next renewal.`;
+            } else {
+                confirmText.textContent = `Confirm selection of ${TIER_NAMES[newTier]} plan?`;
+            }
+
+            document.getElementById('confirmBox').style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
         });
 
         loadCurrentTier();

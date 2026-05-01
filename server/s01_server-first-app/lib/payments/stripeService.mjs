@@ -171,6 +171,8 @@ export async function previewUpgrade(customerId, newTier) {
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const itemId = subscription.items.data[0].id;
+  const currentAnnualPrice = subscription.items.data[0].price.unit_amount;
+  const currentPeriodEnd = new Date(subscription.current_period_end * 1000);
 
   const upcoming = await stripe.invoices.retrieveUpcoming({
     subscription: subscriptionId,
@@ -182,15 +184,32 @@ export async function previewUpgrade(customerId, newTier) {
   const credit = prorationLines.filter(l => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
   const charge = prorationLines.filter(l => l.amount > 0).reduce((sum, l) => sum + l.amount, 0);
   const totalDue = Math.max(0, upcoming.amount_due);
+  const usedAmount = currentAnnualPrice + credit;
+
+  const newTierAnnualPrice = TIER_AMOUNTS[newTier];
+  const unusedCreditAbs = Math.abs(credit);
+  const extensionMonths = newTierAnnualPrice > 0
+    ? Math.floor((unusedCreditAbs / newTierAnnualPrice) * 12)
+    : 0;
+  const newExpiryDate = new Date(currentPeriodEnd);
+  newExpiryDate.setMonth(newExpiryDate.getMonth() + extensionMonths);
 
   const fmt = (cents) => `$${(Math.abs(cents) / 100).toFixed(2)}`;
+  const fmtMonthly = (annual) => `$${(annual / 100 / 12).toFixed(2)}/mo`;
 
   return {
     amountDue: totalDue,
     amountDisplay: fmt(totalDue),
     credit: fmt(credit),
     charge: fmt(charge),
-    newPeriodEnd: new Date(subscription.current_period_end * 1000),
+    currentAnnualPrice: fmt(currentAnnualPrice),
+    usedAmount: fmt(usedAmount),
+    unusedCredit: fmt(unusedCreditAbs),
+    newTierMonthlyRate: fmtMonthly(newTierAnnualPrice),
+    extensionMonths,
+    newExpiryDate,
+    currentPeriodEnd,
+    newPeriodEnd: currentPeriodEnd,
     nextBillingDate: new Date(upcoming.period_end * 1000)
   };
 }

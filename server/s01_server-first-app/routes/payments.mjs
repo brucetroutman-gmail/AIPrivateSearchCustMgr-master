@@ -53,6 +53,21 @@ router.post('/preview-upgrade', async (req, res) => {
   }
 });
 
+// POST /api/payments/preview-downgrade — calculates unused credit and extension on new tier
+router.post('/preview-downgrade', async (req, res) => {
+  try {
+    const { tier } = req.body;
+    if (!tier || ![1, 2, 3].includes(parseInt(tier))) {
+      return res.status(400).json({ error: 'Valid tier required' });
+    }
+    const preview = await previewUpgrade(req.user.id, parseInt(tier));
+    res.json({ success: true, ...preview });
+  } catch (error) {
+    console.error('[PAYMENTS] preview-downgrade error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // POST /api/payments/update-subscription — upgrade or downgrade existing subscription
 router.post('/update-subscription', async (req, res) => {
   try {
