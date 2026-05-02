@@ -144,7 +144,7 @@ export async function handleWebhook(rawBody, signature) {
     const invoice = event.data.object;
     const subscriptionId = invoice.subscription;
     const amountPaid = invoice.amount_paid;
-
+    console.log(`[WEBHOOK] invoice.paid: sub=${subscriptionId} amount=${amountPaid} pi=${invoice.payment_intent}`);
     if (subscriptionId && amountPaid > 0) {
       const connection = await pool.getConnection();
       try {
@@ -295,10 +295,14 @@ export async function updateSubscription(customerId, newTier) {
   // For upgrades, find and pay the pending proration invoice immediately
   if (isUpgrade) {
     const invoices = await stripe.invoices.list({ customer: stripeCustomerId, subscription: subscriptionId, status: 'draft' });
+    console.log(`[STRIPE] Draft invoices found for upgrade: ${invoices.data.length}`);
     for (const inv of invoices.data) {
+      console.log(`[STRIPE] Finalizing invoice ${inv.id} amount_due=${inv.amount_due}`);
       const finalized = await stripe.invoices.finalizeInvoice(inv.id);
       if (finalized.amount_due > 0) {
+        console.log(`[STRIPE] Paying invoice ${inv.id}`);
         await stripe.invoices.pay(inv.id);
+        console.log(`[STRIPE] Invoice ${inv.id} paid`);
       }
     }
   }
