@@ -106,21 +106,41 @@ export async function handleWebhook(rawBody, signature) {
   if (event.type === 'customer.subscription.updated') {
     const subscription = event.data.object;
     const priceId = subscription.items.data[0].price.id;
+    console.log(`[WEBHOOK] subscription.updated: sub=${subscription.id} priceId=${priceId}`);
+    console.log(`[WEBHOOK] PRICE_IDS map:`, JSON.stringify(PRICE_IDS));
     const newTierEntry = Object.entries(PRICE_IDS).find(([, v]) => v === priceId);
+    console.log(`[WEBHOOK] newTierEntry:`, newTierEntry);
     if (newTierEntry) {
       const newTier = parseInt(newTierEntry[0]);
-      const customerId = subscription.metadata?.customerId;
-      if (customerId) {
-        const connection = await pool.getConnection();
-        try {
+      const connection = await pool.getConnection();
+      try {
+        const [rows] = await connection.execute(
+          `SELECT customer_id FROM payments WHERE stripe_subscription_id = ? LIMIT 1`,
+          [subscription.id]
+        );
+        console.log(`[WEBHOOK] payments lookup for sub ${subscription.id}: ${rows.length} rows`);
+        if (rows.length > 0) {
+          const customerId = rows[0].customer_id;
+          const expiresAt = new Date(subscription.current_period_end * 1000);
           await connection.execute(
-            `UPDATE customers SET tier = ? WHERE id = ?`,
-            [newTier, customerId]
+            `UPDATE customers SET tier = ?, license_status = 'active', expires_at = ? WHERE id = ?`,
+            [newTier, expiresAt, customerId]
           );
-        } finally {
-          connection.release();
+          await connection.execute(
+            `INSERT INTO payments (customer_id, stripe_subscription_id, amount, tier_purchased, status)
+             VALUES (?, ?, ?, ?, 'completed')
+             ON DUPLICATE KEY UPDATE status = 'completed'`,
+            [customerId, subscription.id, (await getTierAmounts())[newTier], newTier]
+          );
+          console.log(`[WEBHOOK] Updated customer ${customerId} to tier ${newTier}`);
+        } else {
+          console.log(`[WEBHOOK] No payment row found for subscription ${subscription.id} — cannot update customer`);
         }
+      } finally {
+        connection.release();
       }
+    } else {
+      console.log(`[WEBHOOK] priceId ${priceId} not found in PRICE_IDS — skipping`);
     }
   }
 
@@ -203,7 +223,6 @@ export async function previewUpgrade(customerId, newTier) {
   });
 
   const prorationLines = upcoming.lines.data.filter(l => l.proration);
-  console.log('[STRIPE PREVIEW] proration lines:', JSON.stringify(prorationLines.map(l => ({ amount: l.amount, description: l.description }))));
   // Only use the credit line matching the current subscription price to avoid stale credits
   const currentPriceCredit = prorationLines
     .filter(l => l.amount < 0 && Math.abs(l.amount) <= currentAnnualPrice)
