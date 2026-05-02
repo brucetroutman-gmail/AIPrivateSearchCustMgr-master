@@ -204,9 +204,13 @@ export async function previewUpgrade(customerId, newTier) {
 
   const prorationLines = upcoming.lines.data.filter(l => l.proration);
   console.log('[STRIPE PREVIEW] proration lines:', JSON.stringify(prorationLines.map(l => ({ amount: l.amount, description: l.description }))));
-  const credit = prorationLines.filter(l => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
+  // Only use the credit line matching the current subscription price to avoid stale credits
+  const currentPriceCredit = prorationLines
+    .filter(l => l.amount < 0 && Math.abs(l.amount) <= currentAnnualPrice)
+    .reduce((best, l) => !best || Math.abs(l.amount) > Math.abs(best.amount) ? l : best, null);
+  const credit = currentPriceCredit ? currentPriceCredit.amount : prorationLines.filter(l => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
   const charge = prorationLines.filter(l => l.amount > 0).reduce((sum, l) => sum + l.amount, 0);
-  const totalDue = Math.max(0, upcoming.amount_due);
+  const totalDue = Math.max(0, charge + credit);
   const usedAmount = currentAnnualPrice + credit;
 
   const newTierAnnualPrice = (await getTierAmounts())[newTier];
