@@ -292,12 +292,14 @@ export async function updateSubscription(customerId, newTier) {
     ...(isUpgrade ? {} : { billing_cycle_anchor: 'unchanged' })
   });
 
-  // For upgrades, immediately invoice and charge the prorated amount
+  // For upgrades, find and pay the pending proration invoice immediately
   if (isUpgrade) {
-    const invoice = await stripe.invoices.create({ customer: stripeCustomerId, subscription: subscriptionId });
-    const finalized = await stripe.invoices.finalizeInvoice(invoice.id);
-    if (finalized.amount_due > 0) {
-      await stripe.invoices.pay(invoice.id);
+    const invoices = await stripe.invoices.list({ customer: stripeCustomerId, subscription: subscriptionId, status: 'draft' });
+    for (const inv of invoices.data) {
+      const finalized = await stripe.invoices.finalizeInvoice(inv.id);
+      if (finalized.amount_due > 0) {
+        await stripe.invoices.pay(inv.id);
+      }
     }
   }
 
