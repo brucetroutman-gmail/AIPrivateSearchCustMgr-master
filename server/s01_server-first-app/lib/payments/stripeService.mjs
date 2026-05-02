@@ -128,13 +128,7 @@ export async function handleWebhook(rawBody, signature) {
             `UPDATE customers SET tier = ?, license_status = 'active'${expiresAtValue ? ', expires_at = ?' : ''} WHERE id = ?`,
             expiresAtValue ? [newTier, expiresAtValue, customerId] : [newTier, customerId]
           );
-          await connection.execute(
-            `INSERT INTO payments (customer_id, stripe_subscription_id, amount, tier_purchased, status)
-             VALUES (?, ?, ?, ?, 'completed')
-             ON DUPLICATE KEY UPDATE status = 'completed'`,
-            [customerId, subscription.id, (await getTierAmounts())[newTier], newTier]
-          );
-          console.log(`[WEBHOOK] Updated customer ${customerId} to tier ${newTier}`);
+          console.log(`[WEBHOOK] Updated customer ${customerId} to tier ${newTier} — payment will be recorded via invoice.paid`);
         } else {
           console.log(`[WEBHOOK] No payment row found for subscription ${subscription.id} — cannot update customer`);
         }
@@ -160,17 +154,22 @@ export async function handleWebhook(rawBody, signature) {
           [subscriptionId]
         );
         if (rows.length > 0) {
-          const { customer_id, tier_purchased } = rows[0];
-          // Only insert if not already recorded (avoid duplicate for initial checkout)
+          const { customer_id } = rows[0];
+          // Determine tier from current subscription price
+          const sub = await stripe.subscriptions.retrieve(subscriptionId);
+          const currentPriceId = sub.items.data[0].price.id;
+          const tierEntry = Object.entries(PRICE_IDS).find(([, v]) => v === currentPriceId);
+          const tierPurchased = tierEntry ? parseInt(tierEntry[0]) : rows[0].tier_purchased;
+          // Only insert if not already recorded
           const [existing] = await connection.execute(
-            `SELECT id FROM payments WHERE stripe_subscription_id = ? AND stripe_payment_intent_id = ?`,
-            [subscriptionId, invoice.payment_intent]
+            `SELECT id FROM payments WHERE stripe_payment_intent_id = ?`,
+            [invoice.payment_intent]
           );
           if (existing.length === 0) {
             await connection.execute(
               `INSERT INTO payments (customer_id, stripe_session_id, stripe_payment_intent_id, stripe_subscription_id, amount, tier_purchased, status)
                VALUES (?, NULL, ?, ?, ?, ?, 'completed')`,
-              [customer_id, invoice.payment_intent, subscriptionId, amountPaid, tier_purchased]
+              [customer_id, invoice.payment_intent, subscriptionId, amountPaid, tierPurchased]
             );
           }
         }
@@ -266,9 +265,8 @@ export async function updateSubscription(customerId, newTier) {
   const priceId = PRICE_IDS[newTier];
   if (!priceId) throw new Error('Invalid tier');
 
-  // Get stripe_subscription_id from payments table
   const connection = await pool.getConnection();
-  let subscriptionId;
+  let subscriptionId, stripeCustomerId;
   try {
     const [rows] = await connection.execute(
       `SELECT stripe_subscription_id FROM payments WHERE customer_id = ? AND status = 'completed' AND stripe_subscription_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
@@ -280,13 +278,12 @@ export async function updateSubscription(customerId, newTier) {
     connection.release();
   }
 
-  // Get current subscription to find subscription item ID
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const itemId = subscription.items.data[0].id;
+  stripeCustomerId = subscription.customer;
 
-  // Determine if upgrade or downgrade
-  const currentTier = subscription.items.data[0].price.id;
-  const currentTierNum = Object.entries(PRICE_IDS).find(([, v]) => v === currentTier)?.[0];
+  const currentPriceId = subscription.items.data[0].price.id;
+  const currentTierNum = Object.entries(PRICE_IDS).find(([, v]) => v === currentPriceId)?.[0];
   const isUpgrade = parseInt(newTier) > parseInt(currentTierNum);
 
   const updated = await stripe.subscriptions.update(subscriptionId, {
@@ -294,6 +291,15 @@ export async function updateSubscription(customerId, newTier) {
     proration_behavior: isUpgrade ? 'create_prorations' : 'none',
     ...(isUpgrade ? {} : { billing_cycle_anchor: 'unchanged' })
   });
+
+  // For upgrades, immediately invoice and charge the prorated amount
+  if (isUpgrade) {
+    const invoice = await stripe.invoices.create({ customer: stripeCustomerId, subscription: subscriptionId });
+    const finalized = await stripe.invoices.finalizeInvoice(invoice.id);
+    if (finalized.amount_due > 0) {
+      await stripe.invoices.pay(invoice.id);
+    }
+  }
 
   return { subscriptionId, isUpgrade, currentPeriodEnd: new Date(updated.current_period_end * 1000) };
 }
