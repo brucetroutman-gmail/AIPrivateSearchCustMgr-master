@@ -121,10 +121,12 @@ export async function handleWebhook(rawBody, signature) {
         console.log(`[WEBHOOK] payments lookup for sub ${subscription.id}: ${rows.length} rows`);
         if (rows.length > 0) {
           const customerId = rows[0].customer_id;
-          const expiresAt = new Date(subscription.current_period_end * 1000);
+          const periodEnd = subscription.current_period_end;
+          const expiresAt = periodEnd ? new Date(periodEnd * 1000) : null;
+          const expiresAtValue = expiresAt && expiresAt.getFullYear() > 2000 ? expiresAt : null;
           await connection.execute(
-            `UPDATE customers SET tier = ?, license_status = 'active', expires_at = ? WHERE id = ?`,
-            [newTier, expiresAt, customerId]
+            `UPDATE customers SET tier = ?, license_status = 'active'${expiresAtValue ? ', expires_at = ?' : ''} WHERE id = ?`,
+            expiresAtValue ? [newTier, expiresAtValue, customerId] : [newTier, customerId]
           );
           await connection.execute(
             `INSERT INTO payments (customer_id, stripe_subscription_id, amount, tier_purchased, status)
