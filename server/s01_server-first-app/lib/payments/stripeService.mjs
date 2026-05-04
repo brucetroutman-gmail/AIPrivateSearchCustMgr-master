@@ -308,7 +308,7 @@ export async function updateSubscription(customerId, newTier) {
 
   const updated = await stripe.subscriptions.update(subscriptionId, {
     items: [{ id: itemId, price: priceId }],
-    proration_behavior: isUpgrade ? 'create_prorations' : 'none',
+    proration_behavior: isUpgrade ? 'always_invoice' : 'none',
     ...(isUpgrade ? {} : { billing_cycle_anchor: 'unchanged' })
   });
 
