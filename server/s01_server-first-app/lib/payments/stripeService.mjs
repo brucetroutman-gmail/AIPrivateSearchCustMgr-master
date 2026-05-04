@@ -144,8 +144,10 @@ export async function handleWebhook(rawBody, signature) {
     const invoice = event.data.object;
     const subscriptionId = invoice.subscription;
     const amountPaid = invoice.amount_paid;
-    console.log(`[WEBHOOK] invoice.paid: sub=${subscriptionId} amount=${amountPaid} pi=${invoice.payment_intent}`);
-    if (subscriptionId && amountPaid > 0) {
+    console.log(`[WEBHOOK] invoice.paid: sub=${subscriptionId} amount=${amountPaid} reason=${invoice.billing_reason}`);
+
+    // Only record renewal payments — upgrades are recorded directly in updateSubscription
+    if (subscriptionId && amountPaid > 0 && invoice.billing_reason === 'subscription_cycle') {
       const connection = await pool.getConnection();
       try {
         // Find customer_id from existing payment with this subscription
@@ -286,24 +288,42 @@ export async function updateSubscription(customerId, newTier) {
   const currentTierNum = Object.entries(PRICE_IDS).find(([, v]) => v === currentPriceId)?.[0];
   const isUpgrade = parseInt(newTier) > parseInt(currentTierNum);
 
+  // Calculate prorated amount before updating
+  let prorationAmount = 0;
+  if (isUpgrade) {
+    const upcoming = await stripe.invoices.retrieveUpcoming({
+      subscription: subscriptionId,
+      subscription_items: [{ id: itemId, price: priceId }],
+      subscription_proration_behavior: 'create_prorations'
+    });
+    const prorationLines = upcoming.lines.data.filter(l => l.proration);
+    const currentAnnualPrice = subscription.items.data[0].price.unit_amount;
+    const creditLine = prorationLines
+      .filter(l => l.amount < 0 && Math.abs(l.amount) <= currentAnnualPrice)
+      .reduce((best, l) => !best || Math.abs(l.amount) > Math.abs(best.amount) ? l : best, null);
+    const credit = creditLine ? creditLine.amount : prorationLines.filter(l => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
+    const charge = prorationLines.filter(l => l.amount > 0).reduce((sum, l) => sum + l.amount, 0);
+    prorationAmount = Math.max(0, charge + credit);
+  }
+
   const updated = await stripe.subscriptions.update(subscriptionId, {
     items: [{ id: itemId, price: priceId }],
     proration_behavior: isUpgrade ? 'create_prorations' : 'none',
     ...(isUpgrade ? {} : { billing_cycle_anchor: 'unchanged' })
   });
 
-  // For upgrades, find and pay the pending proration invoice immediately
-  if (isUpgrade) {
-    const invoices = await stripe.invoices.list({ customer: stripeCustomerId, subscription: subscriptionId, status: 'draft' });
-    console.log(`[STRIPE] Draft invoices found for upgrade: ${invoices.data.length}`);
-    for (const inv of invoices.data) {
-      console.log(`[STRIPE] Finalizing invoice ${inv.id} amount_due=${inv.amount_due}`);
-      const finalized = await stripe.invoices.finalizeInvoice(inv.id);
-      if (finalized.amount_due > 0) {
-        console.log(`[STRIPE] Paying invoice ${inv.id}`);
-        await stripe.invoices.pay(inv.id);
-        console.log(`[STRIPE] Invoice ${inv.id} paid`);
-      }
+  // Record upgrade payment directly with the prorated amount
+  if (isUpgrade && prorationAmount > 0) {
+    const conn2 = await pool.getConnection();
+    try {
+      await conn2.execute(
+        `INSERT INTO payments (customer_id, stripe_subscription_id, amount, tier_purchased, status)
+         VALUES (?, ?, ?, ?, 'completed')`,
+        [customerId, subscriptionId, prorationAmount, newTier]
+      );
+      console.log(`[STRIPE] Recorded upgrade payment: customer=${customerId} tier=${newTier} amount=${prorationAmount}`);
+    } finally {
+      conn2.release();
     }
   }
 
