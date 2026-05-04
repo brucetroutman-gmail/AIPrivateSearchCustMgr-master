@@ -88,7 +88,7 @@
                 <h3>📋 Upgrade &amp; Downgrade Policy</h3>
                 <ul>
                     <li><strong>Upgrades</strong> are prorated to the day — you only pay the difference for the remaining time in your billing period.</li>
-                    <li><strong>Downgrades</strong> take effect at your next renewal date. Your current tier access continues until then with no partial refunds.</li>
+                    <li><strong>Downgrades</strong> take effect immediately. Your unused balance is credited to extend your new plan's expiry date. Your Stripe subscription is cancelled and you re-subscribe when your extended period ends.</li>
                     <li>All plans renew automatically each year. You can change or cancel at any time.</li>
                 </ul>
             </div>
@@ -349,7 +349,7 @@
                         const isUpgrade = newTier > currentTier;
                         const msg = isUpgrade
                             ? `Upgraded to ${TIER_NAMES[newTier]} successfully! Your account has been updated.`
-                            : `Downgrade to ${TIER_NAMES[newTier]} scheduled. Your ${TIER_NAMES[currentTier]} access continues until ${new Date(data.currentPeriodEnd).toLocaleDateString()}.`;
+                            : `Downgraded to ${TIER_NAMES[newTier]}. Your unused credit has been applied — new expiry: ${new Date(data.currentPeriodEnd).toLocaleDateString()}.`;
                         sessionStorage.setItem('tierChangeMsg', msg);
                         window.location.href = '/my-account.html';
                     } else {
@@ -409,7 +409,7 @@
             if (isUpgrade && amountText) {
                 confirmText.textContent = `Confirm upgrade to ${TIER_NAMES[newTier]}? ${amountText}`;
             } else if (!isUpgrade) {
-                confirmText.textContent = `Confirm downgrade to ${TIER_NAMES[newTier]}? This takes effect at your next renewal.`;
+                confirmText.textContent = `Confirm downgrade to ${TIER_NAMES[newTier]}? Your unused Premium credit will extend your new plan expiry date. Your Stripe subscription will be cancelled.`;
             } else {
                 confirmText.textContent = `Confirm selection of ${TIER_NAMES[newTier]} plan?`;
             }

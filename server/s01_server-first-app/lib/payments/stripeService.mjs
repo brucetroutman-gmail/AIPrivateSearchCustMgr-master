@@ -290,6 +290,8 @@ export async function updateSubscription(customerId, newTier) {
 
   // Calculate prorated amount before updating
   let prorationAmount = 0;
+  let downgradeExpiresAt = null;
+
   if (isUpgrade) {
     const upcoming = await stripe.invoices.retrieveUpcoming({
       subscription: subscriptionId,
@@ -304,6 +306,45 @@ export async function updateSubscription(customerId, newTier) {
     const credit = creditLine ? creditLine.amount : prorationLines.filter(l => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
     const charge = prorationLines.filter(l => l.amount > 0).reduce((sum, l) => sum + l.amount, 0);
     prorationAmount = Math.max(0, charge + credit);
+  } else {
+    // Downgrade: calculate unused credit and extension on new tier
+    const currentAnnualPrice = subscription.items.data[0].price.unit_amount;
+    const currentPeriodEnd = subscription.current_period_end;
+    const currentPeriodStart = subscription.current_period_start;
+    const totalSeconds = currentPeriodEnd - currentPeriodStart;
+    const usedSeconds = Math.floor(Date.now() / 1000) - currentPeriodStart;
+    const unusedFraction = Math.max(0, (totalSeconds - usedSeconds) / totalSeconds);
+    const unusedCredit = Math.round(currentAnnualPrice * unusedFraction);
+    const newTierAnnualPrice = (await getTierAmounts())[newTier];
+    const extensionDays = newTierAnnualPrice > 0
+      ? Math.floor((unusedCredit / newTierAnnualPrice) * 365)
+      : 0;
+    // Get current expires_at from DB
+    const conn3 = await pool.getConnection();
+    try {
+      const [custRows] = await conn3.execute(`SELECT expires_at FROM customers WHERE id = ?`, [customerId]);
+      const currentExpiry = custRows[0]?.expires_at ? new Date(custRows[0].expires_at) : new Date();
+      downgradeExpiresAt = new Date(currentExpiry);
+      downgradeExpiresAt.setDate(downgradeExpiresAt.getDate() + extensionDays);
+    } finally {
+      conn3.release();
+    }
+  }
+
+  if (!isUpgrade) {
+    // Downgrade: cancel Stripe subscription and extend expiry with unused credit
+    await stripe.subscriptions.cancel(subscriptionId);
+    const conn4 = await pool.getConnection();
+    try {
+      await conn4.execute(
+        `UPDATE customers SET tier = ?, license_status = 'active', expires_at = ? WHERE id = ?`,
+        [newTier, downgradeExpiresAt, customerId]
+      );
+      console.log(`[STRIPE] Downgrade: customer=${customerId} tier=${newTier} new_expiry=${downgradeExpiresAt}`);
+    } finally {
+      conn4.release();
+    }
+    return { subscriptionId, isUpgrade: false, currentPeriodEnd: downgradeExpiresAt };
   }
 
   const updated = await stripe.subscriptions.update(subscriptionId, {
