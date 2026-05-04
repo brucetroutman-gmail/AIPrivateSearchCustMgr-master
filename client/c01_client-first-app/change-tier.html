@@ -189,9 +189,56 @@
             if (!hasSubscription) {
                 msg.className = 'upgrade';
                 msg.style.display = 'block';
-                msg.textContent = `⬆️ Upgrading to ${TIER_NAMES[newTier]} — you will be redirected to Stripe to complete payment.`;
                 previewBox.style.display = 'none';
                 btn.textContent = 'Continue to Payment';
+                btn.disabled = true;
+
+                // Check for unused credit
+                const sessionId = localStorage.getItem('sessionId');
+                try {
+                    const response = await fetch(`${API_BASE}/api/payments/preview-checkout`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionId}` },
+                        body: JSON.stringify({ tier: newTier })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success && data.creditAmount > 0) {
+                        previewBox.style.display = 'block';
+                        document.getElementById('previewTitle').textContent = `⬆️ Upgrading to ${TIER_NAMES[newTier]}`;
+                        document.getElementById('previewAmount').textContent = `${data.netDisplay} due today`;
+                        const detail = document.getElementById('previewDetail');
+                        detail.textContent = '';
+                        const rows = [
+                            [`${TIER_NAMES[newTier]} annual price`, data.newTierDisplay, ''],
+                            [`Unused plan credit (${data.daysRemaining} days)`, `-${data.creditDisplay}`, '#28a745'],
+                            ['Total due today', data.netDisplay, '#28a745']
+                        ];
+                        const table = document.createElement('table');
+                        table.style.cssText = 'width:100%; font-size:0.9em; margin-top:0.5rem; border-collapse:collapse;';
+                        rows.forEach(([label, value, color], i) => {
+                            const tr = document.createElement('tr');
+                            if (i === 2) tr.style.borderTop = '1px solid var(--border-color)';
+                            const td1 = document.createElement('td');
+                            td1.style.padding = i === 2 ? '6px 0 3px' : '3px 0';
+                            if (i === 2) td1.style.fontWeight = 'bold';
+                            td1.textContent = label;
+                            tr.appendChild(td1);
+                            const td2 = document.createElement('td');
+                            td2.style.textAlign = 'right';
+                            if (color) td2.style.color = color;
+                            if (i === 2) td2.style.fontWeight = 'bold';
+                            td2.textContent = value;
+                            tr.appendChild(td2);
+                            table.appendChild(tr);
+                        });
+                        detail.appendChild(table);
+                        msg.textContent = `⬆️ Upgrading to ${TIER_NAMES[newTier]} — your unused credit has been applied.`;
+                    } else {
+                        msg.textContent = `⬆️ Upgrading to ${TIER_NAMES[newTier]} — you will be redirected to Stripe to complete payment.`;
+                    }
+                } catch (_e) {
+                    msg.textContent = `⬆️ Upgrading to ${TIER_NAMES[newTier]} — you will be redirected to Stripe to complete payment.`;
+                }
                 btn.disabled = false;
                 return;
             }

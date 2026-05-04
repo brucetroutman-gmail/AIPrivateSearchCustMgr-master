@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices } from '../lib/payments/stripeService.mjs';
+import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices, previewCheckout } from '../lib/payments/stripeService.mjs';
 
 const router = express.Router();
 
@@ -10,6 +10,20 @@ router.get('/prices', async (req, res) => {
     res.json({ success: true, prices });
   } catch (error) {
     console.error('[PAYMENTS] prices error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/payments/preview-checkout — preview credit discount for non-subscribers
+router.post('/preview-checkout', async (req, res) => {
+  try {
+    const { tier } = req.body;
+    if (!tier || ![1, 2, 3].includes(parseInt(tier))) {
+      return res.status(400).json({ error: 'Valid tier required' });
+    }
+    const preview = await previewCheckout(req.user.id, parseInt(tier));
+    res.json({ success: true, ...preview });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

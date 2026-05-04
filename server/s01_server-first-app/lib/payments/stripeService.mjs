@@ -46,8 +46,41 @@ export async function createCheckoutSession(customerId, email, tier) {
   if (!priceId) throw new Error('Invalid tier');
 
   const baseUrl = process.env.APP_URL || 'https://custmgr.aiprivatesearch.com';
+  const tierAmounts = await getTierAmounts();
 
-  const session = await stripe.checkout.sessions.create({
+  // Check for unused credit from a previous subscription (e.g. after downgrade)
+  let discountId = null;
+  let creditAmount = 0;
+  const connection = await pool.getConnection();
+  try {
+    const [custRows] = await connection.execute(
+      `SELECT expires_at, tier FROM customers WHERE id = ?`, [customerId]
+    );
+    if (custRows.length > 0 && custRows[0].expires_at) {
+      const expiresAt = new Date(custRows[0].expires_at);
+      const now = new Date();
+      if (expiresAt > now) {
+        const daysRemaining = Math.floor((expiresAt - now) / (1000 * 60 * 60 * 24));
+        const currentTierPrice = tierAmounts[custRows[0].tier] || 0;
+        creditAmount = Math.round((daysRemaining / 365) * currentTierPrice);
+        if (creditAmount > 0) {
+          const newTierPrice = tierAmounts[tier];
+          creditAmount = Math.min(creditAmount, newTierPrice); // cap at new tier price
+          const coupon = await stripe.coupons.create({
+            amount_off: creditAmount,
+            currency: 'usd',
+            duration: 'once',
+            name: `Unused plan credit (${daysRemaining} days)`
+          });
+          discountId = coupon.id;
+        }
+      }
+    }
+  } finally {
+    connection.release();
+  }
+
+  const sessionParams = {
     mode: 'subscription',
     payment_method_types: ['card'],
     customer_email: email,
@@ -55,21 +88,64 @@ export async function createCheckoutSession(customerId, email, tier) {
     metadata: { customerId: String(customerId), tier: String(tier) },
     success_url: `${baseUrl}/payment-confirm.html?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/change-tier.html`
-  });
+  };
+  if (discountId) sessionParams.discounts = [{ coupon: discountId }];
 
-  // Record pending payment
-  const connection = await pool.getConnection();
+  const session = await stripe.checkout.sessions.create(sessionParams);
+
+  // Record pending payment with net amount
+  const netAmount = tierAmounts[tier] - creditAmount;
+  const conn2 = await pool.getConnection();
   try {
-    await connection.execute(
+    await conn2.execute(
       `INSERT INTO payments (customer_id, stripe_session_id, amount, tier_purchased, status)
        VALUES (?, ?, ?, ?, 'pending')`,
-      [customerId, session.id, (await getTierAmounts())[tier], tier]
+      [customerId, session.id, netAmount, tier]
     );
+  } finally {
+    conn2.release();
+  }
+
+  return { url: session.url, sessionId: session.id, creditAmount, netAmount };
+}
+
+export async function previewCheckout(customerId, tier) {
+  const tierAmounts = await getTierAmounts();
+  const newTierPrice = tierAmounts[tier];
+  let creditAmount = 0;
+  let daysRemaining = 0;
+
+  const connection = await pool.getConnection();
+  try {
+    const [custRows] = await connection.execute(
+      `SELECT expires_at, tier FROM customers WHERE id = ?`, [customerId]
+    );
+    if (custRows.length > 0 && custRows[0].expires_at) {
+      const expiresAt = new Date(custRows[0].expires_at);
+      const now = new Date();
+      if (expiresAt > now) {
+        daysRemaining = Math.floor((expiresAt - now) / (1000 * 60 * 60 * 24));
+        const currentTierPrice = tierAmounts[custRows[0].tier] || 0;
+        creditAmount = Math.min(
+          Math.round((daysRemaining / 365) * currentTierPrice),
+          newTierPrice
+        );
+      }
+    }
   } finally {
     connection.release();
   }
 
-  return { url: session.url, sessionId: session.id };
+  const fmt = (cents) => `$${(cents / 100).toFixed(2)}`;
+  return {
+    newTierPrice,
+    creditAmount,
+    netAmount: newTierPrice - creditAmount,
+    newTierDisplay: fmt(newTierPrice),
+    creditDisplay: fmt(creditAmount),
+    netDisplay: fmt(newTierPrice - creditAmount),
+    daysRemaining
+  };
 }
 
 export async function handleWebhook(rawBody, signature) {
