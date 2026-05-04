@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices, previewCheckout } from '../lib/payments/stripeService.mjs';
+import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices, cancelAndRefund } from '../lib/payments/stripeService.mjs';
 
 const router = express.Router();
 
@@ -10,20 +10,6 @@ router.get('/prices', async (req, res) => {
     res.json({ success: true, prices });
   } catch (error) {
     console.error('[PAYMENTS] prices error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST /api/payments/preview-checkout — preview credit discount for non-subscribers
-router.post('/preview-checkout', async (req, res) => {
-  try {
-    const { tier } = req.body;
-    if (!tier || ![1, 2, 3].includes(parseInt(tier))) {
-      return res.status(400).json({ error: 'Valid tier required' });
-    }
-    const preview = await previewCheckout(req.user.id, parseInt(tier));
-    res.json({ success: true, ...preview });
-  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
@@ -78,22 +64,7 @@ router.post('/preview-upgrade', async (req, res) => {
   }
 });
 
-// POST /api/payments/preview-downgrade — calculates unused credit and extension on new tier
-router.post('/preview-downgrade', async (req, res) => {
-  try {
-    const { tier } = req.body;
-    if (!tier || ![1, 2, 3].includes(parseInt(tier))) {
-      return res.status(400).json({ error: 'Valid tier required' });
-    }
-    const preview = await previewUpgrade(req.user.id, parseInt(tier));
-    res.json({ success: true, ...preview });
-  } catch (error) {
-    console.error('[PAYMENTS] preview-downgrade error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST /api/payments/update-subscription — upgrade or downgrade existing subscription
+// POST /api/payments/update-subscription — upgrade existing subscription
 router.post('/update-subscription', async (req, res) => {
   try {
     const { tier } = req.body;
@@ -132,6 +103,17 @@ router.get('/history/:customerId', async (req, res) => {
     res.json({ payments });
   } catch (error) {
     console.error('[PAYMENTS] history error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/payments/cancel-and-refund — refund latest payment, cancel subscription, revert to trial
+router.post('/cancel-and-refund', async (req, res) => {
+  try {
+    const result = await cancelAndRefund(req.user.id);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('[PAYMENTS] cancel-and-refund error:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -164,13 +164,18 @@
             }
 
             // Buttons
-            const btnRow = el('div', { marginTop: '15px', display: 'flex', gap: '10px' });
+            const btnRow = el('div', { marginTop: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' });
             const changeTierBtn = el('button', { flex: '1', padding: '10px', background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '🔄 Change Tier');
             const payHistBtn = el('button', { flex: '1', padding: '10px', background: 'var(--accent-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '💳 Payment History');
             changeTierBtn.addEventListener('click', showChangeTier);
             payHistBtn.addEventListener('click', showPaymentHistory);
             btnRow.appendChild(changeTierBtn);
             btnRow.appendChild(payHistBtn);
+            if (license.status === 'active') {
+                const cancelBtn = el('button', { flex: '1', padding: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '❌ Cancel & Refund');
+                cancelBtn.addEventListener('click', confirmCancelAndRefund);
+                btnRow.appendChild(cancelBtn);
+            }
             container.appendChild(btnRow);
 
             // Download link
@@ -186,6 +191,26 @@
             container.appendChild(dlBox);
         }
         
+        async function confirmCancelAndRefund() {
+            const sessionId = localStorage.getItem('sessionId');
+            if (!confirm('Are you sure you want to cancel your subscription and request a full refund?\n\nYour account will revert to a 60-day trial. This cannot be undone.')) return;
+            try {
+                const response = await fetch(`${API_BASE}/api/payments/cancel-and-refund`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${sessionId}` }
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    showMessage('Subscription cancelled and refund issued. Your account has been reverted to a 60-day trial.', 'success');
+                    await loadProfile();
+                } else {
+                    showMessage(data.error || 'Cancellation failed. Please contact support.');
+                }
+            } catch (_e) {
+                showMessage('Network error. Please try again.');
+            }
+        }
+
         async function loadProfile() {
             const sessionId = localStorage.getItem('sessionId');
             if (!sessionId) {
