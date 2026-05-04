@@ -5,7 +5,16 @@
 
 =====================================================
 
-## v1.66 Release (Current)
+## v1.67 Release (Current)
+295. Fixed customer.subscription.updated webhook — lookup customer via stripe_subscription_id in payments table (metadata was empty) --done
+296. Fixed expires_at update — skip when current_period_end is 0 to avoid invalid datetime error --done
+297. Fixed upgrade payment recording — use always_invoice proration_behavior to force immediate Stripe charge --done
+298. Fixed duplicate payment rows — invoice.paid handler now only records subscription_cycle (renewals), skips subscription_update (upgrades) --done
+299. Upgrade payment recorded directly in updateSubscription with prorated amount matching preview shown to customer --done
+300. Fixed Login to Account button color on customer-registration.html to match Download Installer button --done
+301. Added webhook debug logging for subscription.updated and invoice.paid events --done
+
+## v1.66 Release
 288. Fixed ESLint errors — 2 empty catch blocks resolved --done
 289. Removed unused imports: fs, path from unifiedUserManager.mjs; crypto, adminUsers, defaultPassword from init.mjs --done
 290. Removed unused validateCSRFToken import from server.mjs --done
