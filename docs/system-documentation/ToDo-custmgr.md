@@ -1,5 +1,7 @@
 ## Pending Tasks
 
+01. How can a customer change payment method?
+
 ### Stripe Live Mode
 - [ ] S26. Switch to Stripe live mode and retest
 

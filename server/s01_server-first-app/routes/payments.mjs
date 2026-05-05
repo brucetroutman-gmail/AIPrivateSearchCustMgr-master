@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices, cancelAndRefund } from '../lib/payments/stripeService.mjs';
+import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices, cancelAndRefund, previewRefund } from '../lib/payments/stripeService.mjs';
 
 const router = express.Router();
 
@@ -103,6 +103,16 @@ router.get('/history/:customerId', async (req, res) => {
     res.json({ payments });
   } catch (error) {
     console.error('[PAYMENTS] history error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/payments/preview-refund — calculate prorated refund amount before confirming
+router.get('/preview-refund', async (req, res) => {
+  try {
+    const preview = await previewRefund(req.user.id);
+    res.json({ success: true, ...preview });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

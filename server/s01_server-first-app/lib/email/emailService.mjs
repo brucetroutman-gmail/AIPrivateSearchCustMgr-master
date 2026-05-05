@@ -297,7 +297,7 @@ export class EmailService {
           <p>Your account has been set to trial mode &mdash; you still have full access until <strong>${expiryDate}</strong>. Come back anytime!</p>
 
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://custmgr.aiprivatesearch.com/change-tier.html" style="display: inline-block; background: #87ceeb; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Resubscribe Anytime</a>
+            <a href="https://custmgr.aiprivatesearch.com/login.html" style="display: inline-block; background: #87ceeb; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Log In to Your Account</a>
           </div>
 
           <p style="font-size: 14px; color: #666;">Questions? Contact us at <a href="mailto:support@aiprivatesearch.com" style="color: #87ceeb;">support@aiprivatesearch.com</a></p>

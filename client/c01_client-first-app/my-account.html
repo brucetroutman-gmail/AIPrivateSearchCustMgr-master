@@ -28,6 +28,14 @@
             <div id="licenseInfo">
                 <p>Loading license information...</p>
             </div>
+            <div id="refundPreviewBox" class="refund-preview-box">
+                <div class="refund-preview-title">❌ Cancel &amp; Refund Summary</div>
+                <div id="refundPreviewDetail" class="refund-preview-detail"></div>
+                <div class="refund-preview-actions">
+                    <button id="refundConfirmBtn" class="btn-confirm-refund">Confirm Cancellation</button>
+                    <button id="refundCancelBtn" class="btn-keep-subscription">Keep Subscription</button>
+                </div>
+            </div>
         </div>
         
         <div id="paymentHistorySection" style="display:none;"></div>
@@ -193,22 +201,84 @@
         
         async function confirmCancelAndRefund() {
             const sessionId = localStorage.getItem('sessionId');
-            if (!confirm('Are you sure you want to cancel your subscription and request a full refund?\n\nYour account will revert to a 60-day trial. This cannot be undone.')) return;
+            const previewBox = document.getElementById('refundPreviewBox');
+            const detail = document.getElementById('refundPreviewDetail');
+
+            // Toggle off if already showing
+            if (previewBox.style.display !== 'none') {
+                previewBox.style.display = 'none';
+                return;
+            }
+
+            detail.textContent = 'Calculating refund...';
+            previewBox.style.display = 'block';
+            previewBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
             try {
-                const response = await fetch(`${API_BASE}/api/payments/cancel-and-refund`, {
-                    method: 'POST',
+                const res = await fetch(`${API_BASE}/api/payments/preview-refund`, {
                     headers: { 'Authorization': `Bearer ${sessionId}` }
                 });
-                const data = await response.json();
-                if (response.ok && data.success) {
-                    showMessage('Subscription cancelled and refund issued. Your account has been reverted to a 60-day trial.', 'success');
-                    await loadProfile();
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    detail.textContent = '';
+                    const table = document.createElement('table');
+                    table.className = 'refund-preview-table';
+                    [
+                        [`${data.tierName} annual price`, data.annualPriceDisplay, ''],
+                        ['Days used', `${data.usedDays} of ${data.totalDays}`, 'text-danger'],
+                        ['Days remaining', String(data.unusedDays), 'text-success'],
+                        ['Refund amount', data.refundDisplay, 'text-success']
+                    ].forEach(([label, value, cls], i) => {
+                        const tr = document.createElement('tr');
+                        if (i === 3) tr.className = 'row-total';
+                        const td1 = document.createElement('td');
+                        td1.textContent = label;
+                        const td2 = document.createElement('td');
+                        td2.textContent = value;
+                        if (cls) td2.className = cls;
+                        tr.appendChild(td1);
+                        tr.appendChild(td2);
+                        table.appendChild(tr);
+                    });
+                    detail.appendChild(table);
+                    const note = document.createElement('p');
+                    note.className = 'refund-preview-note';
+                    note.textContent = 'Refund will be processed to your original payment method within 5–10 business days. Your account reverts to a 60-day trial.';
+                    detail.appendChild(note);
                 } else {
-                    showMessage(data.error || 'Cancellation failed. Please contact support.');
+                    detail.textContent = data.error || 'Unable to calculate refund. Please contact support.';
                 }
             } catch (_e) {
-                showMessage('Network error. Please try again.');
+                detail.textContent = 'Network error. Please try again.';
             }
+
+            document.getElementById('refundCancelBtn').onclick = () => {
+                previewBox.style.display = 'none';
+            };
+
+            document.getElementById('refundConfirmBtn').onclick = async () => {
+                document.getElementById('refundConfirmBtn').disabled = true;
+                document.getElementById('refundConfirmBtn').textContent = 'Processing...';
+                try {
+                    const response = await fetch(`${API_BASE}/api/payments/cancel-and-refund`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    });
+                    const result = await response.json();
+                    previewBox.style.display = 'none';
+                    if (response.ok && result.success) {
+                        showMessage(`Refund of ${result.amountDisplay} is being processed to your credit card.`, 'success');
+                        await loadProfile();
+                    } else {
+                        showMessage(result.error || 'Cancellation failed. Please contact support.');
+                    }
+                } catch (_e) {
+                    showMessage('Network error. Please try again.');
+                    document.getElementById('refundConfirmBtn').disabled = false;
+                    document.getElementById('refundConfirmBtn').textContent = 'Confirm Cancellation';
+                }
+            };
         }
 
         async function loadProfile() {

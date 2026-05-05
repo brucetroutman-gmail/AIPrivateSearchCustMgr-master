@@ -144,6 +144,10 @@ app.use(express.static(path.join(process.cwd(), 'client/c01_client-first-app')))
 app.get('/', (req, res) => res.redirect('/login.html'));
 app.get('/login', (req, res) => res.redirect('/login.html'));
 app.get('/index', (req, res) => res.redirect('/index.html'));
+app.get('/my-account', (req, res) => res.redirect('/my-account.html'));
+app.get('/change-tier', (req, res) => res.redirect('/change-tier.html'));
+app.get('/analytics', (req, res) => res.redirect('/analytics.html'));
+app.get('/settings', (req, res) => res.redirect('/settings.html'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

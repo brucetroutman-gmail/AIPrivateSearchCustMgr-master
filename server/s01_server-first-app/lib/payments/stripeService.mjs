@@ -329,43 +329,89 @@ export async function updateSubscription(customerId, newTier) {
   return { subscriptionId, currentPeriodEnd: new Date(updated.current_period_end * 1000) };
 }
 
-export async function cancelAndRefund(customerId) {
+export async function previewRefund(customerId) {
   const connection = await pool.getConnection();
-  let subscriptionId, paymentIntentId;
+  let subscriptionId;
   try {
     const [rows] = await connection.execute(
-      `SELECT stripe_subscription_id, stripe_payment_intent_id
-       FROM payments WHERE customer_id = ? AND status = 'completed' AND stripe_subscription_id IS NOT NULL
-       ORDER BY created_at DESC LIMIT 1`,
+      `SELECT stripe_subscription_id FROM payments WHERE customer_id = ? AND status = 'completed' AND stripe_subscription_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
       [customerId]
     );
     if (rows.length === 0) throw new Error('No active subscription found');
     subscriptionId = rows[0].stripe_subscription_id;
-    paymentIntentId = rows[0].stripe_payment_intent_id;
   } finally {
     connection.release();
   }
 
-  // For subscriptions, payment_intent lives on the latest invoice, not the session
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const annualPrice = subscription.items.data[0].price.unit_amount;
+  const periodStart = subscription.current_period_start;
+  const periodEnd = subscription.current_period_end;
+  const now = Math.floor(Date.now() / 1000);
+
+  const totalDays = Math.round((periodEnd - periodStart) / 86400);
+  const usedDays = Math.round((now - periodStart) / 86400);
+  const unusedDays = Math.max(0, totalDays - usedDays);
+  const refundAmount = Math.round(annualPrice * (unusedDays / 365));
+
+  const fmt = (cents) => `$${(cents / 100).toFixed(2)}`;
+  const tierEntry = Object.entries(PRICE_IDS).find(([, v]) => v === subscription.items.data[0].price.id);
+  const tierName = TIER_NAMES[tierEntry?.[0]] || 'Current Plan';
+
+  return {
+    annualPrice,
+    annualPriceDisplay: fmt(annualPrice),
+    usedDays,
+    unusedDays,
+    totalDays,
+    refundAmount,
+    refundDisplay: fmt(refundAmount),
+    tierName,
+    periodEnd: new Date(periodEnd * 1000)
+  };
+}
+
+export async function cancelAndRefund(customerId) {
+  const connection = await pool.getConnection();
+  let subscriptionId;
+  try {
+    const [rows] = await connection.execute(
+      `SELECT stripe_subscription_id FROM payments WHERE customer_id = ? AND status = 'completed' AND stripe_subscription_id IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+      [customerId]
+    );
+    if (rows.length === 0) throw new Error('No active subscription found');
+    subscriptionId = rows[0].stripe_subscription_id;
+  } finally {
+    connection.release();
+  }
+
+  // Calculate prorated refund amount from subscription period
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+    expand: ['latest_invoice']
+  });
+  const annualPrice = subscription.items.data[0].price.unit_amount;
+  const periodStart = subscription.current_period_start;
+  const periodEnd = subscription.current_period_end;
+  const now = Math.floor(Date.now() / 1000);
+  const unusedDays = Math.max(0, Math.round((periodEnd - now) / 86400));
+  const refundAmount = Math.round(annualPrice * (unusedDays / 365));
+
+  // Resolve payment intent from latest invoice
+  let paymentIntentId = subscription.latest_invoice?.payment_intent;
+  if (paymentIntentId && typeof paymentIntentId === 'object') paymentIntentId = paymentIntentId.id;
+
+  // If latest invoice PI doesn't have enough charged, find the most recent paid invoice
   if (!paymentIntentId) {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-      expand: ['latest_invoice']
-    });
-    paymentIntentId = subscription.latest_invoice?.payment_intent;
-    // latest_invoice.payment_intent may itself be an object if expanded
-    if (paymentIntentId && typeof paymentIntentId === 'object') {
-      paymentIntentId = paymentIntentId.id;
-    }
+    const invoices = await stripe.invoices.list({ subscription: subscriptionId, status: 'paid', limit: 1 });
+    paymentIntentId = invoices.data[0]?.payment_intent;
   }
 
   if (!paymentIntentId) throw new Error('Could not resolve payment intent for refund');
 
-  await stripe.refunds.create({ payment_intent: paymentIntentId });
+  // Issue partial refund for unused days
+  await stripe.refunds.create({ payment_intent: paymentIntentId, amount: refundAmount });
   await stripe.subscriptions.cancel(subscriptionId);
 
-  // Get refund amount and customer email for the payment row and email
-  const refundedPayment = await stripe.paymentIntents.retrieve(paymentIntentId);
-  const refundAmount = refundedPayment.amount_received;
   const amountDisplay = `$${(refundAmount / 100).toFixed(2)}`;
 
   const conn2 = await pool.getConnection();
@@ -375,7 +421,6 @@ export async function cancelAndRefund(customerId) {
       `UPDATE payments SET stripe_subscription_id = NULL, status = 'refunded' WHERE stripe_subscription_id = ?`,
       [subscriptionId]
     );
-    // Insert negative payment row to reflect the refund
     await conn2.execute(
       `INSERT INTO payments (customer_id, stripe_payment_intent_id, amount, tier_purchased, status)
        VALUES (?, ?, ?, 1, 'refunded')`,
@@ -389,7 +434,7 @@ export async function cancelAndRefund(customerId) {
     );
     const [custRows] = await conn2.execute(`SELECT email FROM customers WHERE id = ?`, [customerId]);
     customerEmail = custRows[0]?.email;
-    console.log(`[STRIPE] Refund+cancel: customer=${customerId} amount=${amountDisplay} reverted to trial until ${trialExpiry}`);
+    console.log(`[STRIPE] Refund+cancel: customer=${customerId} unusedDays=${unusedDays} amount=${amountDisplay} reverted to trial until ${trialExpiry}`);
   } finally {
     conn2.release();
   }
