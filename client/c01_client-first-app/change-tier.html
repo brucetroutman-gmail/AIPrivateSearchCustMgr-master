@@ -347,10 +347,10 @@
                 ? amountEl.textContent : '';
 
             const confirmText = document.getElementById('confirmText');
-            if (isUpgrade && amountText) {
+            if (amountText) {
                 confirmText.textContent = `Confirm upgrade to ${TIER_NAMES[newTier]}? ${amountText}`;
             } else {
-                confirmText.textContent = `Confirm selection of ${TIER_NAMES[newTier]} plan?`;
+                confirmText.textContent = `Confirm upgrade to ${TIER_NAMES[newTier]}?`;
             }
 
             document.getElementById('confirmBox').style.display = 'block';
