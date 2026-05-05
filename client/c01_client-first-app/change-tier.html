@@ -291,6 +291,7 @@
                     const data = await response.json();
                     if (response.ok && data.success) {
                         sessionStorage.setItem('tierChangeMsg', `Upgraded to ${TIER_NAMES[newTier]} successfully! Your account has been updated.`);
+                        sessionStorage.setItem('expectedTier', String(newTier));
                         window.location.href = '/my-account.html';
                     } else {
                         showError(data.error || 'Failed to update subscription. Please try again.');

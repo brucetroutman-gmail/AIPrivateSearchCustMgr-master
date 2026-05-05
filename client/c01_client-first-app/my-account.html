@@ -530,6 +530,29 @@
         if (tierChangeMsg) {
             showMessage(tierChangeMsg, 'success');
             sessionStorage.removeItem('tierChangeMsg');
+            // Poll until DB reflects the new tier (webhook may be slightly delayed)
+            const expectedTier = sessionStorage.getItem('expectedTier');
+            sessionStorage.removeItem('expectedTier');
+            if (expectedTier) {
+                let attempts = 0;
+                const sessionId = localStorage.getItem('sessionId');
+                const poll = setInterval(async () => {
+                    attempts++;
+                    if (!currentCustomerId) return;
+                    const res = await fetch(`${API_BASE}/api/customers/${currentCustomerId}/license`, {
+                        headers: { 'Authorization': `Bearer ${sessionId}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (String(data.license?.tier) === String(expectedTier) || attempts >= 10) {
+                            clearInterval(poll);
+                            displayLicenseInfo(data.license);
+                        }
+                    } else {
+                        clearInterval(poll);
+                    }
+                }, 1000);
+            }
         }
 
         loadProfile();
