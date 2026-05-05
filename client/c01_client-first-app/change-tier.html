@@ -73,7 +73,6 @@
 
                 <button type="submit" id="submitBtn" style="width: 100%; margin-top: 1rem;">Continue to Payment</button>
                 <div id="confirmBox" style="display:none; margin-top:1rem; padding:1rem; background:rgba(255,193,7,0.1); border:1px solid #ffc107; border-radius:4px;">
-                    <p id="confirmText" style="margin-bottom:0.75rem; font-weight:bold;"></p>
                     <div style="display:flex; gap:0.5rem;">
                         <button type="button" id="confirmYesBtn" style="flex:1; background:#28a745;">Yes, proceed</button>
                         <button type="button" id="confirmNoBtn" style="flex:1; background:#6c757d;">Cancel</button>
@@ -341,17 +340,6 @@
 
             // Show confirmation box
             confirmedTier = newTier;
-            const isUpgrade = !hasSubscription || newTier > currentTier;
-            const amountEl = document.getElementById('previewAmount');
-            const amountText = amountEl && document.getElementById('previewBox').style.display !== 'none'
-                ? amountEl.textContent : '';
-
-            const confirmText = document.getElementById('confirmText');
-            if (amountText) {
-                confirmText.textContent = `Confirm upgrade to ${TIER_NAMES[newTier]}? ${amountText}`;
-            } else {
-                confirmText.textContent = `Confirm upgrade to ${TIER_NAMES[newTier]}?`;
-            }
 
             document.getElementById('confirmBox').style.display = 'block';
             document.getElementById('submitBtn').disabled = true;
