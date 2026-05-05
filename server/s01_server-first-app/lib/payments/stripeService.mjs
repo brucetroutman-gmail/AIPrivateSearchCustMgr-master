@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import pool from '../database/connection.mjs';
+import { EmailService } from '../email/emailService.mjs';
 
 const mode = process.env.STRIPE_MODE || 'test';
 const isLive = mode === 'live';
@@ -93,10 +94,18 @@ export async function handleWebhook(rawBody, signature) {
         `UPDATE customers SET tier = ?, license_status = 'active', expires_at = ? WHERE id = ?`,
         [tier, expiresAt, customerId]
       );
+      // For subscription checkouts, payment_intent is on the invoice not the session
+      const subscriptionId = session.subscription;
+      let paymentIntentId = null;
+      if (subscriptionId) {
+        const sub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['latest_invoice'] });
+        const pi = sub.latest_invoice?.payment_intent;
+        paymentIntentId = pi && typeof pi === 'object' ? pi.id : pi;
+      }
       await connection.execute(
         `UPDATE payments SET stripe_subscription_id = ?, stripe_payment_intent_id = ?, status = 'completed'
          WHERE stripe_session_id = ?`,
-        [session.subscription || null, session.payment_intent || null, session.id]
+        [subscriptionId || null, paymentIntentId, session.id]
       );
     } finally {
       connection.release();
@@ -322,10 +331,10 @@ export async function updateSubscription(customerId, newTier) {
 
 export async function cancelAndRefund(customerId) {
   const connection = await pool.getConnection();
-  let subscriptionId, paymentIntentId, sessionId;
+  let subscriptionId, paymentIntentId;
   try {
     const [rows] = await connection.execute(
-      `SELECT stripe_subscription_id, stripe_payment_intent_id, stripe_session_id
+      `SELECT stripe_subscription_id, stripe_payment_intent_id
        FROM payments WHERE customer_id = ? AND status = 'completed' AND stripe_subscription_id IS NOT NULL
        ORDER BY created_at DESC LIMIT 1`,
       [customerId]
@@ -333,44 +342,66 @@ export async function cancelAndRefund(customerId) {
     if (rows.length === 0) throw new Error('No active subscription found');
     subscriptionId = rows[0].stripe_subscription_id;
     paymentIntentId = rows[0].stripe_payment_intent_id;
-    sessionId = rows[0].stripe_session_id;
   } finally {
     connection.release();
   }
 
-  // Resolve payment intent from session if not stored directly
-  if (!paymentIntentId && sessionId) {
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    paymentIntentId = session.payment_intent;
+  // For subscriptions, payment_intent lives on the latest invoice, not the session
+  if (!paymentIntentId) {
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['latest_invoice']
+    });
+    paymentIntentId = subscription.latest_invoice?.payment_intent;
+    // latest_invoice.payment_intent may itself be an object if expanded
+    if (paymentIntentId && typeof paymentIntentId === 'object') {
+      paymentIntentId = paymentIntentId.id;
+    }
   }
 
-  // Issue refund
-  if (paymentIntentId) {
-    await stripe.refunds.create({ payment_intent: paymentIntentId });
-  }
+  if (!paymentIntentId) throw new Error('Could not resolve payment intent for refund');
 
-  // Cancel subscription
+  await stripe.refunds.create({ payment_intent: paymentIntentId });
   await stripe.subscriptions.cancel(subscriptionId);
 
-  // Update DB: null subscription, mark payment refunded, revert customer to trial
+  // Get refund amount and customer email for the payment row and email
+  const refundedPayment = await stripe.paymentIntents.retrieve(paymentIntentId);
+  const refundAmount = refundedPayment.amount_received;
+  const amountDisplay = `$${(refundAmount / 100).toFixed(2)}`;
+
   const conn2 = await pool.getConnection();
+  let customerEmail, trialExpiry;
   try {
     await conn2.execute(
       `UPDATE payments SET stripe_subscription_id = NULL, status = 'refunded' WHERE stripe_subscription_id = ?`,
       [subscriptionId]
     );
-    const trialExpiry = new Date();
+    // Insert negative payment row to reflect the refund
+    await conn2.execute(
+      `INSERT INTO payments (customer_id, stripe_payment_intent_id, amount, tier_purchased, status)
+       VALUES (?, ?, ?, 1, 'refunded')`,
+      [customerId, paymentIntentId, -refundAmount]
+    );
+    trialExpiry = new Date();
     trialExpiry.setDate(trialExpiry.getDate() + 60);
     await conn2.execute(
       `UPDATE customers SET tier = 1, license_status = 'trial', expires_at = ?, grace_period_ends = NULL WHERE id = ?`,
       [trialExpiry, customerId]
     );
-    console.log(`[STRIPE] Refund+cancel: customer=${customerId} reverted to trial until ${trialExpiry}`);
+    const [custRows] = await conn2.execute(`SELECT email FROM customers WHERE id = ?`, [customerId]);
+    customerEmail = custRows[0]?.email;
+    console.log(`[STRIPE] Refund+cancel: customer=${customerId} amount=${amountDisplay} reverted to trial until ${trialExpiry}`);
   } finally {
     conn2.release();
   }
 
-  return { refunded: true };
+  if (customerEmail) {
+    const emailService = new EmailService();
+    await emailService.sendRefundEmail(customerEmail, amountDisplay, trialExpiry).catch(err =>
+      console.error('[STRIPE] Refund email failed:', err.message)
+    );
+  }
+
+  return { refunded: true, amountDisplay };
 }
 
 export async function getSubscriptionId(customerId) {

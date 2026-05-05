@@ -276,6 +276,46 @@ export class EmailService {
     }
   }
 
+  async sendRefundEmail(email, amountDisplay, trialExpiry) {
+    const expiryDate = new Date(trialExpiry).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const mailOptions = {
+      from: 'AI Private Search <aiprivatesearch@gmail.com>',
+      to: email,
+      subject: 'Your Refund is Being Processed - AI Private Search',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #87ceeb; margin-bottom: 20px;">Refund Being Processed</h2>
+
+          <p>We're sorry to see you go! Your refund of <strong>${amountDisplay}</strong> is being processed back to your credit card. Please allow 5&ndash;10 business days for it to appear.</p>
+
+          <div style="background: #f8f9fa; border-left: 4px solid #87ceeb; padding: 20px; margin: 20px 0; border-radius: 4px;">
+            <p style="margin: 5px 0;">✅ <strong>Refund:</strong> ${amountDisplay} &mdash; processing to your credit card</p>
+            <p style="margin: 5px 0;">🔄 <strong>Account status:</strong> Reverted to 60-day trial</p>
+            <p style="margin: 5px 0;">📅 <strong>Trial expires:</strong> ${expiryDate}</p>
+          </div>
+
+          <p>Your account has been set to trial mode &mdash; you still have full access until <strong>${expiryDate}</strong>. Come back anytime!</p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="https://custmgr.aiprivatesearch.com/change-tier.html" style="display: inline-block; background: #87ceeb; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-weight: bold;">Resubscribe Anytime</a>
+          </div>
+
+          <p style="font-size: 14px; color: #666;">Questions? Contact us at <a href="mailto:support@aiprivatesearch.com" style="color: #87ceeb;">support@aiprivatesearch.com</a></p>
+
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+          <p style="color: #666; font-size: 12px; text-align: center;">AI Private Search - Your Private AI Assistant</p>
+        </div>
+      `
+    };
+    try {
+      await this.transporter.sendMail(mailOptions);
+      return { success: true };
+    } catch (error) {
+      console.error('Refund email error:', error);
+      throw new Error('Failed to send refund email');
+    }
+  }
+
   async sendTestEmail(to, subject, message) {
     console.log('[EMAIL] Sending test email to:', to);
     

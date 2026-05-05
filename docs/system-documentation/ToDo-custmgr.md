@@ -5,7 +5,13 @@
 
 =====================================================
 
-## v1.67 Release (Current)
+## v1.68 Release (Current)
+302. Removed downgrade support — lower tiers greyed out as "Not Available" on change-tier.html --done
+303. Removed downgrade code from updateSubscription in stripeService.mjs --done
+304. Removed downgrade policy text, updated policy box to upgrades-only --done
+305. Removed downgrade preview fetch and confirmation text from change-tier.html --done
+
+## v1.67 Release
 295. Fixed customer.subscription.updated webhook — lookup customer via stripe_subscription_id in payments table (metadata was empty) --done
 296. Fixed expires_at update — skip when current_period_end is 0 to avoid invalid datetime error --done
 297. Fixed upgrade payment recording — use always_invoice proration_behavior to force immediate Stripe charge --done
