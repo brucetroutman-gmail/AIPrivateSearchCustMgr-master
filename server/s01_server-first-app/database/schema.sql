@@ -3,6 +3,9 @@
 CREATE DATABASE IF NOT EXISTS aiprivatesearchcustmgr;
 USE aiprivatesearchcustmgr;
 
+-- Migration: add stripe_customer_id to customers table if not exists
+-- ALTER TABLE customers ADD COLUMN stripe_customer_id VARCHAR(255) NULL AFTER grace_period_ends;
+
 -- Users table for customer manager authentication
 CREATE TABLE users (
   id INT PRIMARY KEY AUTO_INCREMENT,

@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices, cancelAndRefund, previewRefund } from '../lib/payments/stripeService.mjs';
+import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices, cancelAndRefund, previewRefund, createBillingPortalSession } from '../lib/payments/stripeService.mjs';
 
 const router = express.Router();
 
@@ -103,6 +103,17 @@ router.get('/history/:customerId', async (req, res) => {
     res.json({ payments });
   } catch (error) {
     console.error('[PAYMENTS] history error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/payments/billing-portal — redirect to Stripe customer portal to update payment method
+router.post('/billing-portal', async (req, res) => {
+  try {
+    const { url } = await createBillingPortalSession(req.user.id);
+    res.json({ success: true, url });
+  } catch (error) {
+    console.error('[PAYMENTS] billing-portal error:', error);
     res.status(500).json({ error: error.message });
   }
 });

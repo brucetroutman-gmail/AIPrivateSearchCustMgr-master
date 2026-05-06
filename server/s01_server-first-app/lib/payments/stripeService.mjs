@@ -96,6 +96,7 @@ export async function handleWebhook(rawBody, signature) {
       );
       // For subscription checkouts, payment_intent is on the invoice not the session
       const subscriptionId = session.subscription;
+      const stripeCustomerId = session.customer || null;
       let paymentIntentId = null;
       if (subscriptionId) {
         const sub = await stripe.subscriptions.retrieve(subscriptionId, { expand: ['latest_invoice'] });
@@ -107,6 +108,13 @@ export async function handleWebhook(rawBody, signature) {
          WHERE stripe_session_id = ?`,
         [subscriptionId || null, paymentIntentId, session.id]
       );
+      // Store Stripe customer ID on the customer record for billing portal access
+      if (stripeCustomerId) {
+        await connection.execute(
+          `UPDATE customers SET stripe_customer_id = ? WHERE id = ?`,
+          [stripeCustomerId, customerId]
+        );
+      }
     } finally {
       connection.release();
     }
@@ -447,6 +455,30 @@ export async function cancelAndRefund(customerId) {
   }
 
   return { refunded: true, amountDisplay };
+}
+
+export async function createBillingPortalSession(customerId) {
+  const connection = await pool.getConnection();
+  let stripeCustomerId;
+  try {
+    const [rows] = await connection.execute(
+      `SELECT stripe_customer_id FROM customers WHERE id = ?`,
+      [customerId]
+    );
+    stripeCustomerId = rows[0]?.stripe_customer_id;
+  } finally {
+    connection.release();
+  }
+
+  if (!stripeCustomerId) throw new Error('No Stripe customer found — please contact support');
+
+  const baseUrl = process.env.APP_URL || 'https://custmgr.aiprivatesearch.com';
+  const session = await stripe.billingPortal.sessions.create({
+    customer: stripeCustomerId,
+    return_url: `${baseUrl}/my-account.html`
+  });
+
+  return { url: session.url };
 }
 
 export async function getSubscriptionId(customerId) {

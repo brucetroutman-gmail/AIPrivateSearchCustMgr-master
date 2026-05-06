@@ -1,13 +1,29 @@
 ## Pending Tasks
-
-01. How can a customer change payment method?
-
-### Stripe Live Mode
-- [ ] S26. Switch to Stripe live mode and retest
+051. Go live with Stripe — see docs/system-documentation/aips-custmgr-live-stripe-setup.md
+     - [ ] L1-L15 go-live checklist
+     - [ ] S1-S15 sandbox testing checklist
+     - DB migrations required before deploy:
+       ALTER TABLE customers ADD COLUMN stripe_customer_id VARCHAR(255) NULL AFTER grace_period_ends;
+       ALTER TABLE payments ADD COLUMN stripe_payment_intent_id VARCHAR(255) NULL AFTER stripe_subscription_id;
 
 =====================================================
 
-## v1.68 Release (Current)
+## v1.69 Release (Current)
+303. Added cancel & refund with prorated Stripe calculation (unused days / 365 × annual price) --done
+304. Added previewRefund endpoint — calculates refund amount without touching Stripe --done
+305. Added refund preview UI on my-account.html — inline breakdown with CSS classes, no inline styles --done
+306. Added billing portal support — POST /api/payments/billing-portal endpoint --done
+307. Added createBillingPortalSession to stripeService.mjs --done
+308. Capture stripe_customer_id from checkout.session.completed webhook --done
+309. Added Update Payment Method button on my-account.html for active subscribers --done
+310. Removed all downgrade logic from stripeService.mjs, routes/payments.mjs, change-tier.html --done
+311. Lower tiers greyed out as Not Available for paid subscribers on change-tier.html --done
+312. Added clean URL redirects for /my-account, /change-tier, /analytics, /settings --done
+313. Fixed refund email button — changed to Log In to Your Account → login.html --done
+314. Created aips-custmgr-live-stripe-setup.md with full go-live and sandbox checklists --done
+315. Updated README.md — removed JWT/Stripe references, updated architecture, API endpoints, DB schema --done
+
+## v1.68 Release
 302. Removed downgrade support — lower tiers greyed out as "Not Available" on change-tier.html --done
 303. Removed downgrade code from updateSubscription in stripeService.mjs --done
 304. Removed downgrade policy text, updated policy box to upgrades-only --done
