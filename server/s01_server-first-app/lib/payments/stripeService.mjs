@@ -42,32 +42,54 @@ export async function getPrices() {
   };
 }
 
-export async function createCheckoutSession(customerId, email, tier) {
+export async function createCheckoutSession(customerId, email, tier, oldSubscriptionId = null) {
   const priceId = PRICE_IDS[tier];
   if (!priceId) throw new Error('Invalid tier');
 
   const baseUrl = process.env.APP_URL || 'https://custmgr.aiprivatesearch.com';
   const tierAmounts = await getTierAmounts();
 
-  const session = await stripe.checkout.sessions.create({
+  // Look up existing Stripe customer ID to avoid duplicate cards
+  const conn = await pool.getConnection();
+  let stripeCustomerId = null;
+  try {
+    const [rows] = await conn.execute(`SELECT stripe_customer_id FROM customers WHERE id = ?`, [customerId]);
+    stripeCustomerId = rows[0]?.stripe_customer_id || null;
+  } finally {
+    conn.release();
+  }
+
+  const sessionParams = {
     mode: 'subscription',
     payment_method_types: ['card'],
-    customer_email: email,
     line_items: [{ price: priceId, quantity: 1 }],
-    metadata: { customerId: String(customerId), tier: String(tier) },
+    metadata: {
+      customerId: String(customerId),
+      tier: String(tier),
+      ...(oldSubscriptionId ? { oldSubscriptionId } : {})
+    },
     success_url: `${baseUrl}/payment-confirm.html?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/change-tier.html`
-  });
+  };
 
-  const conn = await pool.getConnection();
+  // Use existing Stripe customer to pre-fill card and avoid duplicates
+  if (stripeCustomerId) {
+    sessionParams.customer = stripeCustomerId;
+  } else {
+    sessionParams.customer_email = email;
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
+
+  const conn2 = await pool.getConnection();
   try {
-    await conn.execute(
+    await conn2.execute(
       `INSERT INTO payments (customer_id, stripe_session_id, amount, tier_purchased, status)
        VALUES (?, ?, ?, ?, 'pending')`,
       [customerId, session.id, tierAmounts[tier], tier]
     );
   } finally {
-    conn.release();
+    conn2.release();
   }
 
   return { url: session.url, sessionId: session.id };
@@ -84,6 +106,7 @@ export async function handleWebhook(rawBody, signature) {
     const session = event.data.object;
     const customerId = parseInt(session.metadata.customerId);
     const tier = parseInt(session.metadata.tier);
+    const oldSubscriptionId = session.metadata.oldSubscriptionId || null;
 
     const expiresAt = new Date();
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
@@ -94,7 +117,6 @@ export async function handleWebhook(rawBody, signature) {
         `UPDATE customers SET tier = ?, license_status = 'active', expires_at = ? WHERE id = ?`,
         [tier, expiresAt, customerId]
       );
-      // For subscription checkouts, payment_intent is on the invoice not the session
       const subscriptionId = session.subscription;
       const stripeCustomerId = session.customer || null;
       let paymentIntentId = null;
@@ -108,12 +130,24 @@ export async function handleWebhook(rawBody, signature) {
          WHERE stripe_session_id = ?`,
         [subscriptionId || null, paymentIntentId, session.id]
       );
-      // Store Stripe customer ID on the customer record for billing portal access
       if (stripeCustomerId) {
         await connection.execute(
           `UPDATE customers SET stripe_customer_id = ? WHERE id = ?`,
           [stripeCustomerId, customerId]
         );
+      }
+      // Cancel old subscription if this was an upgrade checkout
+      if (oldSubscriptionId) {
+        try {
+          await stripe.subscriptions.cancel(oldSubscriptionId);
+          await connection.execute(
+            `UPDATE payments SET stripe_subscription_id = NULL WHERE stripe_subscription_id = ?`,
+            [oldSubscriptionId]
+          );
+          console.log(`[WEBHOOK] Cancelled old subscription ${oldSubscriptionId} after upgrade`);
+        } catch (err) {
+          console.error(`[WEBHOOK] Failed to cancel old subscription ${oldSubscriptionId}:`, err.message);
+        }
       }
     } finally {
       connection.release();
@@ -280,10 +314,7 @@ export async function previewUpgrade(customerId, newTier) {
   };
 }
 
-export async function updateSubscription(customerId, newTier) {
-  const priceId = PRICE_IDS[newTier];
-  if (!priceId) throw new Error('Invalid tier');
-
+export async function createUpgradeCheckoutSession(customerId, email, newTier) {
   const connection = await pool.getConnection();
   let subscriptionId;
   try {
@@ -297,44 +328,7 @@ export async function updateSubscription(customerId, newTier) {
     connection.release();
   }
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  const itemId = subscription.items.data[0].id;
-
-  // Calculate prorated amount before updating
-  const upcoming = await stripe.invoices.retrieveUpcoming({
-    subscription: subscriptionId,
-    subscription_items: [{ id: itemId, price: priceId }],
-    subscription_proration_behavior: 'create_prorations'
-  });
-  const prorationLines = upcoming.lines.data.filter(l => l.proration);
-  const currentAnnualPrice = subscription.items.data[0].price.unit_amount;
-  const creditLine = prorationLines
-    .filter(l => l.amount < 0 && Math.abs(l.amount) <= currentAnnualPrice)
-    .reduce((best, l) => !best || Math.abs(l.amount) > Math.abs(best.amount) ? l : best, null);
-  const credit = creditLine ? creditLine.amount : prorationLines.filter(l => l.amount < 0).reduce((sum, l) => sum + l.amount, 0);
-  const charge = prorationLines.filter(l => l.amount > 0).reduce((sum, l) => sum + l.amount, 0);
-  const prorationAmount = Math.max(0, charge + credit);
-
-  const updated = await stripe.subscriptions.update(subscriptionId, {
-    items: [{ id: itemId, price: priceId }],
-    proration_behavior: 'always_invoice'
-  });
-
-  if (prorationAmount > 0) {
-    const conn2 = await pool.getConnection();
-    try {
-      await conn2.execute(
-        `INSERT INTO payments (customer_id, stripe_subscription_id, amount, tier_purchased, status)
-         VALUES (?, ?, ?, ?, 'completed')`,
-        [customerId, subscriptionId, prorationAmount, newTier]
-      );
-      console.log(`[STRIPE] Recorded upgrade payment: customer=${customerId} tier=${newTier} amount=${prorationAmount}`);
-    } finally {
-      conn2.release();
-    }
-  }
-
-  return { subscriptionId, currentPeriodEnd: new Date(updated.current_period_end * 1000) };
+  return createCheckoutSession(customerId, email, newTier, subscriptionId);
 }
 
 export async function previewRefund(customerId) {
@@ -455,30 +449,6 @@ export async function cancelAndRefund(customerId) {
   }
 
   return { refunded: true, amountDisplay };
-}
-
-export async function createBillingPortalSession(customerId) {
-  const connection = await pool.getConnection();
-  let stripeCustomerId;
-  try {
-    const [rows] = await connection.execute(
-      `SELECT stripe_customer_id FROM customers WHERE id = ?`,
-      [customerId]
-    );
-    stripeCustomerId = rows[0]?.stripe_customer_id;
-  } finally {
-    connection.release();
-  }
-
-  if (!stripeCustomerId) throw new Error('No Stripe customer found — please contact support');
-
-  const baseUrl = process.env.APP_URL || 'https://custmgr.aiprivatesearch.com';
-  const session = await stripe.billingPortal.sessions.create({
-    customer: stripeCustomerId,
-    return_url: `${baseUrl}/my-account.html`
-  });
-
-  return { url: session.url };
 }
 
 export async function getSubscriptionId(customerId) {

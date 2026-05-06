@@ -183,9 +183,6 @@
                 const cancelBtn = el('button', { flex: '1', padding: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '❌ Cancel & Refund');
                 cancelBtn.addEventListener('click', confirmCancelAndRefund);
                 btnRow.appendChild(cancelBtn);
-                const pmBtn = el('button', { flex: '1', padding: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }, '💳 Update Payment Method');
-                pmBtn.addEventListener('click', openBillingPortal);
-                btnRow.appendChild(pmBtn);
             }
             container.appendChild(btnRow);
 
@@ -202,24 +199,6 @@
             container.appendChild(dlBox);
         }
         
-        async function openBillingPortal() {
-            const sessionId = localStorage.getItem('sessionId');
-            try {
-                const response = await fetch(`${API_BASE}/api/payments/billing-portal`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${sessionId}` }
-                });
-                const data = await response.json();
-                if (response.ok && data.url) {
-                    window.location.href = data.url;
-                } else {
-                    showMessage(data.error || 'Unable to open billing portal. Please contact support.');
-                }
-            } catch (_e) {
-                showMessage('Network error. Please try again.');
-            }
-        }
-
         async function confirmCancelAndRefund() {
             const sessionId = localStorage.getItem('sessionId');
             const previewBox = document.getElementById('refundPreviewBox');

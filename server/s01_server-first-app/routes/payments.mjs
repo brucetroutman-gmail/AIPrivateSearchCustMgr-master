@@ -1,5 +1,5 @@
 import express from 'express';
-import { createCheckoutSession, handleWebhook, getPaymentHistory, updateSubscription, getSubscriptionId, previewUpgrade, getPrices, cancelAndRefund, previewRefund, createBillingPortalSession } from '../lib/payments/stripeService.mjs';
+import { createCheckoutSession, handleWebhook, getPaymentHistory, createUpgradeCheckoutSession, getSubscriptionId, previewUpgrade, getPrices, cancelAndRefund, previewRefund } from '../lib/payments/stripeService.mjs';
 
 const router = express.Router();
 
@@ -64,17 +64,17 @@ router.post('/preview-upgrade', async (req, res) => {
   }
 });
 
-// POST /api/payments/update-subscription — upgrade existing subscription
-router.post('/update-subscription', async (req, res) => {
+// POST /api/payments/create-upgrade-checkout — send existing subscriber to Stripe for upgrade
+router.post('/create-upgrade-checkout', async (req, res) => {
   try {
     const { tier } = req.body;
     if (!tier || ![1, 2, 3].includes(parseInt(tier))) {
       return res.status(400).json({ error: 'Valid tier (1, 2, or 3) is required' });
     }
-    const result = await updateSubscription(req.user.id, parseInt(tier));
-    res.json({ success: true, ...result });
+    const result = await createUpgradeCheckoutSession(req.user.id, req.user.email, parseInt(tier));
+    res.json({ success: true, url: result.url });
   } catch (error) {
-    console.error('[PAYMENTS] update-subscription error:', error);
+    console.error('[PAYMENTS] create-upgrade-checkout error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -103,17 +103,6 @@ router.get('/history/:customerId', async (req, res) => {
     res.json({ payments });
   } catch (error) {
     console.error('[PAYMENTS] history error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// POST /api/payments/billing-portal — redirect to Stripe customer portal to update payment method
-router.post('/billing-portal', async (req, res) => {
-  try {
-    const { url } = await createBillingPortalSession(req.user.id);
-    res.json({ success: true, url });
-  } catch (error) {
-    console.error('[PAYMENTS] billing-portal error:', error);
     res.status(500).json({ error: error.message });
   }
 });

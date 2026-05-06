@@ -283,20 +283,18 @@
 
             try {
                 if (hasSubscription) {
-                    const response = await fetch(`${API_BASE}/api/payments/update-subscription`, {
+                    const response = await fetch(`${API_BASE}/api/payments/create-upgrade-checkout`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sessionId}` },
                         body: JSON.stringify({ tier: newTier })
                     });
                     const data = await response.json();
-                    if (response.ok && data.success) {
-                        sessionStorage.setItem('tierChangeMsg', `Upgraded to ${TIER_NAMES[newTier]} successfully! Your account has been updated.`);
-                        sessionStorage.setItem('expectedTier', String(newTier));
-                        window.location.href = '/my-account.html';
+                    if (response.ok && data.url) {
+                        window.location.href = data.url;
                     } else {
-                        showError(data.error || 'Failed to update subscription. Please try again.');
+                        showError(data.error || 'Failed to start upgrade checkout. Please try again.');
                         btn.disabled = false;
-                        btn.textContent = 'Continue to Payment';
+                        btn.textContent = 'Confirm & Pay';
                     }
                 } else {
                     const response = await fetch(`${API_BASE}/api/payments/create-checkout`, {

@@ -2,13 +2,23 @@
 051. Go live with Stripe — see docs/system-documentation/aips-custmgr-live-stripe-setup.md
      - [ ] L1-L15 go-live checklist
      - [ ] S1-S15 sandbox testing checklist
-     - DB migrations required before deploy:
-       ALTER TABLE customers ADD COLUMN stripe_customer_id VARCHAR(255) NULL AFTER grace_period_ends;
-       ALTER TABLE payments ADD COLUMN stripe_payment_intent_id VARCHAR(255) NULL AFTER stripe_subscription_id;
+     - DB migrations required before deploy: --done
+       ALTER TABLE customers ADD COLUMN stripe_customer_id VARCHAR(255) NULL AFTER grace_period_ends; --done
+       ALTER TABLE payments ADD COLUMN stripe_payment_intent_id VARCHAR(255) NULL AFTER stripe_subscription_id;  --done
 
 =====================================================
 
-## v1.69 Release (Current)
+## v1.70 Release (Current)
+316. All purchases now route through Stripe Checkout — no direct subscription API updates --done
+317. createCheckoutSession now reuses stripe_customer_id to pre-fill saved card, no duplicate customers --done
+318. Replaced updateSubscription with createUpgradeCheckoutSession — passes oldSubscriptionId in metadata --done
+319. checkout.session.completed webhook cancels old subscription after new one activates on upgrade --done
+320. Removed billing portal — payment method updates handled via Stripe Checkout on next purchase --done
+321. Removed Update Payment Method button and openBillingPortal from my-account.html --done
+322. Removed createBillingPortalSession from stripeService.mjs and billing-portal route --done
+323. Full code review of Stripe processing — no issues found --done
+
+## v1.69 Release
 303. Added cancel & refund with prorated Stripe calculation (unused days / 365 × annual price) --done
 304. Added previewRefund endpoint — calculates refund amount without touching Stripe --done
 305. Added refund preview UI on my-account.html — inline breakdown with CSS classes, no inline styles --done
